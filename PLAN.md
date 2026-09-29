@@ -1,4 +1,4 @@
-# Cam Delay, verzögerte Videowiedergabe für Turmspringen
+# Cam Time, verzögerte Videowiedergabe für Turmspringen
 
 Diese Datei fasst die gesamte Planung zusammen. Alle hier aufgeführten Entscheidungen sind mit dem Nutzer abgestimmt. Offene Punkte stehen gesondert am Ende.
 
@@ -56,7 +56,7 @@ Das Tablet hat 16:10, der Fernseher 16:9. Die App zeigt das 16:9-Kamerabild übe
 ### Start und Speicherung
 
 - Alle Einstellungen werden lokal gespeichert
-- Beim Öffnen der App startet der Betrieb direkt mit den zuletzt verwendeten Einstellungen
+- Beim Öffnen der App erscheint immer der Einstellungsbildschirm mit den zuletzt verwendeten Einstellungen
 
 ### Betrieb
 
@@ -67,7 +67,7 @@ Das Tablet hat 16:10, der Fernseher 16:9. Die App zeigt das 16:9-Kamerabild übe
 - Farbcodes der Anzeige
   - Weiß bedeutet Normalbetrieb
   - Gelb bedeutet Überlast, also verlorene Bilder oder ein Encoder oder Decoder, der nicht hinterherkommt
-  - Rot bedeutet, dass die Kamera ausgefallen ist und neu verbunden wird
+  - Rot bedeutet, dass die Kamera ausgefallen ist und neu verbunden wird. Die Anzeige zeigt dabei weiter die Verzögerung, nur in Rot.
 - Zurück zu den Einstellungen durch langes Drücken von 3 Sekunden an beliebiger Stelle. Während des Drückens füllt sich ein kleiner Kreis. Loslassen vor Ablauf bricht ab. Kurzes Tippen und Doppeltippen lösen nichts aus, damit Wassertropfen keine Aktion auslösen.
 - Beim Wechsel in die Einstellungen läuft die Kamera weiter. Nach erneutem Start wird der Puffer neu gefüllt.
 

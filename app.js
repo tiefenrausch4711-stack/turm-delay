@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '12';
+const APP_VERSION = '13';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -25,7 +25,6 @@ const DEFAULTS = {
   height: 1080,
   fps: 30,
   delay: 20,
-  started: false,
   cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM } },
 };
 
@@ -529,7 +528,7 @@ function tick() {
   requestAnimationFrame(tick);
   const now = performance.now();
 
-  if (camState === 'lost') { setBadge('Kamera', 'bad'); return; }
+  if (camState === 'lost') { setBadge(settings.delay + ' s', 'bad'); return; }
   if (camState !== 'ok') { setBadge(String(settings.delay), ''); return; }   // Kamera startet noch
 
   const remaining = opStart === null ? settings.delay : settings.delay - (now - opStart) / 1000;
@@ -561,8 +560,6 @@ function tick() {
 
 function enterRun() {
   mode = 'run';
-  settings.started = true;
-  saveSettings();
   $('settings').classList.add('hidden');
   $('run').classList.remove('hidden');
   video.srcObject = null;
@@ -860,5 +857,5 @@ async function applyUpdateAtStart() {
   }
   requestWakeLock();
   restartCamera();
-  if (settings.started) enterRun(); else enterSettings();
+  enterSettings();
 })();

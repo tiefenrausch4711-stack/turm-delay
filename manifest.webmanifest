@@ -1,6 +1,6 @@
 {
-  "name": "Cam Delay",
-  "short_name": "Cam Delay",
+  "name": "Cam Time",
+  "short_name": "Cam Time",
   "description": "Verzögerte Kamerawiedergabe für das Training im Turmspringen",
   "start_url": "./",
   "scope": "./",
