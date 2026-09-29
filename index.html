@@ -23,7 +23,7 @@
       <div class="thirds"></div>
       <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
       <div class="hud top"><span id="hudState" class="state"><span class="dot"></span><span id="hudStateTxt">Start</span></span><span id="hudCam"></span></div>
-      <div class="hud bottom"><span id="hudRes">–</span><span id="hudExp"></span><span id="hudFps">–</span></div>
+      <div class="hud bottom"><span id="hudRes">–</span><span id="hudExp"></span><span id="hudFocus"></span><span id="hudFps">–</span></div>
       <div id="camMsg" class="hidden"></div>
     </div>
 
@@ -68,6 +68,19 @@
         <span class="lum dark"></span>
         <input type="range" id="ev" min="0" max="1000" step="1" value="600" aria-label="Helligkeit">
         <span class="lum bright"></span>
+      </div>
+    </div>
+
+    <div class="grp" id="focusGrp">
+      <div class="label"><span class="no">05</span>Fokus</div>
+      <div class="seg" id="segFocus">
+        <button data-v="auto">Auto</button>
+        <button data-v="manual">Manuell</button>
+      </div>
+      <div class="row" id="fdGrp">
+        <span class="end">nah</span>
+        <input type="range" id="fd" min="0" max="1000" step="1" value="1000" aria-label="Fokusabstand">
+        <span class="end">fern</span>
       </div>
     </div>
 

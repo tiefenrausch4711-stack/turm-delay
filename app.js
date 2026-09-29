@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '7';
+const APP_VERSION = '8';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -17,7 +17,7 @@ const r1 = x => Math.round(x * 10) / 10;
 
 // ---------- Einstellungen ----------
 
-const DEFAULT_CAM = { zoom: 1, exp: 'auto', ev: 0.6 };
+const DEFAULT_CAM = { zoom: 1, exp: 'auto', ev: 0.6, focus: 'auto', fd: 1 };
 const DEFAULTS = {
   facing: 'environment',
   height: 1080,
@@ -138,6 +138,7 @@ async function startCamera() {
   degraded = (st.height || 0) < settings.height;
   await applyZoom();
   await applyExposure();
+  await applyFocus();
   if (mode === 'settings') video.srcObject = stream;
   lastFrameAt = performance.now() + 2000;   // Anlaufzeit
   fpsCount = 0; fpsWindowStart = performance.now(); measuredFps = 0;
@@ -187,6 +188,8 @@ async function cameraLost(err) {
     await sleep(RECONNECT_MS);
     let ok = false;
     await camOp(async () => {
+      // Kamera wurde inzwischen anderweitig gestartet, etwa durch einen Kamerawechsel
+      if (camState === 'ok' && track && track.readyState === 'live') { ok = true; return; }
       try { await startCamera(); ok = true; }
       catch (e) { renderSettings(e); }
     });
@@ -227,6 +230,40 @@ const applyExposure = latestOnly(async () => {
   if (caps.iso) cons.iso = p.iso;
   await track.applyConstraints({ advanced: [cons] });
 });
+
+// Fokus. Der Regler geht linear vom kleinsten zum größten gemeldeten Abstand.
+const focusOk = () => !!(caps.focusMode && caps.focusMode.includes('manual')
+  && caps.focusDistance && caps.focusDistance.max > caps.focusDistance.min);
+
+function focusDist(fd) {
+  const r = caps.focusDistance;
+  return Math.round((r.min + (r.max - r.min) * clamp(fd, 0, 1)) * 100) / 100;
+}
+
+function fdFrom(d) {
+  const r = caps.focusDistance;
+  return clamp((d - r.min) / (r.max - r.min), 0, 1);
+}
+
+const applyFocus = latestOnly(async () => {
+  if (!track || !caps.focusMode) return;
+  const c = cam();
+  if (c.focus !== 'manual' || !focusOk()) {
+    if (caps.focusMode.includes('continuous')) await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+    return;
+  }
+  await track.applyConstraints({ advanced: [{ focusMode: 'manual', focusDistance: focusDist(c.fd) }] });
+});
+
+function focusText() {
+  if (!track || !focusOk()) return '';
+  const c = cam();
+  let d;
+  if (c.focus === 'manual') d = focusDist(c.fd);
+  else d = track.getSettings().focusDistance;
+  const val = d ? ' ' + String(Math.round(d * 10) / 10).replace('.', ',') + ' m' : '';
+  return 'Fokus ' + (c.focus === 'manual' ? 'Manuell' : 'Auto') + val;
+}
 
 // Ein Helligkeitswert von 0 bis 1 wird auf Belichtungszeit und ISO verteilt.
 // Die Skala ist logarithmisch über das Produkt aus Zeit und ISO.
@@ -605,6 +642,12 @@ function renderSettings(err) {
   const expOk = caps.exposureMode && caps.exposureMode.includes('manual') && caps.exposureTime;
   $('expGrp').classList.toggle('hidden', !expOk);
   $('evGrp').classList.toggle('hidden', !expOk || c.exp !== 'manual');
+
+  setSeg('segFocus', c.focus);
+  $('focusGrp').classList.toggle('hidden', !focusOk());
+  $('fdGrp').classList.toggle('hidden', !focusOk() || c.focus !== 'manual');
+  $('fd').value = Math.round(c.fd * 1000);
+  fillRange($('fd'));
   $('ev').value = Math.round(c.ev * 1000);
   fillRange($('ev'));
 
@@ -641,6 +684,7 @@ function renderCamInfo(err) {
     msg.classList.remove('hidden');
     $('hudRes').textContent = '–';
     $('hudExp').textContent = '';
+    $('hudFocus').textContent = '';
     fpsEl.textContent = '–';
     fpsEl.className = '';
     return;
@@ -657,6 +701,7 @@ function renderCamInfo(err) {
   stateTxt.textContent = 'Live';
   $('hudRes').textContent = `${st.width} × ${st.height}`;
   $('hudExp').textContent = expText();
+  $('hudFocus').textContent = focusText();
   fpsEl.textContent = measuredFps ? `${fmtNum(measuredFps)} / ${settings.fps} fps` : `– / ${settings.fps} fps`;
   fpsEl.className = low ? 'warn' : '';
 }
@@ -680,6 +725,17 @@ $('settings').addEventListener('click', e => {
       applyExposure();
       break;
     }
+    case 'segFocus': {
+      const c = cam();
+      // Beim Wechsel auf Manuell mit dem Abstand des Autofokus beginnen
+      if (v === 'manual' && c.focus === 'auto' && track && focusOk()) {
+        const d = track.getSettings().focusDistance;
+        if (d) c.fd = fdFrom(d);
+      }
+      c.focus = v;
+      applyFocus();
+      break;
+    }
   }
   saveSettings();
   renderSettings();
@@ -698,6 +754,14 @@ $('ev').addEventListener('input', e => {
   fillRange(e.target);
   applyExposure();
   $('hudExp').textContent = expText();
+  saveSettings();
+});
+
+$('fd').addEventListener('input', e => {
+  cam().fd = +e.target.value / 1000;
+  fillRange(e.target);
+  applyFocus();
+  $('hudFocus').textContent = focusText();
   saveSettings();
 });
 

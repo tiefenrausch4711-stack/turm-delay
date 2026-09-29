@@ -101,6 +101,8 @@ WebCodecs läuft laut Testseite mit Hardwarebeschleunigung. Der JPEG-Rückfallwe
 
 ### Belichtung und Fokus
 
+- Fokus Auto oder Manuell, gespeichert pro Kamera. Bei Manuell ein Regler von nah bis fern, linear über den gemeldeten Bereich von `focusDistance`. Der Wert steht unten in der Vorschau. Ein fester Fokus vermeidet Pumpen beim Eintauchen. Ob der gemeldete Bereich von 0,1 bis 3,1 wirklich Meter sind, ist auf dem Tablet zu prüfen.
+
 - Standard automatisch. Manuelle Belichtungszeit und ISO über `applyConstraints`, da beide Kameras `exposureMode manual`, `exposureTime` und `iso` melden. `exposureTime` ist in Einheiten von 100 Mikrosekunden angegeben.
 - Bei wenig Licht senkt die Automatik die Bildrate. Eine kurze manuelle Belichtung hält 30 Bilder pro Sekunde und verringert die Bewegungsunschärfe.
 
