@@ -27,7 +27,7 @@ Eine Anwendung, die das Kamerabild eines Tablets mit einstellbarer Verzögerung 
 - Progressive Web App in reinem HTML, CSS und JavaScript ohne Build-Werkzeuge und ohne externe Abhängigkeiten
 - Hosting über GitHub Pages, da Chrome den Kamerazugriff nur über HTTPS oder localhost erlaubt. Der Nutzer hat ein GitHub-Konto.
 - Einmalige Installation mit Internet über „Zum Startbildschirm hinzufügen“, danach vollständiger Offline-Betrieb
-- Service Worker cacht alle Dateien. Updates werden übernommen, wenn das Tablet wieder online ist.
+- Service Worker cacht alle Dateien und umgeht dabei den Browser-Zwischenspeicher. Beim App-Start sucht die App online kurz nach einer neuen Version, übernimmt sie und lädt einmal neu. Während des Betriebs wird nie neu geladen. Ohne Internet startet die App ohne Wartezeit mit der gespeicherten Version.
 - Web App Manifest mit `display: fullscreen` und `orientation: landscape`. Damit startet die App im Vollbild und im Querformat ohne Benutzergeste.
 
 ## Funktionen

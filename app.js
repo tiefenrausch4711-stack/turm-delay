@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '9';
+const APP_VERSION = '10';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -799,11 +799,34 @@ setInterval(requestWakeLock, 5000);
 
 // ---------- Start ----------
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(e => console.warn(e));
+// Beim Start nach einer neuen Version suchen und sie sofort übernehmen.
+// Das passiert nur hier, nie während des Betriebs. Ohne Internet gibt es keine Wartezeit.
+async function applyUpdateAtStart() {
+  if (!('serviceWorker' in navigator)) return false;
+  try {
+    const reg = await navigator.serviceWorker.register('sw.js');
+    if (navigator.onLine) await Promise.race([reg.update().catch(() => {}), sleep(3000)]);
+    const inst = reg.installing;
+    if (inst) {
+      await Promise.race([
+        new Promise(r => inst.addEventListener('statechange', () => {
+          if (inst.state === 'installed' || inst.state === 'redundant') r();
+        })),
+        sleep(8000),
+      ]);
+    }
+    if (reg.waiting && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+      reg.waiting.postMessage('skipWaiting');
+      return true;
+    }
+  } catch (e) { console.warn(e); }
+  return false;
 }
 
-(function init() {
+(async function init() {
+  // Nach dem Übernehmen lädt die Seite neu. Falls das ausbleibt, geht es nach kurzer Zeit normal weiter.
+  if (await applyUpdateAtStart()) await sleep(4000);
   renderSettings();
   if (!('MediaStreamTrackProcessor' in window) || !('VideoEncoder' in window)) {
     unsupported = true;
