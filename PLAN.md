@@ -40,7 +40,7 @@ Eine Anwendung, die das Kamerabild eines Tablets mit einstellbarer Verzögerung 
 - Zoomregler mit Live-Vorschau, gespeichert pro Kamera. Standard ist 1.
 - Belichtungszeit Auto, 1/100, 1/250 oder 1/500 Sekunde, gespeichert pro Kamera. Bei manueller Belichtung zusätzlich ein Regler für ISO.
 - Verzögerung von 1 bis 30 Sekunden in Sekundenschritten, als Schieberegler plus Tasten für plus und minus
-- Auflösung 720p oder 1080p. Die Bildrate ist fest 30, weil Chrome auf dem Tablet höchstens 30 anbietet und 25 keinen sichtbaren Vorteil bringt. Streifen durch Hallenlicht werden über die Belichtungszeit 1/100 vermieden.
+- Auflösung fest 1080p, passend zum Fernseher. Falls das Tablet über 3 Stunden überhitzt, wird 720p als Rückfall nachgerüstet. Die Bildrate ist fest 30, weil Chrome auf dem Tablet höchstens 30 anbietet und 25 keinen sichtbaren Vorteil bringt. Streifen durch Hallenlicht werden über die Belichtungszeit 1/100 vermieden.
 - Die App berechnet für die gewählte Kombination die maximal mögliche Verzögerung und begrenzt den Regler entsprechend
 - Anzeige der tatsächlich gelieferten Auflösung und gemessenen Bildrate unter der Vorschau
 - Startknopf
