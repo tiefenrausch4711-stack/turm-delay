@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2';
+const APP_VERSION = '3';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -32,6 +32,7 @@ function loadSettings() {
   try { s = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) {}
   return {
     ...DEFAULTS, ...s,
+    fps: 30,   // fest, Chrome liefert auf dem Tablet höchstens 30
     cams: {
       environment: { ...DEFAULT_CAM, ...(s.cams && s.cams.environment) },
       user: { ...DEFAULT_CAM, ...(s.cams && s.cams.user) },
@@ -545,7 +546,6 @@ function renderSettings(err) {
   setSeg('segMirror', c.mirror ? '1' : '0');
   setSeg('segExp', c.exp);
   setSeg('segRes', settings.height);
-  setSeg('segFps', settings.fps);
 
   const zoom = $('zoom');
   const zmin = caps.zoom ? caps.zoom.min : 1;
@@ -635,9 +635,6 @@ $('settings').addEventListener('click', e => {
       break;
     case 'segRes':
       if (settings.height !== +v) { settings.height = +v; restartCamera(); }
-      break;
-    case 'segFps':
-      if (settings.fps !== +v) { settings.fps = +v; restartCamera(); }
       break;
   }
   saveSettings();
