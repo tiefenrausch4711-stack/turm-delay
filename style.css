@@ -217,7 +217,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
 /* schmale oder hochkant gehaltene Bildschirme */
-@media (max-width: 900px), (orientation: portrait) {
+@media (max-width: 900px), (max-height: 760px), (orientation: portrait) {
   html, body { overflow: auto; }
   #settings { position: static; min-height: 100%; grid-template-columns: 1fr; grid-template-rows: auto; padding: 16px; }
   #pvWrap { max-height: none; }
