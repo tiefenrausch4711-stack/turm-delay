@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1';
+const APP_VERSION = '2';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -499,8 +499,44 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 
 // ---------- Oberfläche der Einstellungen ----------
 
+const fmtNum = x => String(r1(x)).replace('.', ',');
+const fmtZoom = z => (Number.isInteger(r1(z)) ? r1(z) + ',0' : fmtNum(z)) + '×';
+const CAM_LABEL = { environment: 'Rückseite', user: 'Vorderseite' };
+
 function setSeg(id, value) {
   for (const b of $(id).querySelectorAll('button')) b.classList.toggle('on', b.dataset.v === String(value));
+}
+
+// Füllt die Spur eines Schiebereglers bis zum Regler
+function fillRange(el) {
+  const min = +el.min, max = +el.max;
+  const p = max > min ? (el.value - min) / (max - min) * 100 : 0;
+  el.style.setProperty('--p', p + '%');
+}
+
+function buildTicks(max) {
+  const box = $('delayTicks');
+  if (box.dataset.max === String(max)) return;
+  box.dataset.max = max;
+  box.textContent = '';
+  for (let v = 1; v <= max; v++) {
+    const x = max > 1 ? (v - 1) / (max - 1) * 100 : 0;
+    const i = document.createElement('i');
+    const major = v === 1 || v % 5 === 0;
+    if (major) i.className = 'major';
+    i.style.left = x + '%';
+    box.append(i);
+    if (major) {
+      const b = document.createElement('b');
+      b.textContent = v;
+      b.style.left = x + '%';
+      box.append(b);
+    }
+  }
+}
+
+function renderSummary() {
+  $('startSum').textContent = `${settings.delay} s · ${settings.height}p${settings.fps}`;
 }
 
 function renderSettings(err) {
@@ -516,7 +552,8 @@ function renderSettings(err) {
   const zmax = caps.zoom ? Math.min(caps.zoom.max, 8) : 4;
   zoom.min = zmin; zoom.max = zmax;
   zoom.value = clamp(c.zoom, zmin, zmax);
-  $('zoomVal').textContent = r1(c.zoom) + 'x';
+  $('zoomVal').textContent = fmtZoom(c.zoom);
+  fillRange(zoom);
 
   const expOk = caps.exposureMode && caps.exposureMode.includes('manual') && caps.exposureTime;
   $('expGrp').classList.toggle('hidden', !expOk);
@@ -527,40 +564,61 @@ function renderSettings(err) {
   }
   $('iso').value = c.iso;
   $('isoVal').textContent = c.iso;
+  fillRange($('iso'));
 
   const md = maxDelay();
   if (settings.delay > md) settings.delay = md;
   $('delay').max = md;
+  buildTicks(md);
   $('delay').value = settings.delay;
-  $('delayVal').textContent = settings.delay + ' s';
-  $('version').textContent = 'Version ' + APP_VERSION;
+  $('delayVal').textContent = settings.delay;
+  fillRange($('delay'));
+  $('version').textContent = 'v' + APP_VERSION;
+  renderSummary();
 
   applyPreviewTransform();
   renderCamInfo(err);
 }
 
 let lastCamError = null;
+let unsupported = false;
 function renderCamInfo(err) {
   if (err) lastCamError = err;
   if (camState === 'ok') lastCamError = null;
   err = lastCamError;
-  const el = $('camInfo');
-  if (camState === 'lost' || err) {
-    let msg = 'Kamera wird neu verbunden';
-    if (err && err.name === 'NotAllowedError') msg = 'Kamerazugriff wurde nicht erlaubt. Bitte in den Chrome-Einstellungen für diese Seite freigeben.';
-    el.textContent = msg;
-    el.className = 'bad';
+  const state = $('hudState'), stateTxt = $('hudStateTxt'), msg = $('camMsg');
+  const fpsEl = $('hudFps');
+  $('hudCam').textContent = CAM_LABEL[settings.facing];
+
+  if (unsupported || camState === 'lost' || err) {
+    let text = 'Kamera wird neu verbunden';
+    if (unsupported) text = 'Dieser Browser unterstützt die nötigen Funktionen nicht.';
+    else if (err && err.name === 'NotAllowedError') text = 'Kamerazugriff wurde nicht erlaubt. Bitte in den Chrome-Einstellungen für diese Seite freigeben.';
+    state.className = 'state bad';
+    stateTxt.textContent = 'Getrennt';
+    msg.textContent = text;
+    msg.classList.remove('hidden');
+    $('hudRes').textContent = '–';
+    fpsEl.textContent = '–';
+    fpsEl.className = '';
     return;
   }
-  if (!track) { el.textContent = 'Kamera wird gestartet'; el.className = ''; return; }
+  msg.classList.add('hidden');
+  if (!track) {
+    state.className = 'state';
+    stateTxt.textContent = 'Start';
+    return;
+  }
   const st = track.getSettings();
-  const fpsTxt = measuredFps ? `, gemessen ${r1(measuredFps)} Bilder pro Sekunde` : '';
-  el.textContent = `Kamera liefert ${st.width} x ${st.height}${fpsTxt}`;
   const low = degraded || (measuredFps && measuredFps < settings.fps * 0.8);
-  el.className = low ? 'warn' : '';
+  state.className = 'state ' + (low ? 'warn' : 'ok');
+  stateTxt.textContent = 'Live';
+  $('hudRes').textContent = `${st.width} × ${st.height}`;
+  fpsEl.textContent = measuredFps ? `${fmtNum(measuredFps)} / ${settings.fps} fps` : `– / ${settings.fps} fps`;
+  fpsEl.className = low ? 'warn' : '';
 }
 
-$('panel').addEventListener('click', e => {
+$('settings').addEventListener('click', e => {
   const b = e.target.closest('.seg button');
   if (!b) return;
   const v = b.dataset.v;
@@ -588,7 +646,8 @@ $('panel').addEventListener('click', e => {
 
 $('zoom').addEventListener('input', e => {
   cam().zoom = +e.target.value;
-  $('zoomVal').textContent = r1(cam().zoom) + 'x';
+  $('zoomVal').textContent = fmtZoom(cam().zoom);
+  fillRange(e.target);
   applyZoom();
   saveSettings();
 });
@@ -596,6 +655,7 @@ $('zoom').addEventListener('input', e => {
 $('iso').addEventListener('input', e => {
   cam().iso = +e.target.value;
   $('isoVal').textContent = cam().iso;
+  fillRange(e.target);
   applyExposure();
   saveSettings();
 });
@@ -603,7 +663,9 @@ $('iso').addEventListener('input', e => {
 function setDelay(d) {
   settings.delay = clamp(d, 1, maxDelay());
   $('delay').value = settings.delay;
-  $('delayVal').textContent = settings.delay + ' s';
+  $('delayVal').textContent = settings.delay;
+  fillRange($('delay'));
+  renderSummary();
   saveSettings();
 }
 $('delay').addEventListener('input', e => setDelay(+e.target.value));
@@ -640,9 +702,9 @@ if ('serviceWorker' in navigator) {
 (function init() {
   renderSettings();
   if (!('MediaStreamTrackProcessor' in window) || !('VideoEncoder' in window)) {
+    unsupported = true;
     $('settings').classList.remove('hidden');
-    $('camInfo').textContent = 'Dieser Browser unterstützt die nötigen Funktionen nicht.';
-    $('camInfo').className = 'bad';
+    renderCamInfo();
     return;
   }
   requestWakeLock();
