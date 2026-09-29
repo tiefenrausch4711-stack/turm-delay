@@ -36,7 +36,7 @@ Eine Anwendung, die das Kamerabild eines Tablets mit einstellbarer Verzögerung 
 
 - Live-Vorschau der gewählten Kamera
 - Kamerawahl Rückkamera oder Frontkamera
-- Spiegelung als Schalter, gespeichert pro Kamera. Standard ist ungespiegelt bei beiden Kameras.
+- Keine Spiegelung. Das Bild wird immer so gezeigt, wie die Kamera filmt.
 - Zoomregler mit Live-Vorschau, gespeichert pro Kamera. Standard ist 1.
 - Belichtungszeit Auto, 1/100, 1/250 oder 1/500 Sekunde, gespeichert pro Kamera. Bei manueller Belichtung zusätzlich ein Regler für ISO.
 - Verzögerung von 1 bis 30 Sekunden in Sekundenschritten, als Schieberegler plus Tasten für plus und minus
@@ -47,7 +47,7 @@ Eine Anwendung, die das Kamerabild eines Tablets mit einstellbarer Verzögerung 
 
 ### Voreinstellungen beim allerersten Start
 
-Rückkamera, 1080p, 30 Bilder pro Sekunde, 20 Sekunden Verzögerung, Zoom 1, ungespiegelt, Belichtung automatisch.
+Rückkamera, 1080p, 30 Bilder pro Sekunde, 20 Sekunden Verzögerung, Zoom 1, Belichtung automatisch.
 
 ### Darstellung auf dem Fernseher
 

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '4';
+const APP_VERSION = '5';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -17,7 +17,7 @@ const r1 = x => Math.round(x * 10) / 10;
 
 // ---------- Einstellungen ----------
 
-const DEFAULT_CAM = { mirror: false, zoom: 1, exp: 'auto', iso: 400 };
+const DEFAULT_CAM = { zoom: 1, exp: 'auto', iso: 400 };
 const DEFAULTS = {
   facing: 'environment',
   height: 1080,
@@ -225,7 +225,7 @@ const digitalZoom = () => (caps.zoom ? 1 : cam().zoom);
 
 function applyPreviewTransform() {
   const z = digitalZoom();
-  video.style.transform = `scale(${cam().mirror ? -z : z}, ${z})`;
+  video.style.transform = `scale(${z})`;
 }
 
 // ---------- Aufnahme und Kodierung ----------
@@ -388,7 +388,6 @@ function drawFrame(f) {
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const z = digitalZoom();
   ctx.save();
-  if (cam().mirror) { ctx.translate(w, 0); ctx.scale(-1, 1); }
   if (z > 1) {
     const sw = w / z, sh = h / z;
     ctx.drawImage(f, (w - sw) / 2, (h - sh) / 2, sw, sh, 0, 0, w, h);
@@ -543,7 +542,6 @@ function renderSummary() {
 function renderSettings(err) {
   const c = cam();
   setSeg('segFacing', settings.facing);
-  setSeg('segMirror', c.mirror ? '1' : '0');
   setSeg('segExp', c.exp);
   setSeg('segRes', settings.height);
 
@@ -625,9 +623,6 @@ $('settings').addEventListener('click', e => {
   switch (b.parentElement.id) {
     case 'segFacing':
       if (settings.facing !== v) { settings.facing = v; restartCamera(); }
-      break;
-    case 'segMirror':
-      cam().mirror = v === '1';
       break;
     case 'segExp':
       cam().exp = v;
