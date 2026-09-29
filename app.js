@@ -1,12 +1,14 @@
 'use strict';
 
-const APP_VERSION = '11';
+const APP_VERSION = '12';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
 const MEMORY_BUDGET = 150 * 1024 * 1024;
 const WATCHDOG_MS = 2000;          // so lange ohne Bild gilt die Kamera als ausgefallen
 const RECONNECT_MS = 3000;
+const CONSTRAINT_TIMEOUT_MS = 3000; // so lange darf ein Kamerabefehl höchstens dauern
+const CONSTRAINT_GRACE_MS = 3000;   // so lange nach einem Kamerabefehl schweigt die Überwachung
 const LONG_PRESS_MS = 3000;
 const OVERLOAD_HOLD_MS = 5000;     // so lange bleibt die Anzeige nach einer Überlast gelb
 
@@ -76,6 +78,7 @@ let camState = 'off';          // off, ok, lost
 let stream = null, track = null, caps = {}, reader = null;
 let camGen = 0;
 let lastFrameAt = 0;
+let watchdogQuietUntil = 0;     // Überwachung ruht bis zu diesem Zeitpunkt
 let fpsCount = 0, fpsWindowStart = performance.now(), measuredFps = 0;
 let degraded = false;          // Kamera liefert weniger als eingestellt
 let overloadUntil = 0;
@@ -88,7 +91,7 @@ let buffer = [];               // { seq, ts, key, chunk, config }
 let nextSeq = 0;
 let feedSeq = null;            // nächster zu dekodierender Eintrag
 let frameQueue = [];           // dekodierte Bilder, die auf ihre Anzeigezeit warten
-let opStart = 0;
+let opStart = null;             // Zeitpunkt des ersten Bildes im Betrieb, vorher null
 let lastShownTs = 0;
 let lastTrimAt = 0;
 
@@ -97,6 +100,25 @@ const ctx = canvas.getContext('2d', { alpha: false });
 const video = $('pv');
 
 function markOverload() { overloadUntil = performance.now() + OVERLOAD_HOLD_MS; }
+
+function quietWatchdog(ms) {
+  watchdogQuietUntil = Math.max(watchdogQuietUntil, performance.now() + ms);
+}
+
+function withTimeout(p, ms) {
+  let t;
+  return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error('Zeitüberschreitung')), ms); })])
+    .finally(() => clearTimeout(t));
+}
+
+// Kamerabefehl mit Zeitgrenze. Android liefert während der Umstellung kurz keine Bilder,
+// deshalb ruht die Überwachung währenddessen und kurz danach.
+async function constrain(cons) {
+  if (!track) return;
+  quietWatchdog(CONSTRAINT_TIMEOUT_MS + CONSTRAINT_GRACE_MS);
+  try { await withTimeout(track.applyConstraints({ advanced: [cons] }), CONSTRAINT_TIMEOUT_MS); }
+  finally { quietWatchdog(CONSTRAINT_GRACE_MS); }
+}
 
 // ---------- Kamera ----------
 
@@ -128,6 +150,7 @@ async function getStream() {
 
 async function startCamera() {
   const gen = ++camGen;
+  quietWatchdog(10000);   // Kamerastart samt Einstellungen kann dauern
   const s = await getStream();
   if (gen !== camGen) { s.getTracks().forEach(t => t.stop()); return; }
   stream = s;
@@ -140,7 +163,8 @@ async function startCamera() {
   await applyExposure();
   await applyFocus();
   if (mode === 'settings') video.srcObject = stream;
-  lastFrameAt = performance.now() + 2000;   // Anlaufzeit
+  lastFrameAt = performance.now();
+  quietWatchdog(2000);   // Anlaufzeit bis zum ersten Bild
   fpsCount = 0; fpsWindowStart = performance.now(); measuredFps = 0;
   camState = 'ok';
   forceKey = true;
@@ -151,6 +175,7 @@ async function startCamera() {
 
 function stopCamera() {
   camGen++;
+  if (camState === 'ok') camState = 'off';
   if (reader) { reader.cancel().catch(() => {}); reader = null; }
   if (stream) stream.getTracks().forEach(t => t.stop());
   stream = null; track = null;
@@ -196,7 +221,7 @@ async function cameraLost(err) {
     if (ok) break;
   }
   reconnecting = false;
-  opStart = performance.now();
+  opStart = null;
   resetPlayback();
 }
 
@@ -213,7 +238,7 @@ function latestOnly(fn) {
 
 const applyZoom = latestOnly(async () => {
   if (track && caps.zoom) {
-    await track.applyConstraints({ advanced: [{ zoom: clamp(cam().zoom, caps.zoom.min, caps.zoom.max) }] });
+    await constrain({ zoom: clamp(cam().zoom, caps.zoom.min, caps.zoom.max) });
   }
   applyPreviewTransform();
 });
@@ -222,13 +247,13 @@ const applyExposure = latestOnly(async () => {
   if (!track || !caps.exposureMode) return;
   const c = cam();
   if (c.exp === 'auto' || !caps.exposureTime || !caps.exposureMode.includes('manual')) {
-    await track.applyConstraints({ advanced: [{ exposureMode: 'continuous' }] });
+    await constrain({ exposureMode: 'continuous' });
     return;
   }
   const p = expParams(c.ev);
   const cons = { exposureMode: 'manual', exposureTime: p.t };
   if (caps.iso) cons.iso = p.iso;
-  await track.applyConstraints({ advanced: [cons] });
+  await constrain(cons);
 });
 
 // Fokus. Der Regler geht linear vom kleinsten zum größten gemeldeten Abstand.
@@ -249,10 +274,10 @@ const applyFocus = latestOnly(async () => {
   if (!track || !caps.focusMode) return;
   const c = cam();
   if (c.focus !== 'manual' || !focusOk()) {
-    if (caps.focusMode.includes('continuous')) await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+    if (caps.focusMode.includes('continuous')) await constrain({ focusMode: 'continuous' });
     return;
   }
-  await track.applyConstraints({ advanced: [{ focusMode: 'manual', focusDistance: focusDist(c.fd) }] });
+  await constrain({ focusMode: 'manual', focusDistance: focusDist(c.fd) });
 });
 
 function focusText() {
@@ -261,7 +286,7 @@ function focusText() {
   let d;
   if (c.focus === 'manual') d = focusDist(c.fd);
   else d = track.getSettings().focusDistance;
-  const val = d ? ' ' + String(Math.round(d * 10) / 10).replace('.', ',') + ' m' : '';
+  const val = Number.isFinite(d) ? ' ' + String(Math.round(d * 10) / 10).replace('.', ',') + ' m' : '';
   return 'Fokus ' + (c.focus === 'manual' ? 'Manuell' : 'Auto') + val;
 }
 
@@ -273,8 +298,10 @@ const EXP_SHORT = 40;   // 1/250 s in Einheiten von 100 Mikrosekunden
 
 function expRange() {
   const T = caps.exposureTime, I = caps.iso;
-  const iMin = I ? I.min : 1, iMax = I ? I.max : 1;
-  return { tMin: T.min, tMax: T.max, iMin, iMax, pMin: T.min * iMin, pMax: T.max * iMax };
+  // Untergrenzen über 0, sonst liefert die logarithmische Skala ungültige Werte
+  const tMin = Math.max(T.min, 0.1), tMax = Math.max(T.max, tMin * 2);
+  const iMin = I ? Math.max(I.min, 1) : 1, iMax = I ? Math.max(I.max, iMin) : 1;
+  return { tMin, tMax, iMin, iMax, pMin: tMin * iMin, pMax: tMax * iMax };
 }
 
 function expParams(ev) {
@@ -332,6 +359,8 @@ function onCameraFrame(f) {
     if (mode === 'run' && measuredFps < settings.fps * 0.8) markOverload();
   }
   if (mode !== 'run' || camState !== 'ok') { f.close(); return; }
+  // Der Countdown beginnt erst mit dem ersten Kamerabild
+  if (opStart === null) opStart = now;
   encodeFrame(f, now);
 }
 
@@ -380,7 +409,7 @@ function onEncoded(chunk, meta) {
   if (meta && meta.decoderConfig) encConfig = { ...meta.decoderConfig, hardwareAcceleration: hwPref };
   if (mode !== 'run' || camState !== 'ok') return;
   const ts = chunk.timestamp / 1000;
-  if (ts < opStart) return;
+  if (opStart === null || ts < opStart) return;
   const key = chunk.type === 'key';
   if (buffer.length === 0 && !key) return;
   buffer.push({ seq: nextSeq++, ts, key, chunk, config: encConfig });
@@ -500,9 +529,10 @@ function tick() {
   requestAnimationFrame(tick);
   const now = performance.now();
 
-  if (camState !== 'ok') { setBadge('Kamera', 'bad'); return; }
+  if (camState === 'lost') { setBadge('Kamera', 'bad'); return; }
+  if (camState !== 'ok') { setBadge(String(settings.delay), ''); return; }   // Kamera startet noch
 
-  const remaining = settings.delay - (now - opStart) / 1000;
+  const remaining = opStart === null ? settings.delay : settings.delay - (now - opStart) / 1000;
   if (remaining > 0) { setBadge(String(Math.ceil(remaining)), ''); return; }
 
   const T = now - settings.delay * 1000;
@@ -537,7 +567,7 @@ function enterRun() {
   $('run').classList.remove('hidden');
   video.srcObject = null;
   resetPlayback();
-  opStart = performance.now();
+  opStart = null;
   overloadUntil = 0;
   requestAnimationFrame(tick);
 }
@@ -719,7 +749,8 @@ $('settings').addEventListener('click', e => {
       // Beim Wechsel auf Manuell mit der Helligkeit der Automatik beginnen
       if (v === 'manual' && c.exp === 'auto' && track && caps.exposureTime) {
         const st = track.getSettings();
-        if (st.exposureTime) c.ev = evFrom(st.exposureTime, st.iso || 1);
+        // Nur übernehmen, wenn Zeit und ISO bekannt sind, sonst bleibt der gespeicherte Wert
+        if (st.exposureTime && (st.iso || !caps.iso)) c.ev = evFrom(st.exposureTime, st.iso || 1);
       }
       c.exp = v;
       applyExposure();
@@ -782,7 +813,8 @@ $('start').addEventListener('click', () => { goFullscreen(); enterRun(); });
 
 setInterval(() => {
   const now = performance.now();
-  if (camState === 'ok' && track && (now - lastFrameAt > WATCHDOG_MS || track.readyState === 'ended')) cameraLost();
+  const stalled = now > watchdogQuietUntil && now - lastFrameAt > WATCHDOG_MS;
+  if (camState === 'ok' && track && (stalled || track.readyState === 'ended')) cameraLost();
   if (mode === 'settings') renderCamInfo();
 }, 500);
 
@@ -799,27 +831,19 @@ setInterval(requestWakeLock, 5000);
 
 // ---------- Start ----------
 
-// Beim Start nach einer neuen Version suchen und sie sofort übernehmen.
-// Das passiert nur hier, nie während des Betriebs. Ohne Internet gibt es keine Wartezeit.
+// Eine neue Version wird im Hintergrund geladen, während die App läuft.
+// Beim nächsten Start wird sie ohne Wartezeit übernommen, nie während des Betriebs.
 async function applyUpdateAtStart() {
   if (!('serviceWorker' in navigator)) return false;
   try {
     const reg = await navigator.serviceWorker.register('sw.js');
-    if (navigator.onLine) await Promise.race([reg.update().catch(() => {}), sleep(3000)]);
-    const inst = reg.installing;
-    if (inst) {
-      await Promise.race([
-        new Promise(r => inst.addEventListener('statechange', () => {
-          if (inst.state === 'installed' || inst.state === 'redundant') r();
-        })),
-        sleep(8000),
-      ]);
-    }
-    if (reg.waiting) {
+    // reg.active fehlt bei der allerersten Installation, dann ist nichts zu übernehmen
+    if (reg.waiting && reg.active) {
       navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
       reg.waiting.postMessage('skipWaiting');
       return true;
     }
+    if (navigator.onLine) reg.update().catch(() => {});
   } catch (e) { console.warn(e); }
   return false;
 }
