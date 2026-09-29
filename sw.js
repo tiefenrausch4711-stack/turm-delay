@@ -1,5 +1,5 @@
 // Bei jeder neuen Version VERSION erhöhen. Die neue Version wird beim nächsten App-Start übernommen.
-const VERSION = 'turm-delay-v13';
+const VERSION = 'turm-delay-v14';
 const FILES = ['./', 'index.html', 'app.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
