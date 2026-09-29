@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '10';
+const APP_VERSION = '11';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -815,7 +815,7 @@ async function applyUpdateAtStart() {
         sleep(8000),
       ]);
     }
-    if (reg.waiting && navigator.serviceWorker.controller) {
+    if (reg.waiting) {
       navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
       reg.waiting.postMessage('skipWaiting');
       return true;
