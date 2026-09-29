@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '6';
+const APP_VERSION = '7';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -17,7 +17,7 @@ const r1 = x => Math.round(x * 10) / 10;
 
 // ---------- Einstellungen ----------
 
-const DEFAULT_CAM = { zoom: 1, exp: 'auto', iso: 400 };
+const DEFAULT_CAM = { zoom: 1, exp: 'auto', ev: 0.6 };
 const DEFAULTS = {
   facing: 'environment',
   height: 1080,
@@ -46,6 +46,12 @@ function saveSettings() {
 }
 
 const settings = loadSettings();
+
+// Alte Stufen wie 1/250 aus früheren Versionen werden zu Manuell
+for (const f of ['environment', 'user']) {
+  const c = settings.cams[f];
+  if (c.exp !== 'auto' && c.exp !== 'manual') c.exp = 'manual';
+}
 const cam = () => settings.cams[settings.facing];
 const reqWidth = () => Math.round(settings.height * 16 / 9);
 const bitrateFor = h => (h >= 1080 ? 6e6 : 4e6);
@@ -216,10 +222,57 @@ const applyExposure = latestOnly(async () => {
     await track.applyConstraints({ advanced: [{ exposureMode: 'continuous' }] });
     return;
   }
-  const cons = { exposureMode: 'manual', exposureTime: clamp(+c.exp, caps.exposureTime.min, caps.exposureTime.max) };
-  if (caps.iso) cons.iso = clamp(c.iso, caps.iso.min, caps.iso.max);
+  const p = expParams(c.ev);
+  const cons = { exposureMode: 'manual', exposureTime: p.t };
+  if (caps.iso) cons.iso = p.iso;
   await track.applyConstraints({ advanced: [cons] });
 });
+
+// Ein Helligkeitswert von 0 bis 1 wird auf Belichtungszeit und ISO verteilt.
+// Die Skala ist logarithmisch über das Produkt aus Zeit und ISO.
+// Zuerst steigt die Zeit bis 1/250 s, dann der ISO-Wert bis zum Maximum, danach wieder die Zeit.
+// So bleibt die Belichtung für schnelle Bewegungen möglichst kurz.
+const EXP_SHORT = 40;   // 1/250 s in Einheiten von 100 Mikrosekunden
+
+function expRange() {
+  const T = caps.exposureTime, I = caps.iso;
+  const iMin = I ? I.min : 1, iMax = I ? I.max : 1;
+  return { tMin: T.min, tMax: T.max, iMin, iMax, pMin: T.min * iMin, pMax: T.max * iMax };
+}
+
+function expParams(ev) {
+  const r = expRange();
+  const p = r.pMin * Math.pow(r.pMax / r.pMin, clamp(ev, 0, 1));
+  const tA = clamp(EXP_SHORT, r.tMin, r.tMax);
+  let t, iso;
+  if (p <= tA * r.iMin) { t = p / r.iMin; iso = r.iMin; }
+  else if (p <= tA * r.iMax) { t = tA; iso = p / tA; }
+  else { t = p / r.iMax; iso = r.iMax; }
+  return { t: clamp(Math.round(t * 10) / 10, r.tMin, r.tMax), iso: Math.round(clamp(iso, r.iMin, r.iMax)) };
+}
+
+function evFrom(t, iso) {
+  const r = expRange();
+  const p = t * (caps.iso ? iso : 1);
+  return clamp(Math.log(p / r.pMin) / Math.log(r.pMax / r.pMin), 0, 1);
+}
+
+function fmtTime(u) {
+  const s = u / 10000;
+  return s >= 0.5 ? String(Math.round(s * 10) / 10).replace('.', ',') + ' s' : '1/' + Math.round(1 / s) + ' s';
+}
+
+function expText() {
+  if (!track || !caps.exposureMode) return '';
+  const c = cam();
+  let t, iso;
+  if (c.exp === 'manual' && caps.exposureTime) ({ t, iso } = expParams(c.ev));
+  else { const st = track.getSettings(); t = st.exposureTime; iso = st.iso; }
+  const parts = [c.exp === 'manual' ? 'Manuell' : 'Auto'];
+  if (t) parts.push(fmtTime(t));
+  if (iso) parts.push('ISO ' + Math.round(iso));
+  return parts.join(' · ');
+}
 
 // Digitaler Zoom nur, wenn die Kamera keinen eigenen Zoom meldet
 const digitalZoom = () => (caps.zoom ? 1 : cam().zoom);
@@ -536,10 +589,6 @@ function buildTicks(max) {
   }
 }
 
-function renderSummary() {
-  $('startSum').textContent = `${settings.delay} s · ${settings.height}p${settings.fps}`;
-}
-
 function renderSettings(err) {
   const c = cam();
   setSeg('segFacing', settings.facing);
@@ -555,14 +604,9 @@ function renderSettings(err) {
 
   const expOk = caps.exposureMode && caps.exposureMode.includes('manual') && caps.exposureTime;
   $('expGrp').classList.toggle('hidden', !expOk);
-  $('isoGrp').classList.toggle('hidden', !expOk || !caps.iso || c.exp === 'auto');
-  if (caps.iso) {
-    $('iso').min = caps.iso.min;
-    $('iso').max = caps.iso.max;
-  }
-  $('iso').value = c.iso;
-  $('isoVal').textContent = c.iso;
-  fillRange($('iso'));
+  $('evGrp').classList.toggle('hidden', !expOk || c.exp !== 'manual');
+  $('ev').value = Math.round(c.ev * 1000);
+  fillRange($('ev'));
 
   const md = maxDelay();
   if (settings.delay > md) settings.delay = md;
@@ -572,7 +616,6 @@ function renderSettings(err) {
   $('delayVal').textContent = settings.delay;
   fillRange($('delay'));
   $('version').textContent = 'v' + APP_VERSION;
-  renderSummary();
 
   applyPreviewTransform();
   renderCamInfo(err);
@@ -597,6 +640,7 @@ function renderCamInfo(err) {
     msg.textContent = text;
     msg.classList.remove('hidden');
     $('hudRes').textContent = '–';
+    $('hudExp').textContent = '';
     fpsEl.textContent = '–';
     fpsEl.className = '';
     return;
@@ -612,6 +656,7 @@ function renderCamInfo(err) {
   state.className = 'state ' + (low ? 'warn' : 'ok');
   stateTxt.textContent = 'Live';
   $('hudRes').textContent = `${st.width} × ${st.height}`;
+  $('hudExp').textContent = expText();
   fpsEl.textContent = measuredFps ? `${fmtNum(measuredFps)} / ${settings.fps} fps` : `– / ${settings.fps} fps`;
   fpsEl.className = low ? 'warn' : '';
 }
@@ -624,10 +669,17 @@ $('settings').addEventListener('click', e => {
     case 'segFacing':
       if (settings.facing !== v) { settings.facing = v; restartCamera(); }
       break;
-    case 'segExp':
-      cam().exp = v;
+    case 'segExp': {
+      const c = cam();
+      // Beim Wechsel auf Manuell mit der Helligkeit der Automatik beginnen
+      if (v === 'manual' && c.exp === 'auto' && track && caps.exposureTime) {
+        const st = track.getSettings();
+        if (st.exposureTime) c.ev = evFrom(st.exposureTime, st.iso || 1);
+      }
+      c.exp = v;
       applyExposure();
       break;
+    }
   }
   saveSettings();
   renderSettings();
@@ -641,11 +693,11 @@ $('zoom').addEventListener('input', e => {
   saveSettings();
 });
 
-$('iso').addEventListener('input', e => {
-  cam().iso = +e.target.value;
-  $('isoVal').textContent = cam().iso;
+$('ev').addEventListener('input', e => {
+  cam().ev = +e.target.value / 1000;
   fillRange(e.target);
   applyExposure();
+  $('hudExp').textContent = expText();
   saveSettings();
 });
 
@@ -654,7 +706,6 @@ function setDelay(d) {
   $('delay').value = settings.delay;
   $('delayVal').textContent = settings.delay;
   fillRange($('delay'));
-  renderSummary();
   saveSettings();
 }
 $('delay').addEventListener('input', e => setDelay(+e.target.value));

@@ -1,4 +1,4 @@
-# Projekt Verzögerte Videowiedergabe für Turmspringen
+# Cam Delay, verzögerte Videowiedergabe für Turmspringen
 
 Diese Datei fasst die gesamte Planung zusammen. Alle hier aufgeführten Entscheidungen sind mit dem Nutzer abgestimmt. Offene Punkte stehen gesondert am Ende.
 
@@ -38,7 +38,7 @@ Eine Anwendung, die das Kamerabild eines Tablets mit einstellbarer Verzögerung 
 - Kamerawahl Rückkamera oder Frontkamera
 - Keine Spiegelung. Das Bild wird immer so gezeigt, wie die Kamera filmt.
 - Zoomregler mit Live-Vorschau, gespeichert pro Kamera. Standard ist 1.
-- Belichtungszeit Auto, 1/100, 1/250 oder 1/500 Sekunde, gespeichert pro Kamera. Bei manueller Belichtung zusätzlich ein Regler für ISO.
+- Belichtung Auto oder Manuell, gespeichert pro Kamera. Bei Manuell ein Helligkeitsregler von stockdunkel bis weiß. Er verteilt die Helligkeit auf Belichtungszeit und ISO, wobei die Zeit möglichst kurz bleibt. Die aktuelle Belichtung steht unten in der Vorschau.
 - Verzögerung von 1 bis 30 Sekunden in Sekundenschritten, als Schieberegler plus Tasten für plus und minus
 - Auflösung fest 1080p, passend zum Fernseher. Falls das Tablet über 3 Stunden überhitzt, wird 720p als Rückfall nachgerüstet. Die Bildrate ist fest 30, weil Chrome auf dem Tablet höchstens 30 anbietet und 25 keinen sichtbaren Vorteil bringt. Streifen durch Hallenlicht werden über die Belichtungszeit 1/100 vermieden.
 - Die App berechnet für die gewählte Kombination die maximal mögliche Verzögerung und begrenzt den Regler entsprechend

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0d0f">
-<title>Turm Delay</title>
+<title>Cam Delay</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
@@ -13,7 +13,7 @@
 
 <div id="settings" class="hidden">
   <header class="bar">
-    <div class="mark"><span class="glyph"></span>Turm<b>Delay</b></div>
+    <div class="mark"><span class="glyph"></span>Cam<b>Delay</b></div>
     <div class="meta" id="version"></div>
   </header>
 
@@ -23,7 +23,7 @@
       <div class="thirds"></div>
       <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
       <div class="hud top"><span id="hudState" class="state"><span class="dot"></span><span id="hudStateTxt">Start</span></span><span id="hudCam"></span></div>
-      <div class="hud bottom"><span id="hudRes">–</span><span id="hudFps">–</span></div>
+      <div class="hud bottom"><span id="hudRes">–</span><span id="hudExp"></span><span id="hudFps">–</span></div>
       <div id="camMsg" class="hidden"></div>
     </div>
 
@@ -62,21 +62,16 @@
       <div class="label"><span class="no">04</span>Belichtung</div>
       <div class="seg" id="segExp">
         <button data-v="auto">Auto</button>
-        <button data-v="100">1/100</button>
-        <button data-v="40">1/250</button>
-        <button data-v="20">1/500</button>
+        <button data-v="manual">Manuell</button>
       </div>
-      <div class="row" id="isoGrp">
-        <span class="sub">ISO</span>
-        <input type="range" id="iso" min="50" max="1000" step="10" value="400">
-        <span class="val" id="isoVal">400</span>
+      <div class="row" id="evGrp">
+        <span class="lum dark"></span>
+        <input type="range" id="ev" min="0" max="1000" step="1" value="600" aria-label="Helligkeit">
+        <span class="lum bright"></span>
       </div>
     </div>
 
-    <button id="start">
-      <span class="go">Start</span>
-      <span class="sum" id="startSum"></span>
-    </button>
+    <button id="start"><span class="go">Start</span></button>
     <p class="hint">3 Sekunden gedrückt halten, um hierher zurückzukehren.</p>
   </aside>
 </div>
