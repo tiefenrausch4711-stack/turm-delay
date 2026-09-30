@@ -14,7 +14,7 @@
 <div id="settings" class="hidden">
   <header class="bar">
     <div class="mark"><span class="glyph"></span>Lag<b>Time</b><span class="tag">Test</span></div>
-    <div class="meta" id="version"></div>
+    <div class="barR"><div class="meta" id="version"></div><button class="gear" data-ui aria-label="Darstellung"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8.4" stroke-width="3.6" stroke-dasharray="3.2 3.4"/><circle cx="12" cy="12" r="6" stroke-width="3"/></svg></button></div>
   </header>
 
   <main class="left">
@@ -107,7 +107,7 @@
     <header class="bar">
       <button id="aBack" class="nav">‹ Einstellungen</button>
       <div class="mark"><span class="glyph"></span>Lag<b>Time</b><span class="tag">Test</span><span class="sep">Analyse</span></div>
-      <div class="meta" id="aStore"></div>
+      <div class="barR"><div class="meta" id="aStore"></div><button class="gear" data-ui aria-label="Darstellung"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8.4" stroke-width="3.6" stroke-dasharray="3.2 3.4"/><circle cx="12" cy="12" r="6" stroke-width="3"/></svg></button></div>
     </header>
     <div id="aGrid"></div>
     <p id="aEmpty" class="hidden">Noch keine Videos gespeichert.<br>Im Betrieb den Kreis unten links 1 Sekunde halten.</p>
@@ -153,6 +153,22 @@
       </div>
     </footer>
   </section>
+</div>
+
+<div id="uiDlg" class="hidden">
+  <div class="dlg" role="dialog" aria-label="Darstellung">
+    <h2>Darstellung</h2>
+    <div class="label">Farbe</div>
+    <div class="swatches" id="swatches">
+      <label class="sw custom" aria-label="Eigene Farbe"><input type="color" id="accPick"></label>
+    </div>
+    <div class="label">Modus</div>
+    <div class="seg" id="segTheme">
+      <button data-v="dark">Dunkel</button>
+      <button data-v="light">Hell</button>
+    </div>
+    <button id="uiDone">Fertig</button>
+  </div>
 </div>
 
 <script src="app.js"></script>

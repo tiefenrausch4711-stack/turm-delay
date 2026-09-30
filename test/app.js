@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '5';   // Stand der Test-App
+const APP_VERSION = '6';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -28,6 +28,7 @@ const DEFAULTS = {
   fps: 30,
   delay: 20,
   cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM } },
+  ui: { acc: '#37d3c4', theme: 'dark' },
 };
 
 function loadSettings() {
@@ -42,6 +43,7 @@ function loadSettings() {
       environment: { ...DEFAULT_CAM, ...(s.cams && s.cams.environment) },
       user: { ...DEFAULT_CAM, ...(s.cams && s.cams.user) },
     },
+    ui: { ...DEFAULTS.ui, ...s.ui },
   };
 }
 
@@ -857,6 +859,65 @@ $('delayMinus').addEventListener('click', () => setDelay(settings.delay - 1));
 $('delayPlus').addEventListener('click', () => setDelay(settings.delay + 1));
 
 $('start').addEventListener('click', () => { goFullscreen(); enterRun(); });
+
+// ---------- Darstellung ----------
+
+const ACCENTS = ['#37d3c4', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#ffffff'];
+const isHex = v => /^#[0-9a-f]{6}$/i.test(v);
+
+// Schrift auf der Akzentfarbe wird dunkel oder weiß, je nachdem was besser lesbar ist
+function inkFor(hex) {
+  const lin = c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = [1, 3, 5].map(i => lin(parseInt(hex.slice(i, i + 2), 16) / 255));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.179 ? '#0b0d0f' : '#ffffff';
+}
+
+function applyUi() {
+  const { acc, theme } = settings.ui;
+  const root = document.documentElement;
+  root.style.setProperty('--acc', acc);
+  root.style.setProperty('--acc-ink', inkFor(acc));
+  root.dataset.theme = theme;
+  document.querySelector('meta[name=theme-color]').content = theme === 'light' ? '#f2f4f6' : '#0b0d0f';
+  for (const sw of $('swatches').querySelectorAll('.sw')) {
+    const custom = sw.classList.contains('custom');
+    sw.classList.toggle('on', custom ? !ACCENTS.includes(acc) : sw.dataset.c === acc);
+  }
+  const custom = $('swatches').querySelector('.custom');
+  custom.style.setProperty('--c', ACCENTS.includes(acc) ? 'transparent' : acc);
+  $('accPick').value = acc;
+  setSeg('segTheme', theme);
+}
+
+function setUi(part) {
+  Object.assign(settings.ui, part);
+  saveSettings();
+  applyUi();
+}
+
+for (const c of ACCENTS) {
+  const b = document.createElement('button');
+  b.className = 'sw';
+  b.dataset.c = c;
+  b.style.setProperty('--c', c);
+  b.setAttribute('aria-label', 'Farbe ' + c);
+  if (c === '#ffffff') b.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.25)';
+  $('swatches').append(b);
+}
+$('swatches').addEventListener('click', e => {
+  const b = e.target.closest('button.sw');
+  if (b) setUi({ acc: b.dataset.c });
+});
+$('accPick').addEventListener('input', e => { if (isHex(e.target.value)) setUi({ acc: e.target.value.toLowerCase() }); });
+$('segTheme').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b) setUi({ theme: b.dataset.v });
+});
+document.addEventListener('click', e => { if (e.target.closest('[data-ui]')) $('uiDlg').classList.remove('hidden'); });
+$('uiDone').addEventListener('click', () => $('uiDlg').classList.add('hidden'));
+$('uiDlg').addEventListener('click', e => { if (e.target === $('uiDlg')) $('uiDlg').classList.add('hidden'); });
+if (!isHex(settings.ui.acc)) settings.ui.acc = DEFAULTS.ui.acc;
+applyUi();
 
 // ---------- Wache Kamera und wacher Bildschirm ----------
 
