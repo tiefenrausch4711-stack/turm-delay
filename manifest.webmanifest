@@ -1,6 +1,6 @@
 {
-  "name": "LagCam",
-  "short_name": "LagCam",
+  "name": "LagTime",
+  "short_name": "LagTime",
   "description": "Verzögerte Kamerawiedergabe für das Training im Turmspringen",
   "id": "./",
   "start_url": "./index.html",

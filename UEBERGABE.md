@@ -1,12 +1,12 @@
-# Übergabe LagCam
+# Übergabe LagTime
 
-Stand 30.09.2026. Normale App v0 mit Version 18, Test-App Stand 2. Beides lokal committet.
+Stand 30.09.2026. Normale App v0 mit Version 19, Test-App Stand 3. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
 ## Kurzfassung
 
-LagCam ist eine Progressive Web App für das Training im Turmspringen. Ein Samsung Galaxy Tab Active Pro (SM-T545, Android 11, Chrome 154) filmt den Sprung. Die App zeigt das Bild mit einstellbarer Verzögerung. Die Ausgabe geht per USB-C auf HDMI an einen 22-Zoll-Fernseher. Der Springer sieht seinen Sprung, nachdem er aus dem Becken gestiegen ist.
+LagTime ist eine Progressive Web App für das Training im Turmspringen. Ein Samsung Galaxy Tab Active Pro (SM-T545, Android 11, Chrome 154) filmt den Sprung. Die App zeigt das Bild mit einstellbarer Verzögerung. Die Ausgabe geht per USB-C auf HDMI an einen 22-Zoll-Fernseher. Der Springer sieht seinen Sprung, nachdem er aus dem Becken gestiegen ist.
 
 ## Zusammenarbeit
 
@@ -35,7 +35,7 @@ LagCam ist eine Progressive Web App für das Training im Turmspringen. Ein Samsu
 | `manifest.webmanifest` | Installation als App, Vollbild, Querformat |
 | `icon-192.png`, `icon-512.png` | Symbol, weiße Kamera mit einer Uhr als Objektiv auf dunkelblauem Grund |
 | `icon.py` | Erzeugt beide Symbole, Aufruf `python icon.py .` im Projektordner, braucht Pillow |
-| `test/` | Test-App „LagCam Test“, vollständige Kopie der App mit eigenen Änderungen |
+| `test/` | Test-App „LagTime Test“, vollständige Kopie der App mit eigenen Änderungen |
 | `test.html` | Testseite für die Fähigkeiten des Tablets |
 | `PLAN.md` | Vollständige Planung und Testergebnisse |
 | `.claude/launch.json` | Lokaler Vorschau-Server mit `python -m http.server 8765` |
@@ -44,8 +44,8 @@ LagCam ist eine Progressive Web App für das Training im Turmspringen. Ein Samsu
 
 Seit dem 30.09.2026 gibt es zwei Apps nebeneinander.
 
-- Die normale App „LagCam“ liegt im Hauptordner. Ihr Stand ist mit dem Git-Tag `v0` gesichert. Sie wird im Training genutzt und nur noch bei Fehlern geändert.
-- Die Test-App „LagCam Test“ liegt im Ordner `test/`. Neue Funktionen kommen nur dorthin. Sie hat ein oranges Symbol und in der App ein oranges Schild „Test“. Oben rechts steht „Stand“ mit ihrer Nummer.
+- Die normale App „LagTime“ liegt im Hauptordner. Ihr Stand ist mit dem Git-Tag `v0` gesichert. Sie wird im Training genutzt und nur noch bei Fehlern geändert.
+- Die Test-App „LagTime Test“ liegt im Ordner `test/`. Neue Funktionen kommen nur dorthin. Sie hat ein oranges Symbol und in der App ein oranges Schild „Test“. Oben rechts steht „Stand“ mit ihrer Nummer.
 - Beide teilen sich die Adresse von GitHub Pages, sind aber getrennt installiert. Die Test-App speichert ihre Einstellungen unter `lagcam.test.settings` und übernimmt beim ersten Start die Einstellungen der normalen App. Ihr Offline-Speicher heißt `lagcam-test-vN`, der der normalen App `turm-delay-vN`. Jeder Service Worker löscht nur Speicher mit dem eigenen Präfix.
 - Bei Änderungen an der Test-App `APP_VERSION` in `test/app.js` und `VERSION` in `test/sw.js` erhöhen.
 - Hat sich die Test-App bewährt, werden ihre Änderungen in den Hauptordner übernommen. Dabei `STORE_KEY`, `MAIN_STORE_KEY`, Präfix, Namen, Schild und Symbol der normalen App beibehalten. Danach den neuen Stand mit einem Tag wie `v1` sichern.
@@ -72,7 +72,7 @@ Technik in `test/analysis.js`
 - Gespeichert wird ohne neu zu kodieren. Beginn ist der Keyframe vor dem gezeigten Bild.
 - Vorschaubilder entstehen erst in der Liste, etwa 2 Sekunden vor dem Ende.
 - Die Wiedergabe dekodiert mit `VideoDecoder`. Ein Sprung auf ein Bild dekodiert ab dem Keyframe davor und endet mit `flush()`.
-- Export und Teilen verpacken die Daten mit einem eigenen kleinen MP4-Muxer. Dateiname `LagCam_<Datum>_<Nr>_<Name>.mp4`.
+- Export und Teilen verpacken die Daten mit einem eigenen kleinen MP4-Muxer. Dateiname `LagTime_<Datum>_<Nr>_<Name>.mp4`.
 - `navigator.storage.persist()` wird beim Start angefordert.
 - In der Vorschau im Claude-Desktop läuft `requestAnimationFrame` nicht, wenn das Fenster im Hintergrund liegt. Die Wiedergabe lässt sich dann durch direkte Aufrufe von `playerTick(performance.now())` prüfen.
 
@@ -85,7 +85,7 @@ Technik in `test/analysis.js`
 
 ## Aktueller Funktionsumfang
 
-- Der Name ist „LagCam“ ohne Leerzeichen. In der App steht er in Großbuchstaben als LAGCAM.
+- Der Name ist „LagTime“ ohne Leerzeichen. In der App steht er in Großbuchstaben als LAGTIME.
 
 - Beim Öffnen erscheint immer der Einstellungsbildschirm.
 - Die Vorschau ist gestaltet wie ein Kamerasucher, mit Eckmarken und Drittellinien. Unten stehen Auflösung, Belichtung, Fokus und die gemessene neben der eingestellten Bildrate.
@@ -113,10 +113,10 @@ Technik in `test/analysis.js`
 
 ## Offen und als Nächstes
 
-- Version 18 und die Test-App Stand 2 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Export und Teilen auf Android funktionieren.
+- Version 19 und die Test-App Stand 3 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Export und Teilen auf Android funktionieren.
 - `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
 - Prüfen, ob die Vorschau im Einstellungsbildschirm auf dem Tablet flüssig läuft. Der Nutzer hatte ein Hängen gemeldet. Das betraf wahrscheinlich die Vorschau im Claude-Desktop. Die möglichen Ursachen auf dem Tablet wurden in Version 12 behoben.
 - Test über 3 Stunden, mit Blick auf Wärme und Stabilität. Falls das Tablet überhitzt, wieder 720p als Rückfall einbauen.
 - Die Checkliste für das Tablet aus `PLAN.md` an den Nutzer übergeben. Sie betrifft „Nicht stören“, die Akkuoptimierung, die Helligkeit, das Ladekabel und die Wärme.
-- Alte Symbole wie „Cam Delay“, „Turm Delay“, „Cam Time“ oder „Lag Time“ auf dem Tablet entfernen und die App neu als „LagCam“ installieren.
+- Alte Symbole wie „Cam Delay“, „Turm Delay“, „Cam Time“, „Lag Time“ oder „LagCam“ auf dem Tablet entfernen und die App neu als „LagTime“ installieren.

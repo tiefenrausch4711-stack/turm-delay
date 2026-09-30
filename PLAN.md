@@ -1,4 +1,4 @@
-# LagCam, verzögerte Videowiedergabe für Turmspringen
+# LagTime, verzögerte Videowiedergabe für Turmspringen
 
 Diese Datei fasst die gesamte Planung zusammen. Alle hier aufgeführten Entscheidungen sind mit dem Nutzer abgestimmt. Offene Punkte stehen gesondert am Ende.
 
