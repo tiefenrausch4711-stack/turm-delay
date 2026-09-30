@@ -320,6 +320,9 @@ let pPlaying = false, pSpeed = 1;
 let pQueue = [];           // dekodierte Bilder während der Wiedergabe
 let pFeed = 0, pStartIdx = 0, pClock = null;
 let seekDragging = false;
+let loopA = -1, loopB = -1;  // Schleife von Bild loopA bis loopB, -1 bedeutet nicht gesetzt
+
+const loopOn = () => loopA >= 0 && loopB > loopA;
 
 const pCount = () => (pc ? pc.frames.length : 0);
 
@@ -350,8 +353,9 @@ function resetDecoder() {
 
 function drawPlayer(f) {
   const w = f.displayWidth, h = f.displayHeight;
-  if (pCanvas.width !== w || pCanvas.height !== h) { pCanvas.width = w; pCanvas.height = h; }
+  if (pCanvas.width !== w || pCanvas.height !== h) { pCanvas.width = w; pCanvas.height = h; layoutView(); }
   pctx.drawImage(f, 0, 0, w, h);
+  onPlayerFrameShown();
 }
 
 function onPlayerFrame(frame) {
@@ -386,15 +390,23 @@ function seek(i) {
   else done();
 }
 
+// Letztes Bild der Wiedergabe, bei aktiver Schleife deren Ende
+const playEnd = () => (loopOn() ? loopB : pCount() - 1);
+
+function startFeed(i) {
+  resetDecoder();
+  pFeed = keyBefore(i);
+  pStartIdx = i;
+  pClock = null;
+}
+
 function play() {
   if (!pc || pPlaying) return;
-  if (pPos >= pCount() - 1) pPos = 0;   // am Ende beginnt die Wiedergabe von vorn
+  if (loopOn() && (pPos < loopA || pPos >= loopB)) pPos = loopA;
+  else if (pPos >= pCount() - 1) pPos = 0;   // am Ende beginnt die Wiedergabe von vorn
   pTarget = -1; pPending = -1;
   pPlaying = true;
-  resetDecoder();
-  pFeed = keyBefore(pPos);
-  pStartIdx = pPos;
-  pClock = null;
+  startFeed(pPos);
   requestAnimationFrame(playerTick);
   updatePlayerUi();
 }
@@ -410,11 +422,11 @@ function pause() {
 function playerTick(now) {
   if (!pPlaying || !pc) return;
   requestAnimationFrame(playerTick);
-  const n = pCount();
+  const last = playEnd();
   try {
-    while (pdec && pFeed < n && pdec.decodeQueueSize < 4 && pQueue.length < 6) {
+    while (pdec && pFeed <= last && pdec.decodeQueueSize < 4 && pQueue.length < 6) {
       pdec.decode(chunkAt(pFeed++));
-      if (pFeed === n) pdec.flush().catch(() => {});
+      if (pFeed === last + 1) pdec.flush().catch(() => {});
     }
   } catch (e) { console.warn(e); pause(); return; }
   while (pQueue.length && pQueue[0].i < pStartIdx) pQueue.shift().frame.close();
@@ -432,8 +444,33 @@ function playerTick(now) {
     show.frame.close();
     updatePlayerUi();
   }
-  if (pPos >= n - 1) pause();
+  if (pPos >= last) {
+    if (loopOn()) startFeed(loopA);
+    else pause();
+  }
 }
+
+function renderLoop() {
+  const b = $('pLoop'), band = $('pBand');
+  const on = loopOn();
+  b.querySelector('b').textContent = loopA < 0 ? 'Anfang' : on ? 'Aus' : 'Ende';
+  b.classList.toggle('set', loopA >= 0);
+  const n = Math.max(1, pCount() - 1);
+  band.classList.toggle('hidden', loopA < 0);
+  band.style.setProperty('--a', (loopA < 0 ? 0 : loopA) / n);
+  band.style.setProperty('--w', on ? (loopB - loopA) / n : 0);
+}
+
+// Erster Druck setzt den Anfang, zweiter das Ende, dritter hebt die Schleife auf
+$('pLoop').addEventListener('click', () => {
+  if (!pc) return;
+  if (loopA < 0) loopA = pPos;
+  else if (!loopOn()) {
+    if (pPos === loopA) return;
+    [loopA, loopB] = [Math.min(loopA, pPos), Math.max(loopA, pPos)];
+  } else { loopA = -1; loopB = -1; }
+  renderLoop();
+});
 
 function setSpeed(s) {
   if (pPlaying && pClock) pClock = { wall: performance.now(), ts: pc.frames[pPos][0] };
@@ -461,8 +498,11 @@ async function openClip(c) {
   pc = { meta: c, cfg: d.cfg, frames: d.frames, bytes: new Uint8Array(await d.data.arrayBuffer()) };
   pIndex = new Map(pc.frames.map((f, i) => [f[0], i]));
   pPos = 0; pTarget = -1; pPending = -1; pPlaying = false;
+  loopA = -1; loopB = -1;
   $('aList').classList.add('hidden');
   $('aPlayer').classList.remove('hidden');
+  resetDrawing();
+  renderLoop();
   $('pTitle').textContent = `${dayLabel(c.day)} · Nr. ${c.nr} · ${hhmm(c.created)}`;
   $('pName').value = c.name || '';
   renderStar();

@@ -1,8 +1,8 @@
 // Bei jeder neuen Version VERSION erhöhen. Die neue Version wird beim nächsten App-Start übernommen.
 // Test-App. Nur eigene Speicher werden gelöscht, damit die normale App unberührt bleibt.
 const PREFIX = 'lagcam-test-';
-const VERSION = PREFIX + 'v3';
-const FILES = ['./', 'index.html', 'app.js', 'analysis.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+const VERSION = PREFIX + 'v4';
+const FILES = ['./', 'index.html', 'app.js', 'analysis.js', 'draw.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
   // cache: 'reload' umgeht den Browser-Zwischenspeicher, sonst landen alte Dateien im neuen Offline-Speicher
