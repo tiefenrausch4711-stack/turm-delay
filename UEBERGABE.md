@@ -1,12 +1,12 @@
-# Übergabe Lag Time
+# Übergabe LagCam
 
-Stand 30.09.2026, Version 15, lokal committet.
+Stand 30.09.2026, Version 16, lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
 ## Kurzfassung
 
-Lag Time ist eine Progressive Web App für das Training im Turmspringen. Ein Samsung Galaxy Tab Active Pro (SM-T545, Android 11, Chrome 154) filmt den Sprung. Die App zeigt das Bild mit einstellbarer Verzögerung. Die Ausgabe geht per USB-C auf HDMI an einen 22-Zoll-Fernseher. Der Springer sieht seinen Sprung, nachdem er aus dem Becken gestiegen ist.
+LagCam ist eine Progressive Web App für das Training im Turmspringen. Ein Samsung Galaxy Tab Active Pro (SM-T545, Android 11, Chrome 154) filmt den Sprung. Die App zeigt das Bild mit einstellbarer Verzögerung. Die Ausgabe geht per USB-C auf HDMI an einen 22-Zoll-Fernseher. Der Springer sieht seinen Sprung, nachdem er aus dem Becken gestiegen ist.
 
 ## Zusammenarbeit
 
@@ -32,7 +32,8 @@ Lag Time ist eine Progressive Web App für das Training im Turmspringen. Ein Sam
 | `app.js` | Gesamte Logik mit Kamera, Kodierung, Puffer, Wiedergabe, Überwachung und Oberfläche |
 | `sw.js` | Service Worker für den Offline-Betrieb und für Updates |
 | `manifest.webmanifest` | Installation als App, Vollbild, Querformat |
-| `icon-192.png`, `icon-512.png` | Symbol, weiße Uhr auf dunkelblauem Grund |
+| `icon-192.png`, `icon-512.png` | Symbol, weiße Kamera mit einer Uhr als Objektiv auf dunkelblauem Grund |
+| `icon.py` | Erzeugt beide Symbole, Aufruf `python icon.py .` im Projektordner, braucht Pillow |
 | `test.html` | Testseite für die Fähigkeiten des Tablets |
 | `PLAN.md` | Vollständige Planung und Testergebnisse |
 | `.claude/launch.json` | Lokaler Vorschau-Server mit `python -m http.server 8765` |
@@ -45,6 +46,8 @@ Lag Time ist eine Progressive Web App für das Training im Turmspringen. Ein Sam
 4. Auf dem Tablet die App einmal öffnen. Die neue Version wird dabei im Hintergrund geladen. Beim nächsten Öffnen ist sie aktiv. Die Versionsnummer steht oben rechts im Einstellungsbildschirm.
 
 ## Aktueller Funktionsumfang
+
+- Der Name ist „LagCam“ ohne Leerzeichen. In der App steht er in Großbuchstaben als LAGCAM.
 
 - Beim Öffnen erscheint immer der Einstellungsbildschirm.
 - Die Vorschau ist gestaltet wie ein Kamerasucher, mit Eckmarken und Drittellinien. Unten stehen Auflösung, Belichtung, Fokus und die gemessene neben der eingestellten Bildrate.
@@ -72,9 +75,9 @@ Lag Time ist eine Progressive Web App für das Training im Turmspringen. Ein Sam
 
 ## Offen und als Nächstes
 
-- Version 15 muss noch hochgeladen und auf dem Tablet geprüft werden.
+- Version 16 muss noch hochgeladen und auf dem Tablet geprüft werden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
 - Prüfen, ob die Vorschau im Einstellungsbildschirm auf dem Tablet flüssig läuft. Der Nutzer hatte ein Hängen gemeldet. Das betraf wahrscheinlich die Vorschau im Claude-Desktop. Die möglichen Ursachen auf dem Tablet wurden in Version 12 behoben.
 - Test über 3 Stunden, mit Blick auf Wärme und Stabilität. Falls das Tablet überhitzt, wieder 720p als Rückfall einbauen.
 - Die Checkliste für das Tablet aus `PLAN.md` an den Nutzer übergeben. Sie betrifft „Nicht stören“, die Akkuoptimierung, die Helligkeit, das Ladekabel und die Wärme.
-- Alte Symbole wie „Cam Delay“ oder „Turm Delay“ auf dem Tablet entfernen und die App neu als „Lag Time“ installieren.
+- Alte Symbole wie „Cam Delay“, „Turm Delay“, „Cam Time“ oder „Lag Time“ auf dem Tablet entfernen und die App neu als „LagCam“ installieren.
