@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '14';
+const APP_VERSION = '15';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -264,11 +264,6 @@ function focusDist(fd) {
   return Math.round((r.min + (r.max - r.min) * clamp(fd, 0, 1)) * 100) / 100;
 }
 
-function fdFrom(d) {
-  const r = caps.focusDistance;
-  return clamp((d - r.min) / (r.max - r.min), 0, 1);
-}
-
 const applyFocus = latestOnly(async () => {
   if (!track || !caps.focusMode) return;
   const c = cam();
@@ -279,14 +274,13 @@ const applyFocus = latestOnly(async () => {
   await constrain({ focusMode: 'manual', focusDistance: focusDist(c.fd) });
 });
 
+// Chrome meldet bei Automatik nur den zuletzt gesetzten Wert, nicht den tatsächlichen.
+// Deshalb steht bei Automatik kein Zahlenwert.
 function focusText() {
   if (!track || !focusOk()) return '';
-  const c = cam();
-  let d;
-  if (c.focus === 'manual') d = focusDist(c.fd);
-  else d = track.getSettings().focusDistance;
-  const val = Number.isFinite(d) ? ' ' + String(Math.round(d * 10) / 10).replace('.', ',') + ' m' : '';
-  return 'Fokus ' + (c.focus === 'manual' ? 'Manuell' : 'Auto') + val;
+  if (cam().focus !== 'manual') return 'Fokus Auto';
+  const d = focusDist(cam().fd);
+  return 'Fokus Manuell ' + String(Math.round(d * 10) / 10).replace('.', ',') + ' m';
 }
 
 // Ein Helligkeitswert von 0 bis 1 wird auf Belichtungszeit und ISO verteilt.
@@ -314,12 +308,6 @@ function expParams(ev) {
   return { t: clamp(Math.round(t * 10) / 10, r.tMin, r.tMax), iso: Math.round(clamp(iso, r.iMin, r.iMax)) };
 }
 
-function evFrom(t, iso) {
-  const r = expRange();
-  const p = t * (caps.iso ? iso : 1);
-  return clamp(Math.log(p / r.pMin) / Math.log(r.pMax / r.pMin), 0, 1);
-}
-
 function fmtTime(u) {
   const s = u / 10000;
   return s >= 0.5 ? String(Math.round(s * 10) / 10).replace('.', ',') + ' s' : '1/' + Math.round(1 / s) + ' s';
@@ -327,13 +315,11 @@ function fmtTime(u) {
 
 function expText() {
   if (!track || !caps.exposureMode) return '';
-  const c = cam();
-  let t, iso;
-  if (c.exp === 'manual' && caps.exposureTime) ({ t, iso } = expParams(c.ev));
-  else { const st = track.getSettings(); t = st.exposureTime; iso = st.iso; }
-  const parts = [c.exp === 'manual' ? 'Manuell' : 'Auto'];
-  if (t) parts.push(fmtTime(t));
-  if (iso) parts.push('ISO ' + Math.round(iso));
+  // Wie beim Fokus stehen Zahlenwerte nur bei manueller Belichtung
+  if (cam().exp !== 'manual' || !caps.exposureTime) return 'Auto';
+  const { t, iso } = expParams(cam().ev);
+  const parts = ['Manuell', fmtTime(t)];
+  if (caps.iso) parts.push('ISO ' + iso);
   return parts.join(' · ');
 }
 
@@ -742,25 +728,12 @@ $('settings').addEventListener('click', e => {
       if (settings.facing !== v) { settings.facing = v; restartCamera(); }
       break;
     case 'segExp': {
-      const c = cam();
-      // Beim Wechsel auf Manuell mit der Helligkeit der Automatik beginnen
-      if (v === 'manual' && c.exp === 'auto' && track && caps.exposureTime) {
-        const st = track.getSettings();
-        // Nur übernehmen, wenn Zeit und ISO bekannt sind, sonst bleibt der gespeicherte Wert
-        if (st.exposureTime && (st.iso || !caps.iso)) c.ev = evFrom(st.exposureTime, st.iso || 1);
-      }
-      c.exp = v;
+      cam().exp = v;
       applyExposure();
       break;
     }
     case 'segFocus': {
-      const c = cam();
-      // Beim Wechsel auf Manuell mit dem Abstand des Autofokus beginnen
-      if (v === 'manual' && c.focus === 'auto' && track && focusOk()) {
-        const d = track.getSettings().focusDistance;
-        if (d) c.fd = fdFrom(d);
-      }
-      c.focus = v;
+      cam().focus = v;
       applyFocus();
       break;
     }
