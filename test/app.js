@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '6';   // Stand der Test-App
+const APP_VERSION = '7';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -10,7 +10,7 @@ const WATCHDOG_MS = 2000;          // so lange ohne Bild gilt die Kamera als aus
 const RECONNECT_MS = 3000;
 const CONSTRAINT_TIMEOUT_MS = 3000; // so lange darf ein Kamerabefehl höchstens dauern
 const CONSTRAINT_GRACE_MS = 3000;   // so lange nach einem Kamerabefehl schweigt die Überwachung
-const LONG_PRESS_MS = 3000;
+const LONG_PRESS_MS = 2000;
 const SAVE_PRESS_MS = 1000;       // so lange muss der Speicherknopf gehalten werden
 const OVERLOAD_HOLD_MS = 5000;     // so lange bleibt die Anzeige nach einer Überlast gelb
 
@@ -862,7 +862,7 @@ $('start').addEventListener('click', () => { goFullscreen(); enterRun(); });
 
 // ---------- Darstellung ----------
 
-const ACCENTS = ['#37d3c4', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#ffffff'];
+const ACCENTS = ['#37d3c4', '#3b82f6', '#22c55e', '#ffffff'];
 const isHex = v => /^#[0-9a-f]{6}$/i.test(v);
 
 // Schrift auf der Akzentfarbe wird dunkel oder weiß, je nachdem was besser lesbar ist
@@ -883,9 +883,7 @@ function applyUi() {
     const custom = sw.classList.contains('custom');
     sw.classList.toggle('on', custom ? !ACCENTS.includes(acc) : sw.dataset.c === acc);
   }
-  const custom = $('swatches').querySelector('.custom');
-  custom.style.setProperty('--c', ACCENTS.includes(acc) ? 'transparent' : acc);
-  $('accPick').value = acc;
+  $('accCustom').style.setProperty('--c', ACCENTS.includes(acc) ? 'transparent' : acc);
   setSeg('segTheme', theme);
 }
 
@@ -906,16 +904,88 @@ for (const c of ACCENTS) {
 }
 $('swatches').addEventListener('click', e => {
   const b = e.target.closest('button.sw');
-  if (b) setUi({ acc: b.dataset.c });
+  if (!b) return;
+  if (b.id === 'accCustom') openPicker();
+  else setUi({ acc: b.dataset.c });
 });
-$('accPick').addEventListener('input', e => { if (isHex(e.target.value)) setUi({ acc: e.target.value.toLowerCase() }); });
+
+// Eigener Farbwähler mit Fläche für Sättigung und Helligkeit und einem Regler für den Farbton
+let hsv = [0, 0, 1];
+
+function hexToHsv(hex) {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+  let h = 0;
+  if (d) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+  }
+  return [(h * 60 + 360) % 360, max ? d / max : 0, max];
+}
+
+function hsvToHex([h, s, v]) {
+  const f = n => {
+    const k = (n + h / 60) % 6;
+    return v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
+  };
+  return '#' + [f(5), f(3), f(1)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join('');
+}
+
+function renderPicker() {
+  const hex = hsvToHex(hsv);
+  $('pickSv').style.setProperty('--h', hsv[0]);
+  Object.assign($('pickSvKnob').style, { left: hsv[1] * 100 + '%', top: (1 - hsv[2]) * 100 + '%' });
+  $('pickSvKnob').style.setProperty('--c', hex);
+  $('pickHueKnob').style.left = hsv[0] / 360 * 100 + '%';
+  $('pickHueKnob').style.setProperty('--c', `hsl(${hsv[0]} 100% 50%)`);
+  $('pickPrev').style.setProperty('--c', hex);
+  $('pickHex').textContent = hex;
+}
+
+function openPicker() {
+  hsv = hexToHsv(settings.ui.acc);
+  $('uiMain').classList.add('hidden');
+  $('uiPick').classList.remove('hidden');
+  renderPicker();
+}
+
+function closePicker() {
+  $('uiPick').classList.add('hidden');
+  $('uiMain').classList.remove('hidden');
+}
+
+// Ziehen auf Fläche und Regler, die Farbe gilt sofort
+function dragArea(el, onPos) {
+  const at = e => {
+    const r = el.getBoundingClientRect();
+    onPos(clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1));
+    renderPicker();
+    setUi({ acc: hsvToHex(hsv) });
+  };
+  let down = null;
+  el.addEventListener('pointerdown', e => {
+    down = e.pointerId;
+    try { el.setPointerCapture(e.pointerId); } catch (x) {}
+    at(e);
+  });
+  el.addEventListener('pointermove', e => { if (down === e.pointerId) at(e); });
+  for (const type of ['pointerup', 'pointercancel']) el.addEventListener(type, e => { if (down === e.pointerId) down = null; });
+}
+dragArea($('pickSv'), (x, y) => { hsv[1] = x; hsv[2] = 1 - y; });
+dragArea($('pickHue'), x => { hsv[0] = Math.min(x * 360, 359.9); });
+$('pickDone').addEventListener('click', closePicker);
 $('segTheme').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (b) setUi({ theme: b.dataset.v });
 });
 document.addEventListener('click', e => { if (e.target.closest('[data-ui]')) $('uiDlg').classList.remove('hidden'); });
-$('uiDone').addEventListener('click', () => $('uiDlg').classList.add('hidden'));
-$('uiDlg').addEventListener('click', e => { if (e.target === $('uiDlg')) $('uiDlg').classList.add('hidden'); });
+function closeUi() {
+  closePicker();
+  $('uiDlg').classList.add('hidden');
+}
+$('uiDone').addEventListener('click', closeUi);
+$('uiDlg').addEventListener('click', e => { if (e.target === $('uiDlg')) closeUi(); });
 if (!isHex(settings.ui.acc)) settings.ui.acc = DEFAULTS.ui.acc;
 applyUi();
 

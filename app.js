@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '20';
+const APP_VERSION = '21';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -9,7 +9,7 @@ const WATCHDOG_MS = 2000;          // so lange ohne Bild gilt die Kamera als aus
 const RECONNECT_MS = 3000;
 const CONSTRAINT_TIMEOUT_MS = 3000; // so lange darf ein Kamerabefehl höchstens dauern
 const CONSTRAINT_GRACE_MS = 3000;   // so lange nach einem Kamerabefehl schweigt die Überwachung
-const LONG_PRESS_MS = 3000;
+const LONG_PRESS_MS = 2000;
 const OVERLOAD_HOLD_MS = 5000;     // so lange bleibt die Anzeige nach einer Überlast gelb
 
 const $ = id => document.getElementById(id);

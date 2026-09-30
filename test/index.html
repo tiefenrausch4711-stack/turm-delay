@@ -88,7 +88,7 @@
       <button id="analyse">Analyse</button>
       <button id="start"><span class="go">Start</span></button>
     </div>
-    <p class="hint">Kreis unten links 1 s halten speichert. 3 s halten führt zurück.</p>
+    <p class="hint">Kreis unten links 1 s halten speichert. 2 s halten führt zurück.</p>
   </aside>
 </div>
 
@@ -157,17 +157,26 @@
 
 <div id="uiDlg" class="hidden">
   <div class="dlg" role="dialog" aria-label="Darstellung">
-    <h2>Darstellung</h2>
-    <div class="label">Farbe</div>
-    <div class="swatches" id="swatches">
-      <label class="sw custom" aria-label="Eigene Farbe"><input type="color" id="accPick"></label>
+    <div id="uiMain">
+      <h2>Darstellung</h2>
+      <div class="label">Farbe</div>
+      <div class="swatches" id="swatches">
+        <button class="sw custom" id="accCustom" aria-label="Eigene Farbe"></button>
+      </div>
+      <div class="label">Modus</div>
+      <div class="seg" id="segTheme">
+        <button data-v="dark">Dunkel</button>
+        <button data-v="light">Hell</button>
+      </div>
+      <button id="uiDone" class="dlgBtn">Fertig</button>
     </div>
-    <div class="label">Modus</div>
-    <div class="seg" id="segTheme">
-      <button data-v="dark">Dunkel</button>
-      <button data-v="light">Hell</button>
+    <div id="uiPick" class="hidden">
+      <h2>Eigene Farbe</h2>
+      <div class="sv" id="pickSv"><i class="knob" id="pickSvKnob"></i></div>
+      <div class="hue" id="pickHue"><i class="knob" id="pickHueKnob"></i></div>
+      <div class="pickRow"><i class="pickPrev" id="pickPrev"></i><span id="pickHex"></span></div>
+      <button id="pickDone" class="dlgBtn">Übernehmen</button>
     </div>
-    <button id="uiDone">Fertig</button>
   </div>
 </div>
 

@@ -274,7 +274,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #ring circle { fill: none; stroke-width: 5; }
 #ring .track { fill: rgba(0, 0, 0, 0.45); stroke: rgba(255, 255, 255, 0.2); }
 #ring .prog { stroke: var(--acc); stroke-linecap: round; stroke-dasharray: 314.2; stroke-dashoffset: 314.2; }
-#ring.go .prog { transition: stroke-dashoffset 3s linear; stroke-dashoffset: 0; }
+#ring.go .prog { transition: stroke-dashoffset 2s linear; stroke-dashoffset: 0; }
 
 /* Speicherknopf. Beim Halten verschwindet das Schwarz im Kreis. */
 #saveBtn {
@@ -424,9 +424,34 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
     radial-gradient(circle, var(--c, transparent) 0 42%, transparent 44%),
     conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444);
 }
-.sw.custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-#uiDone {
+#uiMain, #uiPick { display: flex; flex-direction: column; gap: 14px; }
+.dlgBtn {
   margin-top: 6px; min-height: 52px; border-radius: var(--r);
   background: var(--acc); color: var(--acc-ink);
   font-size: 16px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
 }
+
+/* Eigener Farbwähler, folgt dem Hell- und Dunkelmodus */
+.sv, .hue { position: relative; touch-action: none; cursor: pointer; }
+.sv {
+  aspect-ratio: 16 / 10; border-radius: 10px;
+  background:
+    linear-gradient(to top, #000, transparent),
+    linear-gradient(to right, #fff, hsl(var(--h, 175) 100% 50%));
+  border: 1px solid var(--line-2);
+}
+.hue {
+  height: 32px; border-radius: 16px;
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  border: 1px solid var(--line-2);
+}
+.knob {
+  position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%;
+  border: 3px solid #fff; background: var(--c);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.hue .knob { top: 50%; }
+.pickRow { display: flex; align-items: center; gap: 14px; }
+.pickPrev { width: 44px; height: 44px; border-radius: 50%; background: var(--c); border: 1px solid var(--line-2); }
+#pickHex { font: 16px var(--mono); color: var(--mut); letter-spacing: 0.06em; text-transform: uppercase; }
