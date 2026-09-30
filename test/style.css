@@ -353,12 +353,12 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #pView { position: absolute; transform-origin: 0 0; }
 #pView canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 #pTools {
-  flex: 0 0 78px; display: flex; flex-direction: column; gap: 4px; padding: 6px;
+  flex: 0 0 78px; display: flex; flex-direction: column; gap: 3px; padding: 6px;
   background: var(--bg); border-left: 1px solid var(--line); overflow-y: auto;
 }
 .tl {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  min-height: 60px; border-radius: 8px; color: var(--mut); font-size: 11px; letter-spacing: 0.04em;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  flex: 0 0 auto; min-height: 50px; border-radius: 8px; color: var(--mut); font-size: 11px; letter-spacing: 0.04em;
 }
 .tl svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .tl.on { background: var(--acc); color: var(--acc-ink); }
@@ -456,3 +456,41 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .pickRow { display: flex; align-items: center; gap: 14px; }
 .pickPrev { width: 44px; height: 44px; border-radius: 50%; background: var(--c); border: 1px solid var(--line-2); }
 #pickHex { font: 16px var(--mono); color: var(--mut); letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* Filter in der Liste */
+.filters { flex: 0 0 auto; display: flex; gap: 10px; align-items: center; padding: 12px 0 0; }
+.chip, #fName {
+  min-height: 44px; padding: 0 14px; border-radius: 22px;
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--fg);
+  font: 600 15px var(--sans);
+}
+.chip.on { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
+#fName:disabled { opacity: 0.4; }
+#aEmpty { white-space: pre-line; }
+
+/* Bildfolge statt Videobild */
+#pStill {
+  position: absolute; left: 12px; top: 12px; padding: 6px 12px; border-radius: 8px;
+  background: rgba(0, 0, 0, 0.65); color: #fff; font: 600 14px var(--sans); pointer-events: none;
+}
+
+/* Abschnitt wählen */
+#pRange {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
+  padding: 4px 12px; background: var(--bg); border-top: 1px solid var(--line);
+}
+.rgSliders { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rg { display: flex; align-items: center; gap: 10px; }
+.rg span { flex: 0 0 58px; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; }
+.rg input { height: 40px; }
+.rg.start span { color: #22c55e; }
+.rg.end span { color: #ef4444; }
+.rg.start input { --acc: #22c55e; }
+.rg.end input { --acc: #ef4444; }
+#rgInfo { flex: 0 0 auto; min-width: 84px; text-align: center; font: 14px var(--mono); color: var(--mut); }
+.rgCount { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+.rgCount small { color: var(--mut); font-size: 13px; }
+#rgCount { min-width: 26px; text-align: center; font: 600 20px var(--mono); }
+.step.sm { width: 44px; height: 44px; flex: 0 0 44px; font-size: 24px; }
+.tool.ok { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
+.tool:disabled { opacity: 0.6; }

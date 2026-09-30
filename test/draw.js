@@ -11,9 +11,9 @@ const DOUBLE_TAP_MS = 300;
 
 const dStage = $('pStage'), dView = $('pView'), dCanvas = $('pDraw');
 const dctx = dCanvas.getContext('2d');
-let tool = 'view';          // view, free, line oder angle
+let tool = 'view';          // view, free, line, angle oder plumb
 let colorIdx = 0;
-let shapes = [];            // { type: 'free' | 'line' | 'angle', pts: [[x, y], ...], color }
+let shapes = [];            // { type: 'free' | 'line' | 'angle' | 'plumb', pts: [[x, y], ...], color }
 let pending = null;         // Form, die gerade entsteht
 let placing = false;        // der letzte Punkt von pending folgt noch dem Finger
 let drag = null;            // verschobener Punkt { shape, idx }
@@ -65,7 +65,7 @@ const pxScale = () => dCanvas.width / vbox.w / vz.z;
 
 // ---------- Zeichnen ----------
 
-function drawShape(s, k) {
+function drawShape(s, k, handles) {
   const pts = s.pts;
   if (!pts.length) return;
   dctx.lineCap = 'round';
@@ -79,11 +79,21 @@ function drawShape(s, k) {
     dctx.lineWidth = LINE_PX * k;
     dctx.stroke(path);
   };
-  const line = new Path2D();
-  line.moveTo(pts[0][0], pts[0][1]);
-  for (let i = 1; i < pts.length; i++) line.lineTo(pts[i][0], pts[i][1]);
-  if (s.type === 'free' && pts.length === 1) line.lineTo(pts[0][0] + 0.1, pts[0][1]);
-  stroke(line);
+  if (s.type === 'plumb') {
+    // Lot, eine senkrechte Linie über die ganze Bildhöhe
+    const lot = new Path2D();
+    lot.moveTo(pts[0][0], 0);
+    lot.lineTo(pts[0][0], dCanvas.height);
+    dctx.setLineDash([16 * k, 10 * k]);
+    stroke(lot);
+    dctx.setLineDash([]);
+  } else {
+    const line = new Path2D();
+    line.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) line.lineTo(pts[i][0], pts[i][1]);
+    if (s.type === 'free' && pts.length === 1) line.lineTo(pts[0][0] + 0.1, pts[0][1]);
+    stroke(line);
+  }
   if (s.type === 'free') return;
 
   if (s.type === 'angle' && pts.length === 3) {
@@ -108,6 +118,7 @@ function drawShape(s, k) {
     dctx.fillText(deg, tx, ty + 1 * k);
   }
   // Griffe zum Verschieben der Punkte
+  if (!handles) return;
   for (const p of pts) {
     dctx.beginPath();
     dctx.arc(p[0], p[1], 7 * k, 0, 2 * Math.PI);
@@ -119,11 +130,11 @@ function drawShape(s, k) {
   }
 }
 
-function renderDrawing() {
+function renderDrawing(handles = true) {
   dctx.clearRect(0, 0, dCanvas.width, dCanvas.height);
   const k = pxScale();
-  for (const s of shapes) drawShape(s, k);
-  if (pending) drawShape(pending, k);
+  for (const s of shapes) drawShape(s, k, handles);
+  if (pending) drawShape(pending, k, handles);
   $('dUndo').disabled = !shapes.length && !pending;
   $('dClear').disabled = !shapes.length && !pending;
 }
@@ -167,6 +178,7 @@ function drawDown(e) {
   const color = COLORS[colorIdx];
   if (tool === 'free') pending = { type: 'free', pts: [p], color };
   else if (tool === 'line') pending = { type: 'line', pts: [p, p.slice()], color };
+  else if (tool === 'plumb') { pending = { type: 'plumb', pts: [p], color }; placing = true; }
   else if (tool === 'angle') {
     if (!pending) pending = { type: 'angle', pts: [], color };
     pending.pts.push(p);
@@ -185,6 +197,8 @@ function drawMove(e) {
     pending.pts.push(p);
   } else if (pending.type === 'line') {
     pending.pts[1] = p;
+  } else if (pending.type === 'plumb') {
+    pending.pts[0] = p;
   } else if (placing) {
     pending.pts[pending.pts.length - 1] = p;
   }
@@ -194,7 +208,7 @@ function drawMove(e) {
 function drawUp() {
   if (drag) { drag = null; return; }
   if (!pending) return;
-  if (pending.type === 'free') commit();
+  if (pending.type === 'free' || pending.type === 'plumb') commit();
   else if (pending.type === 'line') {
     const [a, b] = pending.pts;
     if (Math.hypot(a[0] - b[0], a[1] - b[1]) > 10 * pxScale()) commit();
@@ -333,5 +347,6 @@ function resetDrawing() {
   layoutView();
 }
 
-window.addEventListener('resize', () => { if (pc) layoutView(); });
+// Auch das Einblenden der Regler für Schneiden und Bildfolge ändert die Größe der Bühne
+new ResizeObserver(() => { if (pc) layoutView(); }).observe(dStage);
 renderColor();

@@ -96,12 +96,15 @@ async function writeClip({ config, entries }) {
 // ---------- MP4 für den Export ----------
 
 // Die Daten liegen bereits als H.264 vor. Sie werden nur verpackt, nicht neu kodiert.
-function makeMp4(cfg, frames, bytes) {
+function makeMp4(cfg, frames, bytes, skip = 0) {
   const TS = 90000;
   const n = frames.length;
   const avgUs = n > 1 ? frames[n - 1][0] / (n - 1) : 33333;
   const durs = frames.map((f, i) => Math.max(1, Math.round((i < n - 1 ? frames[i + 1][0] - f[0] : avgUs) * TS / 1e6)));
   const total = durs.reduce((a, b) => a + b, 0);
+  // Vorlauf nach dem Schneiden, den Player über die Edit List überspringen
+  const pre = durs.slice(0, skip).reduce((a, b) => a + b, 0);
+  const shown = total - pre;
 
   const u32 = v => [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255];
   const u16 = v => [(v >>> 8) & 255, v & 255];
@@ -132,9 +135,10 @@ function makeMp4(cfg, frames, bytes) {
 
   const ftyp = box('ftyp', str('isom'), u32(0x200), str('isomiso2avc1mp41'));
   const moov = dataOffset => box('moov',
-    full('mvhd', 0, 0, u32(0), u32(0), u32(TS), u32(total), u32(0x10000), u16(0x100), zeros(10), matrix, zeros(24), u32(2)),
+    full('mvhd', 0, 0, u32(0), u32(0), u32(TS), u32(shown), u32(0x10000), u16(0x100), zeros(10), matrix, zeros(24), u32(2)),
     box('trak',
-      full('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(total), zeros(8), u16(0), u16(0), u16(0), u16(0), matrix, u32(w << 16), u32(h << 16)),
+      full('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(shown), zeros(8), u16(0), u16(0), u16(0), u16(0), matrix, u32(w << 16), u32(h << 16)),
+      box('edts', full('elst', 0, 0, u32(1), u32(shown), u32(pre), u16(1), u16(0))),
       box('mdia',
         full('mdhd', 0, 0, u32(0), u32(0), u32(TS), u32(total), u16(0x55c4), u16(0)),
         full('hdlr', 0, 0, u32(0), str('vide'), zeros(12), str('VideoHandler'), [0]),
@@ -198,6 +202,8 @@ function dayLabel(day) {
 
 let listUrls = [];
 let listGen = 0;
+let listClips = [];
+const listFilter = { star: false, name: '' };
 
 async function showList() {
   closePlayer();
@@ -207,6 +213,7 @@ async function showList() {
   try { await cleanupOld(); } catch (e) { console.warn(e); }
   const clips = await allClips();
   if (gen !== listGen) return;
+  listClips = clips;
   renderList(clips);
   renderStorage();
   makeMissingThumbs(clips, gen);
@@ -217,7 +224,11 @@ function renderList(clips) {
   listUrls = [];
   const grid = $('aGrid');
   grid.textContent = '';
+  renderFilter(clips);
+  const all = clips.length;
+  clips = clips.filter(c => (!listFilter.star || c.star) && (!listFilter.name || c.name === listFilter.name));
   $('aEmpty').classList.toggle('hidden', clips.length > 0);
+  $('aEmpty').textContent = all ? 'Keine Videos für diese Auswahl.' : 'Noch keine Videos gespeichert.\nIm Betrieb den Kreis unten links 1 Sekunde halten.';
   clips.sort((a, b) => b.created - a.created);
   let day = null, row = null;
   for (const c of clips) {
@@ -230,6 +241,21 @@ function renderList(clips) {
     row.append(clipCard(c));
   }
 }
+
+function renderFilter(clips) {
+  const names = [...new Set(clips.map(c => c.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+  if (listFilter.name && !names.includes(listFilter.name)) listFilter.name = '';
+  const sel = $('fName');
+  sel.textContent = '';
+  sel.append(new Option('Alle Springer', ''));
+  for (const nm of names) sel.append(new Option(nm, nm));
+  sel.value = listFilter.name;
+  sel.disabled = !names.length;
+  $('fStar').classList.toggle('on', listFilter.star);
+}
+
+$('fStar').addEventListener('click', () => { listFilter.star = !listFilter.star; renderList(listClips); });
+$('fName').addEventListener('change', e => { listFilter.name = e.target.value; renderList(listClips); });
 
 function setThumb(box, blob) {
   const u = URL.createObjectURL(blob);
@@ -256,6 +282,7 @@ function clipCard(c) {
     star.textContent = starText(c.star);
     star.classList.toggle('on', c.star);
     await putClip(c);
+    if (listFilter.star) renderList(listClips);
   });
   info.append(el('b', '', 'Nr. ' + c.nr), el('span', 'time', hhmm(c.created)), star);
   card.append(th, info);
@@ -321,6 +348,8 @@ let pQueue = [];           // dekodierte Bilder während der Wiedergabe
 let pFeed = 0, pStartIdx = 0, pClock = null;
 let seekDragging = false;
 let loopA = -1, loopB = -1;  // Schleife von Bild loopA bis loopB, -1 bedeutet nicht gesetzt
+let pFirst = 0;             // erstes sichtbares Bild, davor liegt nach dem Schneiden ein Vorlauf
+let pStill = false;         // eine Bildfolge ersetzt gerade das Videobild
 
 const loopOn = () => loopA >= 0 && loopB > loopA;
 
@@ -355,6 +384,7 @@ function drawPlayer(f) {
   const w = f.displayWidth, h = f.displayHeight;
   if (pCanvas.width !== w || pCanvas.height !== h) { pCanvas.width = w; pCanvas.height = h; layoutView(); }
   pctx.drawImage(f, 0, 0, w, h);
+  if (pStill) { pStill = false; $('pStill').classList.add('hidden'); }
   onPlayerFrameShown();
 }
 
@@ -368,7 +398,7 @@ function onPlayerFrame(frame) {
 // Springt auf ein Bild. Dekodiert wird ab dem Keyframe davor, also höchstens etwa eine Sekunde.
 function seek(i) {
   if (!pc) return;
-  i = clamp(i, 0, pCount() - 1);
+  i = clamp(i, pFirst, pCount() - 1);
   if (pPlaying) pause();
   if (pTarget >= 0) { pPending = i; return; }
   pTarget = i;
@@ -403,7 +433,7 @@ function startFeed(i) {
 function play() {
   if (!pc || pPlaying) return;
   if (loopOn() && (pPos < loopA || pPos >= loopB)) pPos = loopA;
-  else if (pPos >= pCount() - 1) pPos = 0;   // am Ende beginnt die Wiedergabe von vorn
+  else if (pPos >= pCount() - 1) pPos = pFirst;   // am Ende beginnt die Wiedergabe von vorn
   pTarget = -1; pPending = -1;
   pPlaying = true;
   startFeed(pPos);
@@ -455,9 +485,9 @@ function renderLoop() {
   const on = loopOn();
   b.querySelector('b').textContent = loopA < 0 ? 'Anfang' : on ? 'Aus' : 'Ende';
   b.classList.toggle('set', loopA >= 0);
-  const n = Math.max(1, pCount() - 1);
+  const n = Math.max(1, pCount() - 1 - pFirst);
   band.classList.toggle('hidden', loopA < 0);
-  band.style.setProperty('--a', (loopA < 0 ? 0 : loopA) / n);
+  band.style.setProperty('--a', (loopA < 0 ? 0 : loopA - pFirst) / n);
   band.style.setProperty('--w', on ? (loopB - loopA) / n : 0);
 }
 
@@ -483,11 +513,11 @@ function updatePlayerUi() {
   const n = pCount();
   if (!seekDragging) $('pSeek').value = pPos;
   fillRange($('pSeek'));
-  $('pTime').textContent = fmtSec(pc.frames[pPos][0]) + ' / ' + fmtSec(pc.meta.dur * 1000);
+  $('pTime').textContent = fmtSec(pc.frames[pPos][0] - pc.frames[pFirst][0]) + ' / ' + fmtSec(pc.meta.dur * 1000);
   $('pPlay').classList.toggle('playing', pPlaying);
   $('pPlay').setAttribute('aria-label', pPlaying ? 'Anhalten' : 'Abspielen');
   for (const b of $('pSpeed').querySelectorAll('button')) b.classList.toggle('on', +b.dataset.v === pSpeed);
-  $('pPrev').disabled = pPos <= 0;
+  $('pPrev').disabled = pPos <= pFirst;
   $('pNext').disabled = pPos >= n - 1;
 }
 
@@ -497,7 +527,10 @@ async function openClip(c) {
   closePlayer();
   pc = { meta: c, cfg: d.cfg, frames: d.frames, bytes: new Uint8Array(await d.data.arrayBuffer()) };
   pIndex = new Map(pc.frames.map((f, i) => [f[0], i]));
-  pPos = 0; pTarget = -1; pPending = -1; pPlaying = false;
+  pFirst = clamp(d.skip || 0, 0, pc.frames.length - 1);
+  pPos = pFirst; pTarget = -1; pPending = -1; pPlaying = false; pStill = false;
+  $('pStill').classList.add('hidden');
+  closeRange();
   loopA = -1; loopB = -1;
   $('aList').classList.add('hidden');
   $('aPlayer').classList.remove('hidden');
@@ -507,11 +540,12 @@ async function openClip(c) {
   $('pName').value = c.name || '';
   renderStar();
   resetDelete();
+  $('pSeek').min = pFirst;
   $('pSeek').max = pCount() - 1;
   pctx.fillStyle = '#000';
   pctx.fillRect(0, 0, pCanvas.width, pCanvas.height);
   updatePlayerUi();
-  seek(0);
+  seek(pFirst);
   // Bereits vergebene Namen als Vorschläge
   const names = [...new Set((await allClips()).map(x => x.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
   const dl = $('pNames');
@@ -590,7 +624,7 @@ function download(file) {
 
 // Die Datei entsteht ohne Warten, damit Chrome das Herunterladen als Folge des Tippens erlaubt
 function currentFile() {
-  return new File([makeMp4(pc.cfg, pc.frames, pc.bytes)], clipFileName(pc.meta), { type: 'video/mp4' });
+  return new File([makeMp4(pc.cfg, pc.frames, pc.bytes, pFirst)], clipFileName(pc.meta), { type: 'video/mp4' });
 }
 
 $('pDown').addEventListener('click', () => {
@@ -614,6 +648,225 @@ $('pDel').addEventListener('click', async () => {
   await deleteClip(id);
   showList();
 });
+
+// ---------- Foto ----------
+
+// Speichert das angezeigte Bild mit Zeichnung, aber ohne die Griffe
+function savePhoto() {
+  if (!pc) return;
+  pause();
+  const c = document.createElement('canvas');
+  c.width = pCanvas.width;
+  c.height = pCanvas.height;
+  const x = c.getContext('2d');
+  x.drawImage(pCanvas, 0, 0);
+  renderDrawing(false);
+  x.drawImage(dCanvas, 0, 0, c.width, c.height);
+  renderDrawing();
+  const t = ((pc.frames[pPos][0] - pc.frames[pFirst][0]) / 1e6).toFixed(2).replace('.', ',');
+  const name = clipFileName(pc.meta).replace(/\.mp4$/, pStill ? '_Bildfolge.jpg' : `_${t}s.jpg`);
+  c.toBlob(b => download(new File([b], name, { type: 'image/jpeg' })), 'image/jpeg', 0.92);
+}
+$('dPhoto').addEventListener('click', savePhoto);
+
+// ---------- Abschnitt wählen für Schneiden und Bildfolge ----------
+
+const STROBE_MIN = 3, STROBE_MAX = 16;
+const MIN_RANGE = 3;          // so viele Bilder liegen mindestens zwischen Anfang und Ende
+let rangeMode = null;         // cut oder strobe
+let strobeCount = 8;
+
+function openRange(kind) {
+  if (!pc) return;
+  if (rangeMode === kind) { closeRange(); return; }
+  pause();
+  rangeMode = kind;
+  const n = pCount();
+  let a, b;
+  if (loopOn()) { a = loopA; b = loopB; }
+  else if (kind === 'cut') { a = pFirst; b = n - 1; }
+  else { a = Math.max(pFirst, pPos - 30); b = Math.min(n - 1, pPos + 30); }
+  if (b - a < MIN_RANGE) { a = pFirst; b = n - 1; }
+  for (const [id, v] of [['rgA', a], ['rgB', b]]) {
+    const s = $(id);
+    s.min = pFirst; s.max = n - 1; s.value = v;
+    fillRange(s);
+  }
+  $('rgCountBox').classList.toggle('hidden', kind !== 'strobe');
+  $('rgOk').textContent = kind === 'cut' ? 'Schneiden' : 'Erstellen';
+  $('rgOk').disabled = false;
+  $('dCut').classList.toggle('on', kind === 'cut');
+  $('dStrobe').classList.toggle('on', kind === 'strobe');
+  $('pRange').classList.remove('hidden');
+  renderRange();
+}
+
+function closeRange() {
+  rangeMode = null;
+  $('pRange').classList.add('hidden');
+  $('dCut').classList.remove('on');
+  $('dStrobe').classList.remove('on');
+}
+
+function renderRange() {
+  const a = +$('rgA').value, b = +$('rgB').value;
+  $('rgInfo').textContent = fmtSec(pc.frames[b][0] - pc.frames[a][0]);
+  $('rgCount').textContent = strobeCount;
+}
+
+// Die Regler können sich nicht überholen. Beim Ziehen zeigt das Video das gewählte Bild.
+for (const id of ['rgA', 'rgB']) {
+  $(id).addEventListener('input', e => {
+    const s = e.target;
+    let a = +$('rgA').value, b = +$('rgB').value;
+    if (b - a < MIN_RANGE) {
+      if (id === 'rgA') a = b - MIN_RANGE; else b = a + MIN_RANGE;
+      a = Math.max(a, pFirst); b = Math.min(b, pCount() - 1);
+      $('rgA').value = a; $('rgB').value = b;
+    }
+    fillRange($('rgA')); fillRange($('rgB'));
+    renderRange();
+    seek(+s.value);
+  });
+}
+$('rgMinus').addEventListener('click', () => { strobeCount = Math.max(STROBE_MIN, strobeCount - 1); renderRange(); });
+$('rgPlus').addEventListener('click', () => { strobeCount = Math.min(STROBE_MAX, strobeCount + 1); renderRange(); });
+$('rgCancel').addEventListener('click', closeRange);
+$('dCut').addEventListener('click', () => openRange('cut'));
+$('dStrobe').addEventListener('click', () => openRange('strobe'));
+
+$('rgOk').addEventListener('click', async () => {
+  if (!pc || !rangeMode) return;
+  const a = +$('rgA').value, b = +$('rgB').value;
+  const ok = $('rgOk');
+  ok.disabled = true;
+  ok.textContent = rangeMode === 'cut' ? 'Wird geschnitten …' : 'Wird erstellt …';
+  try {
+    if (rangeMode === 'cut') await cutClip(a, b);
+    else { await makeStrobe(a, b, strobeCount); closeRange(); }
+  } catch (e) {
+    console.warn(e);
+    ok.textContent = 'Fehler';
+    ok.disabled = false;
+  }
+});
+
+// ---------- Schneiden ----------
+
+// Das Original wird ersetzt. Ab dem Keyframe vor dem Anfang bleibt ein unsichtbarer Vorlauf,
+// damit nichts neu kodiert werden muss.
+async function cutClip(a, b) {
+  const fr = pc.frames;
+  const k = keyBefore(a);
+  const base = fr[k][0], off0 = fr[k][2];
+  const end = fr[b][2] + fr[b][3];
+  const frames = fr.slice(k, b + 1).map(([ts, key, off, len]) => [ts - base, key, off - off0, len]);
+  const skip = a - k;
+  const shown = frames.length - skip;
+  const meta = pc.meta;
+  meta.dur = shown > 1 ? (frames[frames.length - 1][0] - frames[skip][0]) / 1000 * shown / (shown - 1) : 33;
+  meta.thumb = null;
+  const rec = { id: meta.id, cfg: pc.cfg, frames, skip, data: new Blob([pc.bytes.subarray(off0, end)]) };
+  await inTx(['clips', 'data'], 'readwrite', t => {
+    t.objectStore('clips').put(meta);
+    t.objectStore('data').put(rec);
+  });
+  await openClip(meta);
+}
+
+// ---------- Bildfolge ----------
+
+const STROBE_W = 1280, STROBE_H = 720;   // Arbeitsgröße, spart Speicher auf dem Tablet
+const STROBE_CELL = 4;                    // Raster für die Erkennung des Springers
+const STROBE_THRESHOLD = 28;              // Helligkeitsabstand zum Hintergrund, ab dem ein Punkt zum Springer gehört
+
+async function makeStrobe(a, b, count) {
+  const idx = [...new Set(Array.from({ length: count }, (_, j) => Math.round(a + (b - a) * j / (count - 1))))];
+  const want = new Map(idx.map((i, j) => [pc.frames[i][0], j]));
+  const cvs = idx.map(() => {
+    const c = document.createElement('canvas');
+    c.width = STROBE_W; c.height = STROBE_H;
+    return c;
+  });
+  // Ein eigener Decoder läuft einmal durch den Abschnitt und behält nur die gewünschten Bilder
+  await new Promise((res, rej) => {
+    const dec = new VideoDecoder({
+      output: f => {
+        const j = want.get(f.timestamp);
+        if (j !== undefined) cvs[j].getContext('2d').drawImage(f, 0, 0, STROBE_W, STROBE_H);
+        f.close();
+      },
+      error: rej,
+    });
+    dec.configure(pc.cfg);
+    for (let i = keyBefore(a); i <= b; i++) dec.decode(chunkAt(i));
+    dec.flush().then(() => { dec.close(); res(); }, rej);
+  });
+
+  const n = cvs.length;
+  const gw = STROBE_W / STROBE_CELL, gh = STROBE_H / STROBE_CELL, cells = gw * gh;
+  // Helligkeit auf einem groben Raster
+  const small = cvs.map(c => {
+    const s = document.createElement('canvas');
+    s.width = gw; s.height = gh;
+    const x = s.getContext('2d');
+    x.drawImage(c, 0, 0, gw, gh);
+    const d = x.getImageData(0, 0, gw, gh).data;
+    const L = new Uint8Array(cells);
+    for (let i = 0; i < cells; i++) L[i] = (d[i * 4] * 77 + d[i * 4 + 1] * 150 + d[i * 4 + 2] * 29) >> 8;
+    return L;
+  });
+  // Der Median über alle Bilder ist der Hintergrund ohne Springer.
+  // Pro Rasterfeld wird das Bild gemerkt, das dem Hintergrund am nächsten kommt.
+  const bgPick = new Uint8Array(cells);
+  const masks = small.map(() => new Uint8Array(cells));
+  const tmp = new Uint8Array(n);
+  for (let p = 0; p < cells; p++) {
+    for (let j = 0; j < n; j++) tmp[j] = small[j][p];
+    tmp.sort();
+    const med = tmp[n >> 1];
+    let best = 0, bestD = 999;
+    for (let j = 0; j < n; j++) {
+      const dd = Math.abs(small[j][p] - med);
+      if (dd < bestD) { bestD = dd; best = j; }
+      if (dd > STROBE_THRESHOLD) masks[j][p] = 1;
+    }
+    bgPick[p] = best;
+  }
+  // Masken um ein Feld erweitern, damit die Ränder des Springers nicht abgeschnitten werden
+  const grown = masks.map(m => {
+    const g = new Uint8Array(cells);
+    for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+      if (!m[y * gw + x]) continue;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const yy = y + dy, xx = x + dx;
+        if (yy >= 0 && yy < gh && xx >= 0 && xx < gw) g[yy * gw + xx] = 1;
+      }
+    }
+    return g;
+  });
+  const imgs = cvs.map(c => c.getContext('2d').getImageData(0, 0, STROBE_W, STROBE_H).data);
+  const out = new ImageData(STROBE_W, STROBE_H);
+  const od = out.data;
+  for (let y = 0; y < STROBE_H; y++) {
+    const row = ((y / STROBE_CELL) | 0) * gw;
+    for (let x = 0; x < STROBE_W; x++) {
+      const cell = row + ((x / STROBE_CELL) | 0);
+      let j = bgPick[cell];
+      for (let k = n - 1; k >= 0; k--) if (grown[k][cell]) { j = k; break; }   // spätere Bilder liegen oben
+      const p = (y * STROBE_W + x) * 4, s = imgs[j];
+      od[p] = s[p]; od[p + 1] = s[p + 1]; od[p + 2] = s[p + 2]; od[p + 3] = 255;
+    }
+  }
+  pCanvas.width = STROBE_W;
+  pCanvas.height = STROBE_H;
+  pctx.putImageData(out, 0, 0);
+  layoutView();
+  onPlayerFrameShown();
+  pStill = true;
+  $('pStill').textContent = `Bildfolge · ${n} Bilder`;
+  $('pStill').classList.remove('hidden');
+}
 
 // ---------- Start ----------
 
