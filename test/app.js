@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '10';   // Stand der Test-App
+const APP_VERSION = '11';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -646,7 +646,7 @@ async function saveNow() {
   saveBtn.classList.add('done');
   try {
     const c = await saveClip(snap);
-    showToast('Gespeichert · Nr. ' + c.nr);
+    showToast('Gespeichert · ' + c.nr);
   } catch (e) {
     console.warn(e);
     showToast('Speichern fehlgeschlagen', true);

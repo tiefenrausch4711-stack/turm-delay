@@ -284,7 +284,7 @@ function clipCard(c) {
     await putClip(c);
     if (listFilter.star) renderList(listClips);
   });
-  info.append(el('b', '', 'Nr. ' + c.nr), el('span', 'time', hhmm(c.created)), star);
+  info.append(el('b', '', String(c.nr)), el('span', 'time', hhmm(c.created)), star);
   card.append(th, info);
   if (c.name) card.append(el('div', 'nm', c.name));
   card.addEventListener('click', () => openClip(c));
@@ -536,7 +536,7 @@ async function openClip(c) {
   $('aPlayer').classList.remove('hidden');
   resetDrawing();
   renderLoop();
-  $('pTitle').textContent = `${dayLabel(c.day)} · Nr. ${c.nr} · ${hhmm(c.created)}`;
+  $('pTitle').textContent = `${dayLabel(c.day)} · ${c.nr} · ${hhmm(c.created)}`;
   $('pName').value = c.name || '';
   renderStar();
   resetDelete();
