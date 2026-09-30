@@ -1,6 +1,7 @@
 import math, sys
 from PIL import Image, ImageDraw
-BG=(17,32,62); FG=(255,255,255)
+# Aufruf: python icon.py <Zielordner> [Hintergrundfarbe als Hex, ohne #]
+BG=tuple(bytes.fromhex(sys.argv[2])) if len(sys.argv)>2 else (17,32,62); FG=(255,255,255)
 S=4; N=512*S
 def k(v): return int(round(v*S))
 img=Image.new('RGB',(N,N),BG); d=ImageDraw.Draw(img)

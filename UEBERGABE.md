@@ -1,6 +1,6 @@
 # Übergabe LagCam
 
-Stand 30.09.2026, Version 16, lokal committet.
+Stand 30.09.2026. Normale App v0 mit Version 17, Test-App Stand 1. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -21,7 +21,8 @@ LagCam ist eine Progressive Web App für das Training im Turmspringen. Ein Samsu
 - Projektordner: `C:\Users\Hilde\Desktop\Cload_Projekte\DelayAnwendung`
 - Repository: `tiefenrausch4711-stack/turm-delay`, öffentlich, Branch `main`
 - App: `https://tiefenrausch4711-stack.github.io/turm-delay/`
-- Testseite: `https://tiefenrausch4711-stack.github.io/turm-delay/test.html`
+- Test-App: `https://tiefenrausch4711-stack.github.io/turm-delay/test/`
+- Testseite für die Fähigkeiten des Tablets: `https://tiefenrausch4711-stack.github.io/turm-delay/test.html`
 
 ## Dateien
 
@@ -34,9 +35,21 @@ LagCam ist eine Progressive Web App für das Training im Turmspringen. Ein Samsu
 | `manifest.webmanifest` | Installation als App, Vollbild, Querformat |
 | `icon-192.png`, `icon-512.png` | Symbol, weiße Kamera mit einer Uhr als Objektiv auf dunkelblauem Grund |
 | `icon.py` | Erzeugt beide Symbole, Aufruf `python icon.py .` im Projektordner, braucht Pillow |
+| `test/` | Test-App „LagCam Test“, vollständige Kopie der App mit eigenen Änderungen |
 | `test.html` | Testseite für die Fähigkeiten des Tablets |
 | `PLAN.md` | Vollständige Planung und Testergebnisse |
 | `.claude/launch.json` | Lokaler Vorschau-Server mit `python -m http.server 8765` |
+
+## Normale App und Test-App
+
+Seit dem 30.09.2026 gibt es zwei Apps nebeneinander.
+
+- Die normale App „LagCam“ liegt im Hauptordner. Ihr Stand ist mit dem Git-Tag `v0` gesichert. Sie wird im Training genutzt und nur noch bei Fehlern geändert.
+- Die Test-App „LagCam Test“ liegt im Ordner `test/`. Neue Funktionen kommen nur dorthin. Sie hat ein oranges Symbol und in der App ein oranges Schild „Test“. Oben rechts steht „Stand“ mit ihrer Nummer.
+- Beide teilen sich die Adresse von GitHub Pages, sind aber getrennt installiert. Die Test-App speichert ihre Einstellungen unter `lagcam.test.settings` und übernimmt beim ersten Start die Einstellungen der normalen App. Ihr Offline-Speicher heißt `lagcam-test-vN`, der der normalen App `turm-delay-vN`. Jeder Service Worker löscht nur Speicher mit dem eigenen Präfix.
+- Bei Änderungen an der Test-App `APP_VERSION` in `test/app.js` und `VERSION` in `test/sw.js` erhöhen.
+- Hat sich die Test-App bewährt, werden ihre Änderungen in den Hauptordner übernommen. Dabei `STORE_KEY`, `MAIN_STORE_KEY`, Präfix, Namen, Schild und Symbol der normalen App beibehalten. Danach den neuen Stand mit einem Tag wie `v1` sichern.
+- Symbol der Test-App mit `python icon.py test c2570c` erzeugen.
 
 ## Neue Version veröffentlichen
 
@@ -75,7 +88,9 @@ LagCam ist eine Progressive Web App für das Training im Turmspringen. Ein Samsu
 
 ## Offen und als Nächstes
 
-- Version 16 muss noch hochgeladen und auf dem Tablet geprüft werden.
+- Version 17 und die Test-App müssen noch hochgeladen und auf dem Tablet geprüft werden.
+- Der Nutzer hat noch nicht gesagt, welche Funktionen die Test-App bekommen soll.
+- Angeboten und noch nicht entschieden ist `navigator.storage.persist()`, damit Chrome den Offline-Speicher nicht bei vollem Speicher löscht.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
 - Prüfen, ob die Vorschau im Einstellungsbildschirm auf dem Tablet flüssig läuft. Der Nutzer hatte ein Hängen gemeldet. Das betraf wahrscheinlich die Vorschau im Claude-Desktop. Die möglichen Ursachen auf dem Tablet wurden in Version 12 behoben.
 - Test über 3 Stunden, mit Blick auf Wärme und Stabilität. Falls das Tablet überhitzt, wieder 720p als Rückfall einbauen.
