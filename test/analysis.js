@@ -93,7 +93,7 @@ async function writeClip({ config, entries }) {
   return meta;
 }
 
-// ---------- MP4 für Export und Teilen ----------
+// ---------- MP4 für den Export ----------
 
 // Die Daten liegen bereits als H.264 vor. Sie werden nur verpackt, nicht neu kodiert.
 function makeMp4(cfg, frames, bytes) {
@@ -588,21 +588,10 @@ function download(file) {
   setTimeout(() => URL.revokeObjectURL(u), 60000);
 }
 
-// Die Datei entsteht ohne Warten, damit Chrome das Teilen noch als Folge des Tippens erlaubt
+// Die Datei entsteht ohne Warten, damit Chrome das Herunterladen als Folge des Tippens erlaubt
 function currentFile() {
   return new File([makeMp4(pc.cfg, pc.frames, pc.bytes)], clipFileName(pc.meta), { type: 'video/mp4' });
 }
-
-$('pShare').addEventListener('click', async () => {
-  if (!pc) return;
-  pause();
-  const file = currentFile();
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file] }); } catch (e) { if (e.name !== 'AbortError') console.warn(e); }
-  } else {
-    download(file);
-  }
-});
 
 $('pDown').addEventListener('click', () => {
   if (!pc) return;
