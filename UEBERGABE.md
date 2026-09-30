@@ -1,6 +1,6 @@
 # Übergabe LagCam
 
-Stand 30.09.2026. Normale App v0 mit Version 17, Test-App Stand 1. Beides lokal committet.
+Stand 30.09.2026. Normale App v0 mit Version 17, Test-App Stand 2. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -51,6 +51,30 @@ Seit dem 30.09.2026 gibt es zwei Apps nebeneinander.
 - Hat sich die Test-App bewährt, werden ihre Änderungen in den Hauptordner übernommen. Dabei `STORE_KEY`, `MAIN_STORE_KEY`, Präfix, Namen, Schild und Symbol der normalen App beibehalten. Danach den neuen Stand mit einem Tag wie `v1` sichern.
 - Symbol der Test-App mit `python icon.py test c2570c` erzeugen.
 
+## Test-App, geplante Funktionen
+
+Mit dem Nutzer am 30.09.2026 abgestimmt. Gebaut wird in drei Schritten, jeder wird auf dem Tablet geprüft.
+
+1. Erledigt in Stand 2. Speicherknopf, Videoliste, Wiedergabe mit Zeitlupe und Einzelbildern, Schieberegler, Stern, Name, Löschen, Export und Teilen, Löschen nach 7 Tagen.
+2. Offen. Zeichnen im Standbild mit Freihand und geraden Linien, Winkel über drei Punkte messen, Zoom mit zwei Fingern, Schleife über einen Abschnitt. Zeichnungen sind nur vorübergehend und verschwinden, sobald das Video weiterläuft.
+3. Offen. Bildfolge mit der ganzen Flugbahn in einem Bild, Vergleich zweier Sprünge nebeneinander oder übereinander.
+
+Entscheidungen des Nutzers
+- Kein Fernauslöser. Der Bildschirm wird auf den Fernseher gespiegelt.
+- Während der Analyse ist die Kamera aus. Es gibt entweder Betrieb oder Analyse.
+- Der Speicherknopf ist ein kleiner schwarzer Kreis unten links im 16:9-Bereich. Er muss 1 Sekunde gehalten werden. Dabei verschwindet das Schwarz ringförmig, umgekehrt zum türkisen Kreis beim Zurück.
+- Gespeichert wird der Teil des Puffers, der noch gezeigt wird, also vom Bild auf dem Fernseher bis zum Moment des Drückens. Der Trainer drückt direkt nach dem Eintauchen.
+- Videos werden nach Datum gruppiert und pro Tag durchnummeriert.
+
+Technik in `test/analysis.js`
+- Die Videos liegen in IndexedDB `lagcam-test`. Der Speicher `clips` hält die Angaben für die Liste mit Vorschaubild, `data` die H.264-Daten als Blob mit einer Bildtabelle und der Decoder-Konfiguration.
+- Gespeichert wird ohne neu zu kodieren. Beginn ist der Keyframe vor dem gezeigten Bild.
+- Vorschaubilder entstehen erst in der Liste, etwa 2 Sekunden vor dem Ende.
+- Die Wiedergabe dekodiert mit `VideoDecoder`. Ein Sprung auf ein Bild dekodiert ab dem Keyframe davor und endet mit `flush()`.
+- Export und Teilen verpacken die Daten mit einem eigenen kleinen MP4-Muxer. Dateiname `LagCam_<Datum>_<Nr>_<Name>.mp4`.
+- `navigator.storage.persist()` wird beim Start angefordert.
+- In der Vorschau im Claude-Desktop läuft `requestAnimationFrame` nicht, wenn das Fenster im Hintergrund liegt. Die Wiedergabe lässt sich dann durch direkte Aufrufe von `playerTick(performance.now())` prüfen.
+
 ## Neue Version veröffentlichen
 
 1. `APP_VERSION` in `app.js` und `VERSION` in `sw.js` um eins erhöhen. Das ist bei jeder Änderung Pflicht, sonst bleibt das Tablet auf der alten Version.
@@ -88,9 +112,8 @@ Seit dem 30.09.2026 gibt es zwei Apps nebeneinander.
 
 ## Offen und als Nächstes
 
-- Version 17 und die Test-App müssen noch hochgeladen und auf dem Tablet geprüft werden.
-- Der Nutzer hat noch nicht gesagt, welche Funktionen die Test-App bekommen soll.
-- Angeboten und noch nicht entschieden ist `navigator.storage.persist()`, damit Chrome den Offline-Speicher nicht bei vollem Speicher löscht.
+- Version 17 und die Test-App Stand 2 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Export und Teilen auf Android funktionieren.
+- `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
 - Prüfen, ob die Vorschau im Einstellungsbildschirm auf dem Tablet flüssig läuft. Der Nutzer hatte ein Hängen gemeldet. Das betraf wahrscheinlich die Vorschau im Claude-Desktop. Die möglichen Ursachen auf dem Tablet wurden in Version 12 behoben.
 - Test über 3 Stunden, mit Blick auf Wärme und Stabilität. Falls das Tablet überhitzt, wieder 720p als Rückfall einbauen.

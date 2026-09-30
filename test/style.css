@@ -187,9 +187,16 @@ input[type=range]::-moz-range-track { height: 2px; background: var(--line-2); }
 input[type=range]::-moz-range-progress { height: 2px; background: var(--acc); }
 input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--bg); border: 2px solid var(--acc); }
 
-/* Start */
+/* Start und Analyse */
+.actions { margin-top: auto; flex: 0 0 auto; display: flex; gap: 10px; }
+#analyse {
+  flex: 0 0 auto; min-height: 68px; padding: 0 20px; border-radius: var(--r);
+  border: 1px solid var(--line-2); color: var(--fg);
+  font-size: 15px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+}
+#analyse:active { border-color: var(--acc); background: rgba(55, 211, 196, 0.08); }
 #start {
-  margin-top: auto; flex: 0 0 auto;
+  flex: 1;
   display: flex; align-items: center; justify-content: center;
   min-height: 68px; padding: 0 22px; border-radius: var(--r);
   background: var(--acc); color: var(--acc-ink);
@@ -249,3 +256,92 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #ring .track { fill: rgba(0, 0, 0, 0.45); stroke: rgba(255, 255, 255, 0.2); }
 #ring .prog { stroke: var(--acc); stroke-linecap: round; stroke-dasharray: 314.2; stroke-dashoffset: 314.2; }
 #ring.go .prog { transition: stroke-dashoffset 3s linear; stroke-dashoffset: 0; }
+
+/* Speicherknopf. Beim Halten verschwindet das Schwarz im Kreis. */
+#saveBtn {
+  position: absolute; left: 1.5cqw; bottom: 2.5cqh;
+  width: 12cqh; height: 12cqh; padding: 1.5cqh; touch-action: none;
+}
+#saveBtn svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+#saveBtn .fill { fill: none; stroke: #000; stroke-width: 44; stroke-dasharray: 138.3; stroke-dashoffset: 0; }
+#saveBtn .rim { fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 4; transition: stroke .2s; }
+#saveBtn.go .fill { transition: stroke-dashoffset 1s linear; stroke-dashoffset: 138.3; }
+#saveBtn.done .rim { stroke: var(--acc); stroke-width: 7; }
+#toast {
+  position: absolute; left: 14cqh; bottom: 5cqh;
+  padding: 0.8cqh 1.8cqh; border-radius: 1.2cqh;
+  background: rgba(0, 0, 0, 0.6); color: #fff;
+  font: 600 4.5cqh/1.2 var(--sans);
+}
+#toast.bad { color: var(--warn); }
+
+/* ---------- Analyse ---------- */
+
+#analysis { position: fixed; inset: 0; background: var(--bg); }
+#aList { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 18px 24px 12px; }
+#aList .bar { flex: 0 0 auto; }
+.mark .sep { margin-left: 10px; padding-left: 14px; border-left: 1px solid var(--line-2); color: var(--fg); }
+.nav {
+  min-height: 48px; padding: 0 16px; border-radius: var(--r);
+  border: 1px solid var(--line-2); font-size: 15px; font-weight: 600; color: var(--fg);
+}
+.nav:active, .tool:active { border-color: var(--acc); background: rgba(55, 211, 196, 0.08); }
+#aGrid { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 2px 20px; }
+.day { margin: 22px 0 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--acc); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  overflow: hidden; cursor: pointer;
+}
+.card:active { border-color: var(--acc); }
+.card .th { position: relative; aspect-ratio: 16 / 9; background: #050607; }
+.card .th img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.card .dur {
+  position: absolute; right: 6px; bottom: 6px; padding: 2px 6px; border-radius: 4px;
+  background: rgba(0, 0, 0, 0.6); font: 12px var(--mono); color: #fff;
+}
+.card .info { display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 12px; }
+.card .info b { font-size: 17px; }
+.card .time { font: 13px var(--mono); color: var(--mut); flex: 1; }
+.card .nm { padding: 0 12px 10px; margin-top: -4px; color: var(--fg); font-size: 15px; }
+.star { width: 48px; height: 48px; font-size: 26px; line-height: 1; color: var(--dim); }
+.star.on { color: var(--warn); }
+#aEmpty { margin: auto; text-align: center; color: var(--mut); font-size: 17px; line-height: 1.6; }
+.aNote { flex: 0 0 auto; margin: 6px 0 0; text-align: center; font-size: 13px; color: var(--dim); }
+
+#aPlayer { position: absolute; inset: 0; display: flex; flex-direction: column; background: #000; }
+.pbar, .pctl {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+  padding: 6px 12px; background: var(--bg);
+}
+.pbar { border-bottom: 1px solid var(--line); }
+.pctl { border-top: 1px solid var(--line); }
+#pTitle { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; font-weight: 600; }
+#pName {
+  width: 200px; min-height: 44px; padding: 0 12px; border-radius: var(--r);
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--fg); font: 16px var(--sans);
+}
+#pName:focus { outline: none; border-color: var(--acc); }
+.tool {
+  min-height: 44px; padding: 0 14px; border-radius: var(--r);
+  border: 1px solid var(--line-2); font-size: 15px; font-weight: 600;
+}
+.tool.danger { color: var(--bad); }
+.tool.danger.armed { background: var(--bad); border-color: var(--bad); color: #fff; }
+#pStage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+#pOut { display: block; width: 100%; height: 100%; object-fit: contain; }
+.ico {
+  flex: 0 0 auto; width: 56px; height: 56px; border-radius: var(--r);
+  border: 1px solid var(--line-2); display: flex; align-items: center; justify-content: center;
+}
+.ico svg { width: 26px; height: 26px; fill: var(--fg); }
+.ico.big { width: 72px; background: var(--acc); border-color: var(--acc); }
+.ico.big svg { fill: var(--acc-ink); width: 30px; height: 30px; }
+.ico:active { filter: brightness(1.2); }
+.ico:disabled { opacity: 0.35; }
+#pPlay .i-pause, #pPlay.playing .i-play { display: none; }
+#pPlay.playing .i-pause { display: block; }
+#pSeek { flex: 1; min-width: 120px; }
+#pTime { flex: 0 0 auto; min-width: 150px; text-align: center; font: 14px var(--mono); font-variant-numeric: tabular-nums; color: var(--mut); }
+#pSpeed { flex: 0 0 auto; }
+#pSpeed button { min-width: 50px; min-height: 44px; font-size: 18px; }

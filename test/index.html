@@ -84,8 +84,11 @@
       </div>
     </div>
 
-    <button id="start"><span class="go">Start</span></button>
-    <p class="hint">3 Sekunden gedrückt halten, um hierher zurückzukehren.</p>
+    <div class="actions">
+      <button id="analyse">Analyse</button>
+      <button id="start"><span class="go">Start</span></button>
+    </div>
+    <p class="hint">Kreis unten links 1 s halten speichert. 3 s halten führt zurück.</p>
   </aside>
 </div>
 
@@ -93,10 +96,53 @@
   <div id="stage">
     <canvas id="out"></canvas>
     <div id="badge"></div>
+    <button id="saveBtn" aria-label="Video speichern"><svg viewBox="0 0 100 100"><circle class="fill" cx="50" cy="50" r="22"/><circle class="rim" cx="50" cy="50" r="45"/></svg></button>
+    <div id="toast" class="hidden"></div>
   </div>
   <svg id="ring" class="hidden" viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="50"/><circle class="prog" cx="60" cy="60" r="50"/></svg>
 </div>
 
+<div id="analysis" class="hidden">
+  <section id="aList">
+    <header class="bar">
+      <button id="aBack" class="nav">‹ Einstellungen</button>
+      <div class="mark"><span class="glyph"></span>Lag<b>Cam</b><span class="tag">Test</span><span class="sep">Analyse</span></div>
+      <div class="meta" id="aStore"></div>
+    </header>
+    <div id="aGrid"></div>
+    <p id="aEmpty" class="hidden">Noch keine Videos gespeichert.<br>Im Betrieb den Kreis unten links 1 Sekunde halten.</p>
+    <p class="aNote">Videos ohne Stern werden nach 7 Tagen gelöscht.</p>
+  </section>
+
+  <section id="aPlayer" class="hidden">
+    <header class="pbar">
+      <button id="pBack" class="nav">‹ Liste</button>
+      <div id="pTitle"></div>
+      <input id="pName" list="pNames" placeholder="Name" autocomplete="off" enterkeyhint="done">
+      <datalist id="pNames"></datalist>
+      <button id="pStar" class="star" aria-label="Stern">☆</button>
+      <button id="pShare" class="tool">Teilen</button>
+      <button id="pDown" class="tool">Herunterladen</button>
+      <button id="pDel" class="tool danger">Löschen</button>
+    </header>
+    <div id="pStage"><canvas id="pOut"></canvas></div>
+    <footer class="pctl">
+      <button id="pPrev" class="ico" aria-label="Ein Bild zurück"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM19 5v14L9.5 12z"/></svg></button>
+      <button id="pPlay" class="ico big" aria-label="Abspielen"><svg class="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15L19.5 12z"/></svg><svg class="i-pause" viewBox="0 0 24 24"><path d="M6 4.5h4.2v15H6zM13.8 4.5H18v15h-4.2z"/></svg></button>
+      <button id="pNext" class="ico" aria-label="Ein Bild vor"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5v14l9.5-7z"/></svg></button>
+      <input type="range" id="pSeek" min="0" max="0" step="1" value="0" aria-label="Position">
+      <span id="pTime"></span>
+      <div class="seg" id="pSpeed">
+        <button data-v="1">1×</button>
+        <button data-v="0.5">½</button>
+        <button data-v="0.25">¼</button>
+        <button data-v="0.125">⅛</button>
+      </div>
+    </footer>
+  </section>
+</div>
+
 <script src="app.js"></script>
+<script src="analysis.js"></script>
 </body>
 </html>

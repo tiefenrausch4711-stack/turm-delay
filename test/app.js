@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1';   // Stand der Test-App
+const APP_VERSION = '2';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -11,6 +11,7 @@ const RECONNECT_MS = 3000;
 const CONSTRAINT_TIMEOUT_MS = 3000; // so lange darf ein Kamerabefehl höchstens dauern
 const CONSTRAINT_GRACE_MS = 3000;   // so lange nach einem Kamerabefehl schweigt die Überwachung
 const LONG_PRESS_MS = 3000;
+const SAVE_PRESS_MS = 1000;       // so lange muss der Speicherknopf gehalten werden
 const OVERLOAD_HOLD_MS = 5000;     // so lange bleibt die Anzeige nach einer Überlast gelb
 
 const $ = id => document.getElementById(id);
@@ -74,7 +75,7 @@ function avcCodec(w, h, fps) {
 
 // ---------- Zustand ----------
 
-let mode = 'settings';         // settings oder run
+let mode = 'settings';         // settings, run oder analysis
 let camState = 'off';          // off, ok, lost
 let stream = null, track = null, caps = {}, reader = null;
 let camGen = 0;
@@ -212,6 +213,7 @@ async function cameraLost(err) {
   renderSettings(err);
   while (true) {
     await sleep(RECONNECT_MS);
+    if (mode === 'analysis') continue;   // Während der Analyse bleibt die Kamera aus
     let ok = false;
     await camOp(async () => {
       // Kamera wurde inzwischen anderweitig gestartet, etwa durch einen Kamerawechsel
@@ -554,11 +556,13 @@ function enterRun() {
   resetPlayback();
   opStart = null;
   overloadUntil = 0;
+  $('toast').classList.add('hidden');
   requestAnimationFrame(tick);
 }
 
 function enterSettings() {
   mode = 'settings';
+  cancelSavePress();
   resetPlayback();
   $('run').classList.add('hidden');
   $('settings').classList.remove('hidden');
@@ -602,6 +606,79 @@ for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
   $('run').addEventListener(type, e => { if (press && e.pointerId === press.id) cancelPress(); });
 }
 document.addEventListener('contextmenu', e => e.preventDefault());
+
+// ---------- Puffer speichern ----------
+
+// Gespeichert wird der Teil, der noch gezeigt wird, also vom Bild auf dem Fernseher bis jetzt.
+// Beginn ist der Keyframe davor, damit das Video dekodierbar bleibt.
+function snapshotBuffer() {
+  if (mode !== 'run' || camState !== 'ok' || !buffer.length) return null;
+  const T = performance.now() - settings.delay * 1000;
+  let start = 0;
+  for (let i = 0; i < buffer.length; i++) {
+    if (buffer[i].ts > T) break;
+    if (buffer[i].key) start = i;
+  }
+  const config = buffer[start].config;
+  if (!config) return null;
+  const entries = [];
+  for (let i = start; i < buffer.length; i++) {
+    if (buffer[i].key && buffer[i].config !== config) break;   // Auflösung hat gewechselt
+    entries.push(buffer[i]);
+  }
+  return { config, entries };
+}
+
+let toastTimer = 0;
+function showToast(text, bad) {
+  const t = $('toast');
+  t.textContent = text;
+  t.className = bad ? 'bad' : '';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), 3000);
+}
+
+async function saveNow() {
+  const snap = snapshotBuffer();
+  if (!snap) { showToast('Nichts zu speichern', true); return; }
+  saveBtn.classList.add('done');
+  try {
+    const c = await saveClip(snap);
+    showToast('Gespeichert · Nr. ' + c.nr);
+  } catch (e) {
+    console.warn(e);
+    showToast('Speichern fehlgeschlagen', true);
+  } finally {
+    setTimeout(() => saveBtn.classList.remove('done'), 600);
+  }
+}
+
+// Eine Sekunde halten. Dabei verschwindet das Schwarz im Kreis.
+const saveBtn = $('saveBtn');
+let savePress = null;
+
+function cancelSavePress() {
+  if (!savePress) return;
+  clearTimeout(savePress.timer);
+  savePress = null;
+  saveBtn.classList.remove('go');
+}
+
+saveBtn.addEventListener('pointerdown', e => {
+  e.stopPropagation();   // löst nicht das Zurück in die Einstellungen aus
+  if (savePress) { cancelSavePress(); return; }
+  cancelPress();
+  saveBtn.classList.remove('go');
+  void saveBtn.getBoundingClientRect();
+  saveBtn.classList.add('go');
+  savePress = {
+    id: e.pointerId,
+    timer: setTimeout(() => { cancelSavePress(); saveNow(); }, SAVE_PRESS_MS),
+  };
+});
+for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
+  saveBtn.addEventListener(type, e => { if (savePress && e.pointerId === savePress.id) cancelSavePress(); });
+}
 
 // ---------- Oberfläche der Einstellungen ----------
 
