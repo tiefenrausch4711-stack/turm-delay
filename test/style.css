@@ -262,10 +262,11 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 }
 #out { display: block; width: 100%; height: 100%; object-fit: contain; }
 #badge {
-  position: absolute; top: 3cqh; right: 2cqw;
-  padding: 0.7cqh 1.8cqh; border-radius: 1.4cqh;
-  background: rgba(0, 0, 0, 0.55); color: #fff;
+  position: absolute; top: 3cqh; right: 2.5cqw;
+  color: #fff;
   font: 700 8cqh/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+  /* kein Hintergrund, nur ein weicher Schatten für helle Bildstellen */
+  text-shadow: 0 0 0.6cqh rgba(0, 0, 0, 0.8), 0 0.2cqh 0.4cqh rgba(0, 0, 0, 0.6);
 }
 #badge.warn { color: var(--warn); }
 #badge.bad { color: var(--bad); }
@@ -282,10 +283,10 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   width: 12cqh; height: 12cqh; padding: 1.5cqh; touch-action: none;
 }
 #saveBtn svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
-#saveBtn .fill { fill: none; stroke: #000; stroke-width: 44; stroke-dasharray: 138.3; stroke-dashoffset: 0; }
-#saveBtn .rim { fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 4; transition: stroke .2s; }
-#saveBtn.go .fill { transition: stroke-dashoffset 1s linear; stroke-dashoffset: 138.3; }
-#saveBtn.done .rim { stroke: var(--acc); stroke-width: 7; }
+/* Schwarzer Ring. Ein negativer Versatz löscht ihn von oben im Uhrzeigersinn. */
+#saveBtn .ring { fill: none; stroke: #000; stroke-width: 9; stroke-dasharray: 276.5; stroke-dashoffset: 0; }
+#saveBtn.go .ring { transition: stroke-dashoffset 1s linear; stroke-dashoffset: -276.5; }
+#saveBtn.done .ring { opacity: 0; }
 #toast {
   position: absolute; left: 14cqh; bottom: 5cqh;
   padding: 0.8cqh 1.8cqh; border-radius: 1.2cqh;

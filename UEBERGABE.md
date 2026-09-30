@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 30.09.2026. Normale App v0 mit Version 21, Test-App Stand 7. Beides lokal committet.
+Stand 30.09.2026. Normale App v0 mit Version 22, Test-App Stand 8. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -64,7 +64,8 @@ Zusätzlich in Stand 6. Ein Zahnrad oben rechts in Einstellungen und Analyse öf
 Entscheidungen des Nutzers
 - Kein Fernauslöser. Der Bildschirm wird auf den Fernseher gespiegelt.
 - Während der Analyse ist die Kamera aus. Es gibt entweder Betrieb oder Analyse.
-- Der Speicherknopf ist ein kleiner schwarzer Kreis unten links im 16:9-Bereich. Er muss 1 Sekunde gehalten werden. Dabei verschwindet das Schwarz ringförmig, umgekehrt zum türkisen Kreis beim Zurück.
+- Der Speicherknopf ist seit Stand 8 ein schwarzer Ring ohne Füllung unten links im 16:9-Bereich. Er muss 1 Sekunde gehalten werden. Dabei verschwindet der Ring von oben im Uhrzeigersinn. Ist er weg, kommt die Meldung „Gespeichert“, danach erscheint der Ring wieder.
+- Die Sekundenanzeige oben rechts steht seit Version 22 und Stand 8 frei, ohne Hintergrund und Rahmen, nur mit weichem Textschatten.
 - Gespeichert wird der Teil des Puffers, der noch gezeigt wird, also vom Bild auf dem Fernseher bis zum Moment des Drückens. Der Trainer drückt direkt nach dem Eintauchen.
 - Videos werden nach Datum gruppiert und pro Tag durchnummeriert.
 
@@ -116,7 +117,7 @@ Technik in `test/analysis.js`
 
 ## Offen und als Nächstes
 
-- Version 21 und die Test-App Stand 7 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Export und Teilen auf Android funktionieren.
+- Version 22 und die Test-App Stand 8 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Export und Teilen auf Android funktionieren.
 - Offen ist die Frage an den Nutzer, ob ein Knopf „Foto“ das Standbild mit Zeichnung als Bild speichern oder teilen soll.
 - `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
