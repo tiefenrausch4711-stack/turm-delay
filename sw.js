@@ -1,7 +1,7 @@
 // Bei jeder neuen Version VERSION erhöhen. Die neue Version wird beim nächsten App-Start übernommen.
 // Nur eigene Speicher werden gelöscht, damit die Test-App unter test/ unberührt bleibt
 const PREFIX = 'turm-delay-';
-const VERSION = PREFIX + 'v17';
+const VERSION = PREFIX + 'v18';
 const FILES = ['./', 'index.html', 'app.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

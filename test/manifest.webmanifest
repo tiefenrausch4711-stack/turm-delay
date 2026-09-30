@@ -2,6 +2,7 @@
   "name": "LagCam Test",
   "short_name": "LagCam Test",
   "description": "Testversion. Verzögerte Kamerawiedergabe für das Training im Turmspringen",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

@@ -1,6 +1,6 @@
 # Übergabe LagCam
 
-Stand 30.09.2026. Normale App v0 mit Version 17, Test-App Stand 2. Beides lokal committet.
+Stand 30.09.2026. Normale App v0 mit Version 18, Test-App Stand 2. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -50,6 +50,7 @@ Seit dem 30.09.2026 gibt es zwei Apps nebeneinander.
 - Bei Änderungen an der Test-App `APP_VERSION` in `test/app.js` und `VERSION` in `test/sw.js` erhöhen.
 - Hat sich die Test-App bewährt, werden ihre Änderungen in den Hauptordner übernommen. Dabei `STORE_KEY`, `MAIN_STORE_KEY`, Präfix, Namen, Schild und Symbol der normalen App beibehalten. Danach den neuen Stand mit einem Tag wie `v1` sichern.
 - Symbol der Test-App mit `python icon.py test c2570c` erzeugen.
+- Der Bereich der normalen App ist seit Version 18 auf `./index.html` begrenzt, mit `id` `./`. Vorher umfasste er den Ordner `test/`, und Chrome meldete die Test-App als schon installiert. Nach dieser Änderung muss die normale App auf dem Tablet einmal deinstalliert und neu installiert werden.
 
 ## Test-App, geplante Funktionen
 
@@ -112,7 +113,7 @@ Technik in `test/analysis.js`
 
 ## Offen und als Nächstes
 
-- Version 17 und die Test-App Stand 2 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Export und Teilen auf Android funktionieren.
+- Version 18 und die Test-App Stand 2 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Export und Teilen auf Android funktionieren.
 - `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
 - Prüfen, ob die Vorschau im Einstellungsbildschirm auf dem Tablet flüssig läuft. Der Nutzer hatte ein Hängen gemeldet. Das betraf wahrscheinlich die Vorschau im Claude-Desktop. Die möglichen Ursachen auf dem Tablet wurden in Version 12 behoben.
