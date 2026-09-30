@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '19';
+const APP_VERSION = '20';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -316,9 +316,9 @@ function fmtTime(u) {
 function expText() {
   if (!track || !caps.exposureMode) return '';
   // Wie beim Fokus stehen Zahlenwerte nur bei manueller Belichtung
-  if (cam().exp !== 'manual' || !caps.exposureTime) return 'Auto';
+  if (cam().exp !== 'manual' || !caps.exposureTime) return 'EV Auto';
   const { t, iso } = expParams(cam().ev);
-  const parts = ['Manuell', fmtTime(t)];
+  const parts = ['EV Manuell', fmtTime(t)];
   if (caps.iso) parts.push('ISO ' + iso);
   return parts.join(' · ');
 }

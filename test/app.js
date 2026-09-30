@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '4';   // Stand der Test-App
+const APP_VERSION = '5';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -320,9 +320,9 @@ function fmtTime(u) {
 function expText() {
   if (!track || !caps.exposureMode) return '';
   // Wie beim Fokus stehen Zahlenwerte nur bei manueller Belichtung
-  if (cam().exp !== 'manual' || !caps.exposureTime) return 'Auto';
+  if (cam().exp !== 'manual' || !caps.exposureTime) return 'EV Auto';
   const { t, iso } = expParams(cam().ev);
-  const parts = ['Manuell', fmtTime(t)];
+  const parts = ['EV Manuell', fmtTime(t)];
   if (caps.iso) parts.push('ISO ' + iso);
   return parts.join(' · ');
 }
