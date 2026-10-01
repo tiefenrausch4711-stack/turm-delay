@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 01.10.2026. Normale App v1.2 unter `app/`, Test-App Stand 2 unter `test/`, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 01.10.2026. Normale App v1.3 unter `app/`, Test-App Stand 3 unter `test/`, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -32,7 +32,7 @@ LagTime ist eine Progressive Web App für das Training im Turmspringen. Ein Sams
 | `index.html` | Startseite mit Knöpfen zu `app/` und `test/`, meldet den alten Service Worker ab |
 | `sw.js` | Aufräum-Worker, ersetzt den alten Worker der früher hier liegenden App, meldet sich selbst ab |
 | `app/` | Normale App mit `index.html`, `app.js`, `analysis.js`, `draw.js`, `style.css`, `sw.js`, `manifest.webmanifest` und Symbolen |
-| `icon-192.png`, `icon-512.png` | Symbol, seit Version 24 und Stand 36 weiß gefüllte Kamera mit runden Ecken und weichen Übergängen am Aufsatz, verkleinert und mittig. Die Uhr als Objektiv ist innen in der Hintergrundfarbe mit weißem Ring und weißen Zeigern. Die normale App hat seit v1.1 einen blaugrauen Hintergrund `#455a6f` und ein oranges Objektiv `#c2570c`, die Test-App ist orange mit orangem Objektiv. Erzeugt mit `python icon.py . 455a6f c2570c` und `python icon.py test c2570c` |
+| `icon-192.png`, `icon-512.png` | Symbol, seit Version 24 und Stand 36 weiß gefüllte Kamera mit runden Ecken und weichen Übergängen am Aufsatz, verkleinert und mittig. Die Uhr als Objektiv ist innen in der Hintergrundfarbe mit weißem Ring und weißen Zeigern. Seit v1.3 und Stand 3 ist das Objektiv größer, ohne weißen Ring und ohne Blitzpunkt, nur mit weißen Zeigern. Normale App blaugrau `#455a6f`, Test-App orange `#c2570c`, das Objektiv jeweils in der Hintergrundfarbe. Erzeugt mit `python icon.py app 455a6f` und `python icon.py test c2570c` |
 | `icon.py` | Erzeugt beide Symbole, Aufruf `python icon.py .` im Projektordner, braucht Pillow |
 | `test/` | Test-App „LagTime Test“, vollständige Kopie der App mit eigenen Änderungen |
 | `test.html` | Testseite für die Fähigkeiten des Tablets |
