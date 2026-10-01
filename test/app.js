@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '3';   // Stand der Test-App
+const APP_VERSION = '4';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -1067,6 +1067,18 @@ async function applyUpdateAtStart() {
   return false;
 }
 
+// Startbildschirm. Er bleibt mindestens so lange ab dem Öffnen stehen, dann blendet er weich aus.
+const SPLASH_MS = 1300;
+function hideSplash() {
+  const s = $('splash');
+  if (!s || s.classList.contains('out')) return;
+  setTimeout(() => {
+    s.classList.add('out');
+    setTimeout(() => s.remove(), 600);
+  }, Math.max(0, SPLASH_MS - performance.now()));
+}
+setTimeout(hideSplash, 6000);   // Sicherheit, falls der Start unerwartet hängt
+
 (async function init() {
   // Nach dem Übernehmen lädt die Seite neu. Falls das ausbleibt, geht es nach kurzer Zeit normal weiter.
   if (await applyUpdateAtStart()) await sleep(4000);
@@ -1075,9 +1087,11 @@ async function applyUpdateAtStart() {
     unsupported = true;
     $('settings').classList.remove('hidden');
     renderCamInfo();
+    hideSplash();
     return;
   }
   requestWakeLock();
   restartCamera();
   enterSettings();
+  hideSplash();
 })();

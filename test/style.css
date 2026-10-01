@@ -551,3 +551,12 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .step.sm { width: 44px; height: 44px; flex: 0 0 44px; font-size: 24px; }
 .tool.ok { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
 .tool:disabled { opacity: 0.6; }
+
+/* Startbildschirm in der Farbe des Symbols. Er blendet aus, sobald die App bereit ist, frühestens nach SPLASH_MS. */
+#splash {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  background: #c2570c; transition: opacity .45s ease;
+}
+#splash img { width: min(38vmin, 220px); height: auto; }
+#splash.out { opacity: 0; pointer-events: none; }
