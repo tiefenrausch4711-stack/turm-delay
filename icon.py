@@ -2,7 +2,7 @@ import math, sys
 from PIL import Image, ImageDraw
 # Aufruf: python icon.py <Zielordner> [Hintergrundfarbe] [Farbe des Objektivs], beide als Hex ohne #
 # Weiß gefüllte Kamera, die Uhr als Objektiv ist innen farbig.
-# Normale App: python icon.py . 455a6f c2570c   Test-App: python icon.py test c2570c
+# Normale App: python icon.py app 455a6f c2570c   Test-App: python icon.py test c2570c
 BG=tuple(bytes.fromhex(sys.argv[2])) if len(sys.argv)>2 else (17,32,62); FG=(255,255,255)
 LENS=tuple(bytes.fromhex(sys.argv[3])) if len(sys.argv)>3 else BG
 S=4; N=512*S

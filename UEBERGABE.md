@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 01.10.2026. Normale App v1 ist online, v1.1 mit neuem Symbol lokal committet. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 01.10.2026. Normale App v1.2 unter `app/`, Test-App Stand 2 unter `test/`, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -13,14 +13,15 @@ LagTime ist eine Progressive Web App für das Training im Turmspringen. Ein Sams
 - Antworten auf Deutsch, sachlich und ohne Floskeln. Die genauen Stilregeln stehen in `PLAN.md` unter „Kommunikation mit dem Nutzer“.
 - Der Nutzer programmiert nicht. Claude schreibt den gesamten Code, der Nutzer testet auf dem Tablet und schickt Fotos.
 - Claude committet lokal im Projektordner. Der Nutzer lädt mit GitHub Desktop über „Push origin“ hoch. „Fetch origin“ reicht dafür nicht.
-- Ob eine Version online ist, prüft Claude selbst, indem es `app.js` von GitHub Pages abruft und `APP_VERSION` liest.
+- Ob eine Version online ist, prüft Claude selbst, indem es `app/app.js` und `test/app.js` von GitHub Pages abruft und `APP_VERSION` liest.
 - Anleitungen für GitHub oder Android brauchen genaue Klickwege.
 
 ## Orte
 
 - Projektordner: `C:\Users\Hilde\Desktop\Cload_Projekte\DelayAnwendung`
 - Repository: `tiefenrausch4711-stack/turm-delay`, öffentlich, Branch `main`
-- App: `https://tiefenrausch4711-stack.github.io/turm-delay/`
+- Startseite mit zwei Knöpfen zu beiden Apps: `https://tiefenrausch4711-stack.github.io/turm-delay/`
+- App: `https://tiefenrausch4711-stack.github.io/turm-delay/app/`
 - Test-App: `https://tiefenrausch4711-stack.github.io/turm-delay/test/`
 - Testseite für die Fähigkeiten des Tablets: `https://tiefenrausch4711-stack.github.io/turm-delay/test.html`
 
@@ -28,11 +29,9 @@ LagTime ist eine Progressive Web App für das Training im Turmspringen. Ein Sams
 
 | Datei | Inhalt |
 |---|---|
-| `index.html` | Einstellungsbildschirm und Betriebsansicht |
-| `style.css` | Gestaltung, dunkles Graphit mit Türkis als Akzent, Stil eines Messinstruments |
-| `app.js` | Gesamte Logik mit Kamera, Kodierung, Puffer, Wiedergabe, Überwachung und Oberfläche |
-| `sw.js` | Service Worker für den Offline-Betrieb und für Updates |
-| `manifest.webmanifest` | Installation als App, Vollbild, Querformat |
+| `index.html` | Startseite mit Knöpfen zu `app/` und `test/`, meldet den alten Service Worker ab |
+| `sw.js` | Aufräum-Worker, ersetzt den alten Worker der früher hier liegenden App, meldet sich selbst ab |
+| `app/` | Normale App mit `index.html`, `app.js`, `analysis.js`, `draw.js`, `style.css`, `sw.js`, `manifest.webmanifest` und Symbolen |
 | `icon-192.png`, `icon-512.png` | Symbol, seit Version 24 und Stand 36 weiß gefüllte Kamera mit runden Ecken und weichen Übergängen am Aufsatz, verkleinert und mittig. Die Uhr als Objektiv ist innen in der Hintergrundfarbe mit weißem Ring und weißen Zeigern. Die normale App hat seit v1.1 einen blaugrauen Hintergrund `#455a6f` und ein oranges Objektiv `#c2570c`, die Test-App ist orange mit orangem Objektiv. Erzeugt mit `python icon.py . 455a6f c2570c` und `python icon.py test c2570c` |
 | `icon.py` | Erzeugt beide Symbole, Aufruf `python icon.py .` im Projektordner, braucht Pillow |
 | `test/` | Test-App „LagTime Test“, vollständige Kopie der App mit eigenen Änderungen |
@@ -44,14 +43,14 @@ LagTime ist eine Progressive Web App für das Training im Turmspringen. Ein Sams
 
 Seit dem 30.09.2026 gibt es zwei Apps nebeneinander.
 
-- Die normale App „LagTime“ liegt im Hauptordner. Am 01.10.2026 wurde der Inhalt der Test-App Stand 1 übernommen und als `v1` veröffentlicht, Git-Tag `v1`. Der alte Stand ist unter `v0` gesichert. Sie wird im Training genutzt und nur bei Fehlern oder bei einer neuen Übernahme aus der Test-App geändert.
+- Die normale App „LagTime“ liegt seit v1.2 im Ordner `app/`, vorher im Hauptordner. Am 01.10.2026 wurde der Inhalt der Test-App Stand 1 übernommen und als `v1` veröffentlicht, Git-Tag `v1`. Der alte Stand ist unter `v0` gesichert. Sie wird im Training genutzt und nur bei Fehlern oder bei einer neuen Übernahme aus der Test-App geändert.
 - Unterschiede der normalen App zur Test-App: Titel und Logo ohne „Test“, Anzeige `v` + `APP_VERSION`, `STORE_KEY` `turmdelay.settings.v1` ohne Übernahme anderer Einstellungen, IndexedDB `lagtime` statt `lagcam-test`, Offline-Speicher `turm-delay-r1` mit Zählung `r1`, `r2` und so fort, blaues Symbol, Manifest mit Bereich `./index.html`.
 - Die Test-App „LagTime Test“ liegt im Ordner `test/`. Neue Funktionen kommen nur dorthin. Sie hat ein oranges Symbol und in der App ein oranges Schild „Test“. Oben rechts steht „Stand“ mit ihrer Nummer.
 - Beide teilen sich die Adresse von GitHub Pages, sind aber getrennt installiert. Die Test-App speichert ihre Einstellungen unter `lagcam.test.settings` und übernimmt beim ersten Start die Einstellungen der normalen App. Ihr Offline-Speicher heißt `lagcam-test-vN`, der der normalen App `turm-delay-vN`. Jeder Service Worker löscht nur Speicher mit dem eigenen Präfix.
 - Bei Änderungen an der Test-App `APP_VERSION` in `test/app.js` und `VERSION` in `test/sw.js` erhöhen. Am 01.10.2026 wurde die Zählung nach Stand 36 auf „Stand 1“ zurückgesetzt und mit dem Git-Tag `stand-1` gesichert. Der Offline-Speicher heißt seitdem `lagcam-test-s1`, weiter mit `s2`, `s3` und so fort, damit keine Verwechslung mit den alten Namen `v1` bis `v36` entsteht.
-- Hat sich die Test-App bewährt, werden ihre Änderungen in den Hauptordner übernommen. Dabei `STORE_KEY`, `MAIN_STORE_KEY`, Präfix, Namen, Schild und Symbol der normalen App beibehalten. Danach den neuen Stand mit einem Tag wie `v1` sichern.
+- Hat sich die Test-App bewährt, werden ihre Änderungen nach `app/` übernommen. Dabei `STORE_KEY`, `MAIN_STORE_KEY`, Präfix, Namen, Schild und Symbol der normalen App beibehalten. Danach den neuen Stand mit einem Tag wie `v1` sichern.
 - Symbol der Test-App mit `python icon.py test c2570c` erzeugen.
-- Der Bereich der normalen App ist seit Version 18 auf `./index.html` begrenzt, mit `id` `./`. Vorher umfasste er den Ordner `test/`, und Chrome meldete die Test-App als schon installiert. Nach dieser Änderung muss die normale App auf dem Tablet einmal deinstalliert und neu installiert werden.
+- Beide Apps liegen seit v1.2 und Test-App Stand 2 als Geschwister in `app/` und `test/`, jede mit Bereich und `id` `./` im eigenen Ordner. Vorher lag die normale App im Hauptordner, ihr Bereich umfasste `test/`, und Chrome meldete die Test-App als schon installiert. Die Begrenzung auf `./index.html` ab Version 18 hat das auf dem Tablet nicht zuverlässig gelöst. Nach dem Umzug müssen beide Apps einmal deinstalliert und neu installiert werden. Einstellungen und Videos bleiben erhalten, weil sie an den Ursprung `tiefenrausch4711-stack.github.io` gebunden sind.
 
 ## Test-App, geplante Funktionen
 
@@ -125,7 +124,7 @@ Gearbeitet wird nur an der Test-App. Übertragen in die normale App wird erst, w
 
 ## Neue Version veröffentlichen
 
-1. `APP_VERSION` in `app.js` und `VERSION` in `sw.js` um eins erhöhen. Das ist bei jeder Änderung Pflicht, sonst bleibt das Tablet auf der alten Version.
+1. `APP_VERSION` in `app/app.js` oder `test/app.js` und `VERSION` im zugehörigen `sw.js` erhöhen. Das ist bei jeder Änderung Pflicht, sonst bleibt das Tablet auf der alten Version.
 2. Committen, mit der Attribution `Co-Authored-By` aus den Systemhinweisen.
 3. Der Nutzer klickt in GitHub Desktop auf „Push origin“.
 4. Auf dem Tablet die App einmal öffnen. Die neue Version wird dabei im Hintergrund geladen. Beim nächsten Öffnen ist sie aktiv. Die Versionsnummer steht oben rechts im Einstellungsbildschirm.
