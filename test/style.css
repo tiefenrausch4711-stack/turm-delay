@@ -394,6 +394,8 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .tl.on { background: var(--acc); color: var(--acc-ink); }
 .tl:active { filter: brightness(1.25); }
 .tl:disabled { opacity: 0.3; }
+/* Rückgängig sitzt ganz unten, nah an der unteren Leiste */
+#dUndo { margin-top: auto; }
 .tl .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--c, #ffd21f); border: 2px solid rgba(255, 255, 255, 0.35); }
 .seekWrap { flex: 1; min-width: 120px; position: relative; display: flex; align-items: center; }
 #pBand {
