@@ -611,6 +611,7 @@ async function openClip(c) {
   $('pTitle').textContent = `${dayLabel(c.day)} · ${c.nr} · ${hhmm(c.created)}`;
   $('pName').value = c.name || '';
   renderStar();
+  renderClipNav();
   resetDelete();
   $('pSeek').min = pFirst;
   $('pSeek').max = pCount() - 1;
@@ -634,6 +635,36 @@ function closePlayer() {
   pc = null;
   pTarget = -1; pPending = -1;
 }
+
+// Vorheriges und nächstes Video in zeitlicher Reihenfolge, innerhalb des Filters der Liste.
+// Das geöffnete Video zählt mit, auch wenn es durch eine Namensänderung nicht mehr zum Filter passt.
+function clipNeighbor(dir) {
+  if (!pc) return null;
+  const cur = pc.meta.created;
+  const pool = listClips.filter(c => c.id !== pc.meta.id && (!listFilter.star || c.star) && (!listFilter.name || c.name === listFilter.name));
+  let best = null;
+  for (const c of pool) {
+    if (dir > 0 ? c.created > cur && (!best || c.created < best.created) : c.created < cur && (!best || c.created > best.created)) best = c;
+  }
+  return best;
+}
+
+function renderClipNav() {
+  $('pPrevClip').disabled = !clipNeighbor(-1);
+  $('pNextClip').disabled = !clipNeighbor(1);
+}
+
+// Wechsel ohne neuen Verlaufseintrag, die Zurück-Geste führt weiter direkt zur Liste.
+// Zeitlupe bleibt, Zoom, Zeichnung, Schleife und Schnittauswahl beginnen neu.
+let navBusy = false;   // schnelles Doppeltippen öffnet nicht zwei Videos gleichzeitig
+async function showNeighbor(dir) {
+  const c = clipNeighbor(dir);
+  if (!c || navBusy) return;
+  navBusy = true;
+  try { await openClip(c); } finally { navBusy = false; }
+}
+$('pPrevClip').addEventListener('click', () => showNeighbor(-1));
+$('pNextClip').addEventListener('click', () => showNeighbor(1));
 
 function renderStar() {
   const on = !!(pc && pc.meta.star);
@@ -701,12 +732,14 @@ $('pStar').addEventListener('click', async () => {
   if (!pc) return;
   pc.meta.star = !pc.meta.star;
   renderStar();
+  renderClipNav();
   await putClip(pc.meta);
 });
 
 $('pName').addEventListener('change', async () => {
   if (!pc) return;
   pc.meta.name = $('pName').value.trim();
+  renderClipNav();
   await putClip(pc.meta);
 });
 $('pName').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
