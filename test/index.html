@@ -146,11 +146,7 @@
       </nav>
     </div>
     <div id="pRange" class="hidden">
-      <div class="rgSliders">
-        <label class="rg start"><span>Anfang</span><input type="range" id="rgA" min="0" max="1" step="1" value="0"></label>
-        <label class="rg end"><span>Ende</span><input type="range" id="rgB" min="0" max="1" step="1" value="1"></label>
-      </div>
-      <span id="rgInfo"></span>
+      <div class="rgLegend"><i class="la"></i>Anfang<i class="lb"></i>Ende<span id="rgInfo"></span></div>
       <div class="rgCount" id="rgCountBox">
         <button id="rgMinus" class="step sm" aria-label="Weniger Bilder">−</button>
         <span id="rgCount">8</span><small>Bilder</small>
@@ -163,7 +159,7 @@
       <button id="pPrev" class="ico" aria-label="Ein Bild zurück"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM19 5v14L9.5 12z"/></svg></button>
       <button id="pPlay" class="ico big" aria-label="Abspielen"><svg class="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15L19.5 12z"/></svg><svg class="i-pause" viewBox="0 0 24 24"><path d="M6 4.5h4.2v15H6zM13.8 4.5H18v15h-4.2z"/></svg></button>
       <button id="pNext" class="ico" aria-label="Ein Bild vor"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5v14l9.5-7z"/></svg></button>
-      <div class="seekWrap"><div id="pBand" class="hidden"></div><input type="range" id="pSeek" min="0" max="0" step="1" value="0" aria-label="Position"></div>
+      <div class="seekWrap"><div id="pBand" class="hidden"></div><div id="pSel" class="hidden"></div><i id="hA" class="hd a hidden"></i><i id="hB" class="hd b hidden"></i><input type="range" id="pSeek" min="0" max="0" step="1" value="0" aria-label="Position"></div>
       <button id="pLoop" class="tool loop"><small>Schleife</small><b>Anfang</b></button>
       <span id="pTime"></span>
       <div class="seg" id="pSpeed">

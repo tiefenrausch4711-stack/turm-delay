@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 30.09.2026. Normale App v0 mit Version 22, Test-App Stand 12. Beides lokal committet.
+Stand 30.09.2026. Normale App v0 mit Version 22, Test-App Stand 13. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -63,8 +63,8 @@ Zusätzlich in Stand 6. Ein Zahnrad oben rechts in Einstellungen und Analyse öf
    - Foto. Speichert das angezeigte Bild mit Zeichnung, ohne Griffe, als JPG über Herunterladen.
    - Filter in der Liste nach Stern und nach Springer.
    - Lot. Gestrichelte Senkrechte über die ganze Bildhöhe, mit Griff verschiebbar.
-   - Schneiden. Rechts anwählen, unten erscheinen ein grüner Regler für den Anfang und ein roter für das Ende, dann „Schneiden“. Das Original wird ersetzt und behält Nummer, Name und Stern. Neu kodiert wird nicht. Ab dem Keyframe vor dem Anfang bleibt ein unsichtbarer Vorlauf, gespeichert als `skip` im Datensatz `data`. Die Wiedergabe beginnt bei `pFirst`. Das MP4 überspringt den Vorlauf über eine Edit List `elst`.
-   - Bildfolge. Abschnitt wie beim Schneiden wählen, dazu 3 bis 16 Bilder, dann „Erstellen“. Ein eigener Decoder holt die Bilder in 1280 x 720. Der Hintergrund ist der Median der Helligkeit auf einem Raster von 4 Bildpunkten. Wo ein Bild deutlich abweicht, wird es eingesetzt, spätere Bilder liegen oben. Das Ergebnis ersetzt das Videobild, bis wieder ein Videobild erscheint. Man kann darauf zeichnen und es als Foto speichern.
+   - Schneiden. Rechts anwählen. Seit Stand 13 erscheinen auf dem normalen Zeitregler zwei zusätzliche Punkte, grün für den Anfang und rot für das Ende, mit hell markiertem Abschnitt dazwischen. Eigene Regler gibt es nicht mehr. Darüber liegt eine schmale Leiste mit Länge, „Abbrechen“ und „Schneiden“. Das Original wird ersetzt und behält Nummer, Name und Stern. Neu kodiert wird nicht. Ab dem Keyframe vor dem Anfang bleibt ein unsichtbarer Vorlauf, gespeichert als `skip` im Datensatz `data`. Die Wiedergabe beginnt bei `pFirst`. Das MP4 überspringt den Vorlauf über eine Edit List `elst`.
+   - Bildfolge. Abschnitt wie beim Schneiden mit den Punkten auf dem Zeitregler wählen, dazu 3 bis 16 Bilder, dann „Erstellen“. Ein eigener Decoder holt die Bilder in 1280 x 720. Der Hintergrund ist der Median der Helligkeit auf einem Raster von 4 Bildpunkten. Wo ein Bild deutlich abweicht, wird es eingesetzt, spätere Bilder liegen oben. Das Ergebnis ersetzt das Videobild, bis wieder ein Videobild erscheint. Man kann darauf zeichnen und es als Foto speichern.
    - Vergleich zweier Sprünge entfällt, weil von verschiedenen Brettern gesprungen wird. Zeitmessung und alle Vorschläge für den Betrieb wollte der Nutzer nicht.
 
 Entscheidungen des Nutzers
@@ -123,7 +123,7 @@ Technik in `test/analysis.js`
 
 ## Offen und als Nächstes
 
-- Version 22 und die Test-App Stand 12 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
+- Version 22 und die Test-App Stand 13 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
 - `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
 - Prüfen, ob die Vorschau im Einstellungsbildschirm auf dem Tablet flüssig läuft. Der Nutzer hatte ein Hängen gemeldet. Das betraf wahrscheinlich die Vorschau im Claude-Desktop. Die möglichen Ursachen auf dem Tablet wurden in Version 12 behoben.

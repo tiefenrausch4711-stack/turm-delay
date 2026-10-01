@@ -675,6 +675,9 @@ const STROBE_MIN = 3, STROBE_MAX = 16;
 const MIN_RANGE = 3;          // so viele Bilder liegen mindestens zwischen Anfang und Ende
 let rangeMode = null;         // cut oder strobe
 let strobeCount = 8;
+let selA = 0, selB = 0;       // gewählter Abschnitt, Anfang und Ende als Bildnummern
+
+const selFrac = i => (i - pFirst) / Math.max(1, pCount() - 1 - pFirst);
 
 function openRange(kind) {
   if (!pc) return;
@@ -687,11 +690,8 @@ function openRange(kind) {
   else if (kind === 'cut') { a = pFirst; b = n - 1; }
   else { a = Math.max(pFirst, pPos - 30); b = Math.min(n - 1, pPos + 30); }
   if (b - a < MIN_RANGE) { a = pFirst; b = n - 1; }
-  for (const [id, v] of [['rgA', a], ['rgB', b]]) {
-    const s = $(id);
-    s.min = pFirst; s.max = n - 1; s.value = v;
-    fillRange(s);
-  }
+  selA = a; selB = b;
+  for (const id of ['hA', 'hB', 'pSel']) $(id).classList.remove('hidden');
   $('rgCountBox').classList.toggle('hidden', kind !== 'strobe');
   $('rgOk').textContent = kind === 'cut' ? 'Schneiden' : 'Erstellen';
   $('rgOk').disabled = false;
@@ -704,30 +704,45 @@ function openRange(kind) {
 function closeRange() {
   rangeMode = null;
   $('pRange').classList.add('hidden');
+  for (const id of ['hA', 'hB', 'pSel']) $(id).classList.add('hidden');
   $('dCut').classList.remove('on');
   $('dStrobe').classList.remove('on');
 }
 
 function renderRange() {
-  const a = +$('rgA').value, b = +$('rgB').value;
-  $('rgInfo').textContent = fmtSec(pc.frames[b][0] - pc.frames[a][0]);
+  $('hA').style.setProperty('--x', selFrac(selA));
+  $('hB').style.setProperty('--x', selFrac(selB));
+  $('pSel').style.setProperty('--a', selFrac(selA));
+  $('pSel').style.setProperty('--w', selFrac(selB) - selFrac(selA));
+  $('rgInfo').textContent = fmtSec(pc.frames[selB][0] - pc.frames[selA][0]);
   $('rgCount').textContent = strobeCount;
 }
 
-// Die Regler können sich nicht überholen. Beim Ziehen zeigt das Video das gewählte Bild.
-for (const id of ['rgA', 'rgB']) {
-  $(id).addEventListener('input', e => {
-    const s = e.target;
-    let a = +$('rgA').value, b = +$('rgB').value;
-    if (b - a < MIN_RANGE) {
-      if (id === 'rgA') a = b - MIN_RANGE; else b = a + MIN_RANGE;
-      a = Math.max(a, pFirst); b = Math.min(b, pCount() - 1);
-      $('rgA').value = a; $('rgB').value = b;
-    }
-    fillRange($('rgA')); fillRange($('rgB'));
+// Die Punkte für Anfang und Ende liegen auf dem Zeitregler und können sich nicht überholen.
+// Beim Ziehen zeigt das Video das gewählte Bild.
+for (const [id, isA] of [['hA', true], ['hB', false]]) {
+  const h = $(id);
+  let drag = null;
+  const moveTo = i => {
+    if (isA) selA = clamp(i, pFirst, selB - MIN_RANGE);
+    else selB = clamp(i, selA + MIN_RANGE, pCount() - 1);
     renderRange();
-    seek(+s.value);
+    seek(isA ? selA : selB);
+  };
+  h.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    drag = e.pointerId;
+    try { h.setPointerCapture(e.pointerId); } catch (x) {}
+    seek(isA ? selA : selB);
   });
+  h.addEventListener('pointermove', e => {
+    if (drag !== e.pointerId) return;
+    const r = $('pSeek').getBoundingClientRect();
+    const f = clamp((e.clientX - r.left - 13) / (r.width - 26), 0, 1);
+    moveTo(Math.round(pFirst + f * (pCount() - 1 - pFirst)));
+  });
+  for (const type of ['pointerup', 'pointercancel']) h.addEventListener(type, e => { if (drag === e.pointerId) drag = null; });
 }
 $('rgMinus').addEventListener('click', () => { strobeCount = Math.max(STROBE_MIN, strobeCount - 1); renderRange(); });
 $('rgPlus').addEventListener('click', () => { strobeCount = Math.min(STROBE_MAX, strobeCount + 1); renderRange(); });
@@ -737,7 +752,7 @@ $('dStrobe').addEventListener('click', () => openRange('strobe'));
 
 $('rgOk').addEventListener('click', async () => {
   if (!pc || !rangeMode) return;
-  const a = +$('rgA').value, b = +$('rgB').value;
+  const a = selA, b = selB;
   const ok = $('rgOk');
   ok.disabled = true;
   ok.textContent = rangeMode === 'cut' ? 'Wird geschnitten …' : 'Wird erstellt …';
