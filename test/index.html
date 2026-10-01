@@ -198,10 +198,17 @@
     </div>
     <div id="uiDel" class="hidden">
       <h2>Videos löschen</h2>
-      <p class="delText">Welche Videos sollen gelöscht werden? Das lässt sich nicht rückgängig machen.</p>
-      <button id="delNoStar" class="tool">Ohne Stern löschen</button>
-      <button id="delAll" class="tool delAll">Alle löschen</button>
-      <button id="delCancel" class="tool">Abbrechen</button>
+      <div id="delChoose" class="delStep">
+        <p class="delText">Welche Videos sollen gelöscht werden?</p>
+        <button id="delNoStar" class="tool">Ohne Stern löschen</button>
+        <button id="delAll" class="tool">Alle löschen</button>
+        <button id="delCancel" class="tool">Abbrechen</button>
+      </div>
+      <div id="delAsk" class="delStep hidden">
+        <p class="delText" id="delQuestion"></p>
+        <button id="delYes" class="tool delAll">Ja, löschen</button>
+        <button id="delNo" class="tool">Abbrechen</button>
+      </div>
     </div>
     <div id="uiPick" class="hidden">
       <h2>Eigene Farbe</h2>

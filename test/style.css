@@ -362,7 +362,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #keepLabel { flex: 1; font-size: 15px; color: var(--fg); }
 .storeRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 #uiStore { font: 14px var(--mono); color: var(--mut); }
-#uiDel { display: flex; flex-direction: column; gap: 12px; }
+#uiDel, .delStep { display: flex; flex-direction: column; gap: 12px; }
 .delText { margin: 0 0 4px; font-size: 15px; line-height: 1.45; color: var(--mut); }
 #uiDel .tool { min-height: 52px; font-size: 16px; }
 .tool.delAll { background: var(--bad); border-color: var(--bad); color: #fff; }

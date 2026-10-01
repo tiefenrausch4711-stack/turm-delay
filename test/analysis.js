@@ -1003,7 +1003,9 @@ async function makeStrobe(a, b, count) {
 
 // ---------- Videos löschen in den Einstellungen ----------
 
-// Zwei Schritte, damit nichts aus Versehen verloren geht. Die Zahlen zeigen vorher, wie viele betroffen sind.
+// Drei Schritte, damit nichts aus Versehen verloren geht: Knopf, Auswahl mit Anzahl, Rückfrage.
+let delOnlyNoStar = true;
+
 $('delOpen').addEventListener('click', async () => {
   const clips = await allClips();
   const noStar = clips.filter(c => !c.star).length;
@@ -1011,6 +1013,8 @@ $('delOpen').addEventListener('click', async () => {
   $('delNoStar').disabled = !noStar;
   $('delAll').textContent = `Alle löschen (${clips.length})`;
   $('delAll').disabled = !clips.length;
+  $('delChoose').classList.remove('hidden');
+  $('delAsk').classList.add('hidden');
   $('uiMain').classList.add('hidden');
   $('uiDel').classList.remove('hidden');
 });
@@ -1018,6 +1022,18 @@ $('delOpen').addEventListener('click', async () => {
 function closeDelete() {
   $('uiDel').classList.add('hidden');
   $('uiMain').classList.remove('hidden');
+}
+
+async function askDelete(onlyNoStar) {
+  delOnlyNoStar = onlyNoStar;
+  const clips = await allClips();
+  const n = onlyNoStar ? clips.filter(c => !c.star).length : clips.length;
+  const what = n === 1 ? '1 Video' : n + ' Videos';
+  $('delQuestion').textContent = onlyNoStar
+    ? `${what} ohne Stern wirklich löschen? Das lässt sich nicht rückgängig machen.`
+    : `Wirklich alle ${what} löschen, auch die mit Stern? Das lässt sich nicht rückgängig machen.`;
+  $('delChoose').classList.add('hidden');
+  $('delAsk').classList.remove('hidden');
 }
 
 async function deleteMany(onlyNoStar) {
@@ -1029,9 +1045,11 @@ async function deleteMany(onlyNoStar) {
   renderStorage();
   if (mode === 'analysis' && !pc) showList();
 }
-$('delNoStar').addEventListener('click', () => deleteMany(true));
-$('delAll').addEventListener('click', () => deleteMany(false));
+$('delNoStar').addEventListener('click', () => askDelete(true));
+$('delAll').addEventListener('click', () => askDelete(false));
 $('delCancel').addEventListener('click', closeDelete);
+$('delYes').addEventListener('click', () => deleteMany(delOnlyNoStar));
+$('delNo').addEventListener('click', closeDelete);
 
 // ---------- Start ----------
 
