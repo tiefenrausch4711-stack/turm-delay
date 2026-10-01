@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '20';   // Stand der Test-App
+const APP_VERSION = '21';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -1002,13 +1002,18 @@ $('segTheme').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (b) setUi({ theme: b.dataset.v });
 });
-document.addEventListener('click', e => { if (e.target.closest('[data-ui]')) $('uiDlg').classList.remove('hidden'); });
+// Das Fenster legt einen Verlaufseintrag an, damit die Zurück-Geste es schließt und nicht die Seite wechselt
+document.addEventListener('click', e => {
+  if (!e.target.closest('[data-ui]') || !$('uiDlg').classList.contains('hidden')) return;
+  $('uiDlg').classList.remove('hidden');
+  history.pushState({ v: 'dlg' }, '');
+});
 function closeUi() {
   closePicker();
   $('uiDlg').classList.add('hidden');
 }
-$('uiDone').addEventListener('click', closeUi);
-$('uiDlg').addEventListener('click', e => { if (e.target === $('uiDlg')) closeUi(); });
+$('uiDone').addEventListener('click', () => history.back());
+$('uiDlg').addEventListener('click', e => { if (e.target === $('uiDlg')) history.back(); });
 if (!isHex(settings.ui.acc)) settings.ui.acc = DEFAULTS.ui.acc;
 applyUi();
 

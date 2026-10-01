@@ -160,8 +160,8 @@ function makeMp4(cfg, frames, bytes, skip = 0) {
 }
 
 function clipFileName(c) {
-  const name = c.name ? '_' + c.name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') : '';
-  return `LagTime_${c.day}_${pad2(c.nr)}${name}.mp4`;
+  const clean = (c.name || '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
+  return `LagTime_${c.day}_${pad2(c.nr)}${clean ? '_' + clean : ''}.mp4`;
 }
 
 // ---------- Ein- und Ausstieg ----------
@@ -177,6 +177,7 @@ function enterAnalysis() {
 
 function leaveAnalysis() {
   closePlayer();
+  closeThumbDecoder();
   $('analysis').classList.add('hidden');
   enterSettings();
   restartCamera();
@@ -352,31 +353,55 @@ async function makeMissingThumbs(clips, gen) {
   }
 }
 
-async function makeThumb(id) {
+// Ein gemeinsamer Decoder für alle Vorschaubilder, sie entstehen nacheinander
+let thumbDec = null, thumbOut = null, thumbChain = Promise.resolve();
+
+function thumbDecoder() {
+  if (!thumbDec || thumbDec.state === 'closed') {
+    thumbDec = new VideoDecoder({
+      output: f => { if (thumbOut) thumbOut(f); f.close(); },
+      error: e => { console.warn(e); thumbDec = null; },
+    });
+  }
+  return thumbDec;
+}
+
+function closeThumbDecoder() {
+  if (thumbDec && thumbDec.state !== 'closed') { try { thumbDec.close(); } catch (e) {} }
+  thumbDec = null;
+}
+
+function makeThumb(id) {
+  const p = thumbChain.then(() => makeThumbNow(id));
+  thumbChain = p.catch(() => {});
+  return p;
+}
+
+async function makeThumbNow(id) {
   const d = await getData(id);
   const fr = d.frames, skip = d.skip || 0;
   const end = fr[fr.length - 1][0];
-  // Bild etwa 2 Sekunden vor dem Ende, aber nie aus dem Vorlauf vor einem Schnitt
+  // Bild etwa 2 Sekunden vor dem Ende, aber nie aus dem Vorlauf vor einem Schnitt.
+  // Liegt das Vollbild davor im sichtbaren Teil, reicht es allein, dann muss nur ein Bild dekodiert werden.
   let t = fr.length - 1;
   while (t > skip && fr[t][0] > end - THUMB_BEFORE_END_US) t--;
   let k = t;
   while (k > 0 && !fr[k][1]) k--;
+  if (k >= skip) t = k;
   const base = fr[k][2];
   const bytes = new Uint8Array(await d.data.slice(base, fr[t][2] + fr[t][3]).arrayBuffer());
   const cv = document.createElement('canvas');
   cv.width = 384; cv.height = 216;
-  await new Promise((res, rej) => {
-    const dec = new VideoDecoder({
-      output: f => { if (f.timestamp === fr[t][0]) cv.getContext('2d').drawImage(f, 0, 0, cv.width, cv.height); f.close(); },
-      error: rej,
-    });
+  const dec = thumbDecoder();
+  thumbOut = f => { if (f.timestamp === fr[t][0]) cv.getContext('2d').drawImage(f, 0, 0, cv.width, cv.height); };
+  try {
     dec.configure(d.cfg);
     for (let i = k; i <= t; i++) {
       const [ts, key, off, len] = fr[i];
       dec.decode(new EncodedVideoChunk({ type: key ? 'key' : 'delta', timestamp: ts, data: bytes.subarray(off - base, off - base + len) }));
     }
-    dec.flush().then(() => { dec.close(); res(); }, rej);
-  });
+    await dec.flush();
+  } finally { thumbOut = null; }
   return new Promise(res => cv.toBlob(res, 'image/jpeg', 0.75));
 }
 
@@ -637,6 +662,7 @@ document.addEventListener('click', e => {
 // Zurück-Taste und Zurück-Geste von Android. Wiedergabe führt zur Liste, Liste zu Live.
 // Im Betrieb bleibt sie wirkungslos, damit ein versehentliches Wischen den Betrieb nicht beendet.
 window.addEventListener('popstate', () => {
+  if (!$('uiDlg').classList.contains('hidden')) { closeUi(); return; }   // zuerst das Fenster Darstellung
   if (mode === 'run') { history.pushState({ v: 'run' }, ''); return; }
   if (mode !== 'analysis') return;
   if (!$('aPlayer').classList.contains('hidden')) showList();
@@ -726,20 +752,40 @@ $('pDel').addEventListener('click', async () => {
 // ---------- Foto ----------
 
 // Speichert das angezeigte Bild mit Zeichnung, aber ohne die Griffe
+// Bei Zoom wird nur der sichtbare Ausschnitt gespeichert, auf volle Größe gebracht
+let photoBusy = false;
 function savePhoto() {
-  if (!pc) return;
+  if (!pc || photoBusy) return;
   pause();
+  photoBusy = true;
+  $('dPhoto').disabled = true;
+  const W = pCanvas.width, H = pCanvas.height;
+  const sw = W / vz.z, sh = H / vz.z;
+  const sx = -vz.x / vz.z * W / vbox.w, sy = -vz.y / vz.z * H / vbox.h;
   const c = document.createElement('canvas');
-  c.width = pCanvas.width;
-  c.height = pCanvas.height;
+  c.width = W;
+  c.height = H;
   const x = c.getContext('2d');
-  x.drawImage(pCanvas, 0, 0);
+  x.drawImage(pCanvas, sx, sy, sw, sh, 0, 0, W, H);
   renderDrawing(false);
-  x.drawImage(dCanvas, 0, 0, c.width, c.height);
+  x.drawImage(dCanvas, sx, sy, sw, sh, 0, 0, W, H);
   renderDrawing();
   const t = ((pc.frames[pPos][0] - pc.frames[pFirst][0]) / 1e6).toFixed(2).replace('.', ',');
   const name = clipFileName(pc.meta).replace(/\.mp4$/, pStill ? '_Bildfolge.jpg' : `_${t}s.jpg`);
-  c.toBlob(b => download(new File([b], name, { type: 'image/jpeg' })), 'image/jpeg', 0.92);
+  c.toBlob(b => {
+    download(new File([b], name, { type: 'image/jpeg' }));
+    photoBusy = false;
+    $('dPhoto').disabled = false;
+    playerMsg('Foto gespeichert');
+  }, 'image/jpeg', 0.92);
+}
+
+let playerMsgTimer = 0;
+function playerMsg(text) {
+  $('pMsg').textContent = text;
+  $('pMsg').classList.remove('hidden');
+  clearTimeout(playerMsgTimer);
+  playerMsgTimer = setTimeout(() => $('pMsg').classList.add('hidden'), 2000);
 }
 $('dPhoto').addEventListener('click', savePhoto);
 

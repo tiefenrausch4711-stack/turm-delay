@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 30.09.2026. Normale App v0 mit Version 23, Test-App Stand 20. Beides lokal committet.
+Stand 30.09.2026. Normale App v0 mit Version 23, Test-App Stand 21. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -58,6 +58,13 @@ Mit dem Nutzer am 30.09.2026 abgestimmt. Gebaut wird in drei Schritten, jeder wi
 
 1. Erledigt in Stand 2. Speicherknopf, Videoliste, Wiedergabe mit Zeitlupe und Einzelbildern, Schieberegler, Stern, Name, Löschen, Export, Löschen nach 7 Tagen. Seit Stand 18 ist die Frist unten in der Videoliste mit Minus- und Plustasten frei von 1 bis 30 Tagen einstellbar, seit Stand 19 mit „nie“ als Stufe nach 30, gespeichert als `settings.keepDays`, 0 bedeutet nie. Aufgeräumt wird 1,5 Sekunden nach dem letzten Tippen, eine kürzere Frist löscht dann sofort. Eine Auswahlliste mit festen Werten hatte der Nutzer abgelehnt. Teilen wurde in Stand 9 auf Wunsch des Nutzers entfernt, es bleibt nur Herunterladen.
 2. Erledigt in Stand 4. Zeichnen im Standbild mit Freihand und geraden Linien, Winkel über drei Punkte messen, Zoom mit zwei Fingern, Schleife über einen Abschnitt. Zeichnungen sind nur vorübergehend und verschwinden, sobald das Video weiterläuft.
+Zweiter Nutzertest in Stand 21. Geprüft ohne Befund: Kamerawechsel, Verzögerung 1 bis 30, Betrieb mit 30 Sekunden über mehrere Minuten mit stabil etwa 33 Sekunden Puffer, Speichern von 30 Sekunden, 42 Videos über fünf Tage, Sonderzeichen in Namen, schnelles Öffnen und Schließen, Schleife in Zeitlupe, Schnitt auf 4 Bilder, Export eines langen Videos. Behoben:
+- Das Fenster „Darstellung“ legt einen Verlaufseintrag an. Die Zurück-Geste schließt es, statt die Seite zu wechseln.
+- Vorschaubilder nutzen das Vollbild vor der Zielstelle, wenn es im sichtbaren Teil liegt, und einen gemeinsamen Decoder. 42 Bilder brauchen höchstens 10 statt etwa 55 Sekunden.
+- Das Foto speichert bei Zoom nur den sichtbaren Ausschnitt in voller Größe und meldet „Foto gespeichert“. Der Knopf ist während des Speicherns gesperrt.
+- Dateinamen enden nicht mehr auf „_“, wenn der Name nur aus Sonderzeichen besteht.
+- Die Auswahl der Springer ist höchstens 280 Pixel breit.
+
 Nutzertest in Stand 20, umgesetzt am 01.10.2026.
 - Fällt die Kamera im Betrieb aus, bleibt der Puffer erhalten. Er läuft weiter auf den Fernseher und lässt sich speichern, die Anzeige ist dabei rot. Nach dem Neuverbinden kommen die neuen Bilder hinter die Lücke in denselben Puffer. Eine Lücke gilt nicht als Überlast, siehe `hasDueFrame`.
 - Speichern im Countdown zeigt „Puffer füllt sich noch“ und speichert nichts.
@@ -141,7 +148,7 @@ Technik in `test/analysis.js`
 
 ## Offen und als Nächstes
 
-- Version 23 und die Test-App Stand 20 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
+- Version 23 und die Test-App Stand 21 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
 - Zurückgestellt am 01.10.2026 ist eine weitere, externe Kamera. Besprochene Wege waren eine USB-Kamera, die auf Android 11 bei Samsung oft nicht erkannt wird und einen USB-C-Hub neben dem HDMI-Adapter bräuchte, ein zweites Handy als Funkkamera über WebRTC mit Kopplung per QR-Code, und eine allgemeine Kamerawahl über alle von `enumerateDevices` gemeldeten Kameras als ersten Schritt.
 - `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
