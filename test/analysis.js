@@ -284,9 +284,10 @@ function clipCard(c) {
     await putClip(c);
     if (listFilter.star) renderList(listClips);
   });
-  info.append(el('b', '', String(c.nr)), el('span', 'time', hhmm(c.created)), star);
+  info.append(el('b', '', String(c.nr)), el('span', 'time', hhmm(c.created)));
+  if (c.name) info.append(el('span', 'nm', c.name));
+  info.append(star);
   card.append(th, info);
-  if (c.name) card.append(el('div', 'nm', c.name));
   card.addEventListener('click', () => openClip(c));
   return card;
 }
