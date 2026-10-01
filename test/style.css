@@ -285,7 +285,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #badge {
   position: absolute; top: 3cqh; right: 2.5cqw;
   color: #fff;
-  font: 700 8cqh/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+  font: 700 6cqh/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
   /* kein Hintergrund, nur ein weicher Schatten für helle Bildstellen */
   text-shadow: 0 0 0.6cqh rgba(0, 0, 0, 0.8), 0 0.2cqh 0.4cqh rgba(0, 0, 0, 0.6);
 }
@@ -298,20 +298,22 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #ring .prog { stroke: var(--acc); stroke-linecap: round; stroke-dasharray: 314.2; stroke-dashoffset: 314.2; }
 #ring.go .prog { transition: stroke-dashoffset 1s linear; stroke-dashoffset: 0; }
 
-/* Speicherknopf, gestaltet wie der Kreis zum Zurückkehren. Der graue Ring ist immer sichtbar,
-   beim Halten füllt er sich in der Akzentfarbe. 132 Pixel auf dem Tablet entsprechen 18 Prozent der Bildhöhe. */
+/* Speicherknopf, gestaltet wie der Kreis zum Zurückkehren. Der graue Ring ist immer sichtbar, innen durchsichtig.
+   Beim Halten wird er innen getönt und der Ring füllt sich in der Akzentfarbe.
+   Ein Viertel der Fläche des Zurück-Kreises, der Rand vergrößert die Fläche zum Treffen. */
 #saveBtn {
   position: absolute; left: 1.5cqw; bottom: 2.5cqh;
-  width: 18.3cqh; height: 18.3cqh; padding: 0; touch-action: none;
+  width: 13.2cqh; height: 13.2cqh; padding: 2.2cqh; touch-action: none;
 }
 #saveBtn svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
-#saveBtn circle { fill: none; stroke-width: 5; }
-#saveBtn .track { fill: rgba(0, 0, 0, 0.45); stroke: rgba(255, 255, 255, 0.2); }
+#saveBtn circle { fill: none; stroke-width: 7; }
+#saveBtn .track { fill: transparent; stroke: rgba(255, 255, 255, 0.35); transition: fill .15s; }
+#saveBtn.go .track, #saveBtn.done .track { fill: rgba(0, 0, 0, 0.45); }
 #saveBtn .prog { stroke: var(--acc); stroke-linecap: round; stroke-dasharray: 314.2; stroke-dashoffset: 314.2; }
 #saveBtn.go .prog { transition: stroke-dashoffset 1s linear; stroke-dashoffset: 0; }
 #saveBtn.done .prog { stroke-dashoffset: 0; }
 #toast {
-  position: absolute; left: calc(1.5cqw + 20cqh); bottom: 9cqh;
+  position: absolute; left: calc(1.5cqw + 14cqh); bottom: 5.5cqh;
   padding: 0.8cqh 1.8cqh; border-radius: 1.2cqh;
   background: rgba(0, 0, 0, 0.6); color: #fff;
   font: 600 4.5cqh/1.2 var(--sans);
