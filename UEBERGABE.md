@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 30.09.2026. Normale App v0 mit Version 24, Test-App Stand 36. Beides lokal committet.
+Stand 30.09.2026. Normale App v0 mit Version 24, Test-App Stand 1. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -47,7 +47,7 @@ Seit dem 30.09.2026 gibt es zwei Apps nebeneinander.
 - Die normale App „LagTime“ liegt im Hauptordner. Ihr Stand ist mit dem Git-Tag `v0` gesichert. Sie wird im Training genutzt und nur noch bei Fehlern geändert.
 - Die Test-App „LagTime Test“ liegt im Ordner `test/`. Neue Funktionen kommen nur dorthin. Sie hat ein oranges Symbol und in der App ein oranges Schild „Test“. Oben rechts steht „Stand“ mit ihrer Nummer.
 - Beide teilen sich die Adresse von GitHub Pages, sind aber getrennt installiert. Die Test-App speichert ihre Einstellungen unter `lagcam.test.settings` und übernimmt beim ersten Start die Einstellungen der normalen App. Ihr Offline-Speicher heißt `lagcam-test-vN`, der der normalen App `turm-delay-vN`. Jeder Service Worker löscht nur Speicher mit dem eigenen Präfix.
-- Bei Änderungen an der Test-App `APP_VERSION` in `test/app.js` und `VERSION` in `test/sw.js` erhöhen.
+- Bei Änderungen an der Test-App `APP_VERSION` in `test/app.js` und `VERSION` in `test/sw.js` erhöhen. Am 01.10.2026 wurde die Zählung nach Stand 36 auf „Stand 1“ zurückgesetzt und mit dem Git-Tag `stand-1` gesichert. Der Offline-Speicher heißt seitdem `lagcam-test-s1`, weiter mit `s2`, `s3` und so fort, damit keine Verwechslung mit den alten Namen `v1` bis `v36` entsteht.
 - Hat sich die Test-App bewährt, werden ihre Änderungen in den Hauptordner übernommen. Dabei `STORE_KEY`, `MAIN_STORE_KEY`, Präfix, Namen, Schild und Symbol der normalen App beibehalten. Danach den neuen Stand mit einem Tag wie `v1` sichern.
 - Symbol der Test-App mit `python icon.py test c2570c` erzeugen.
 - Der Bereich der normalen App ist seit Version 18 auf `./index.html` begrenzt, mit `id` `./`. Vorher umfasste er den Ordner `test/`, und Chrome meldete die Test-App als schon installiert. Nach dieser Änderung muss die normale App auf dem Tablet einmal deinstalliert und neu installiert werden.
@@ -151,7 +151,7 @@ Technik in `test/analysis.js`
 
 ## Offen und als Nächstes
 
-- Version 24 und die Test-App Stand 36 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
+- Version 24 und die Test-App Stand 1 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
 - Zurückgestellt am 01.10.2026 ist eine weitere, externe Kamera. Besprochene Wege waren eine USB-Kamera, die auf Android 11 bei Samsung oft nicht erkannt wird und einen USB-C-Hub neben dem HDMI-Adapter bräuchte, ein zweites Handy als Funkkamera über WebRTC mit Kopplung per QR-Code, und eine allgemeine Kamerawahl über alle von `enumerateDevices` gemeldeten Kameras als ersten Schritt.
 - `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
