@@ -1,8 +1,8 @@
 // Bei jeder neuen Version VERSION erhöhen. Die neue Version wird beim nächsten App-Start übernommen.
 // Nur eigene Speicher werden gelöscht, damit die Test-App unter test/ unberührt bleibt
 const PREFIX = 'turm-delay-';
-const VERSION = PREFIX + 'v24';
-const FILES = ['./', 'index.html', 'app.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+const VERSION = PREFIX + 'r1';   // Zählung seit v1 vom 01.10.2026, weiter mit r2, r3 und so fort
+const FILES = ['./', 'index.html', 'app.js', 'analysis.js', 'draw.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
   // cache: 'reload' umgeht den Browser-Zwischenspeicher, sonst landen alte Dateien im neuen Offline-Speicher

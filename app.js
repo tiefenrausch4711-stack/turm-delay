@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '24';
+const APP_VERSION = '1';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -10,6 +10,7 @@ const RECONNECT_MS = 3000;
 const CONSTRAINT_TIMEOUT_MS = 3000; // so lange darf ein Kamerabefehl höchstens dauern
 const CONSTRAINT_GRACE_MS = 3000;   // so lange nach einem Kamerabefehl schweigt die Überwachung
 const LONG_PRESS_MS = 1000;
+const SAVE_PRESS_MS = 1000;       // so lange muss der Speicherknopf gehalten werden
 const OVERLOAD_HOLD_MS = 5000;     // so lange bleibt die Anzeige nach einer Überlast gelb
 
 const $ = id => document.getElementById(id);
@@ -26,6 +27,8 @@ const DEFAULTS = {
   fps: 30,
   delay: 20,
   cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM } },
+  ui: { acc: '#37d3c4', theme: 'dark' },
+  keepDays: 7,           // Videos ohne Stern werden nach so vielen Tagen gelöscht, 1 bis 30, 0 bedeutet nie
 };
 
 function loadSettings() {
@@ -39,6 +42,7 @@ function loadSettings() {
       environment: { ...DEFAULT_CAM, ...(s.cams && s.cams.environment) },
       user: { ...DEFAULT_CAM, ...(s.cams && s.cams.user) },
     },
+    ui: { ...DEFAULTS.ui, ...s.ui },
   };
 }
 
@@ -72,7 +76,7 @@ function avcCodec(w, h, fps) {
 
 // ---------- Zustand ----------
 
-let mode = 'settings';         // settings oder run
+let mode = 'settings';         // settings, run oder analysis
 let camState = 'off';          // off, ok, lost
 let stream = null, track = null, caps = {}, reader = null;
 let camGen = 0;
@@ -206,10 +210,13 @@ async function cameraLost(err) {
   reconnecting = true;
   camState = 'lost';
   stopCamera();
-  resetPlayback();
+  // Im Betrieb bleibt der Puffer erhalten. Was schon aufgenommen ist, läuft weiter auf den Fernseher
+  // und lässt sich speichern, während die Kamera neu verbindet.
+  if (mode !== 'run') resetPlayback();
   renderSettings(err);
   while (true) {
     await sleep(RECONNECT_MS);
+    if (mode === 'analysis') continue;   // Während der Analyse bleibt die Kamera aus
     let ok = false;
     await camOp(async () => {
       // Kamera wurde inzwischen anderweitig gestartet, etwa durch einen Kamerawechsel
@@ -220,8 +227,8 @@ async function cameraLost(err) {
     if (ok) break;
   }
   reconnecting = false;
-  opStart = null;
-  resetPlayback();
+  // Im Betrieb kommen die neuen Bilder hinter die Lücke in denselben Puffer
+  if (mode !== 'run') { opStart = null; resetPlayback(); }
 }
 
 // Liefert immer nur die neueste Anforderung an die Kamera aus
@@ -514,11 +521,15 @@ function tick() {
   requestAnimationFrame(tick);
   const now = performance.now();
 
-  if (camState === 'lost') { setBadge(settings.delay + ' s', 'bad'); return; }
-  if (camState !== 'ok') { setBadge(String(settings.delay), ''); return; }   // Kamera startet noch
+  const lost = camState === 'lost';
+  if (!lost && camState !== 'ok') { setBadge(String(settings.delay), ''); return; }   // Kamera startet noch
 
   const remaining = opStart === null ? settings.delay : settings.delay - (now - opStart) / 1000;
-  if (remaining > 0) { setBadge(String(Math.ceil(remaining)), ''); return; }
+  if (remaining > 0) {
+    if (lost) setBadge(settings.delay + ' s', 'bad');
+    else setBadge(String(Math.ceil(remaining)), '');
+    return;
+  }
 
   const T = now - settings.delay * 1000;
   feed(T + LOOKAHEAD_MS, T);
@@ -533,30 +544,43 @@ function tick() {
     lastShownTs = show.timestamp / 1000;
     show.close();
   }
-  // Anzeige hängt deutlich hinter dem Soll zurück
-  if (lastShownTs && T - lastShownTs > 400) markOverload();
+  // Anzeige hängt deutlich hinter dem Soll zurück. Eine Lücke nach einem Kameraausfall zählt nicht.
+  if (lastShownTs && T - lastShownTs > 400 && hasDueFrame(lastShownTs, T - 400)) markOverload();
 
   if (now - lastTrimAt > 1000) { trim(now); lastTrimAt = now; }
 
   const warn = degraded || now < overloadUntil;
-  setBadge(settings.delay + ' s', warn ? 'warn' : '');
+  setBadge(settings.delay + ' s', lost ? 'bad' : warn ? 'warn' : '');
+}
+
+// Gibt es im Puffer ein Bild nach after, das spätestens bis until hätte erscheinen müssen?
+function hasDueFrame(after, until) {
+  let lo = 0, hi = buffer.length;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if (buffer[m].ts <= after) lo = m + 1; else hi = m;
+  }
+  return lo < buffer.length && buffer[lo].ts <= until;
 }
 
 // ---------- Wechsel zwischen Einstellungen und Betrieb ----------
 
 function enterRun() {
   mode = 'run';
+  history.pushState({ v: 'run' }, '');
   $('settings').classList.add('hidden');
   $('run').classList.remove('hidden');
   video.srcObject = null;
   resetPlayback();
   opStart = null;
   overloadUntil = 0;
+  $('toast').classList.add('hidden');
   requestAnimationFrame(tick);
 }
 
 function enterSettings() {
   mode = 'settings';
+  cancelSavePress();
   resetPlayback();
   $('run').classList.add('hidden');
   $('settings').classList.remove('hidden');
@@ -593,13 +617,90 @@ $('run').addEventListener('pointerdown', e => {
   ring.classList.add('go');
   press = {
     id: e.pointerId,
-    timer: setTimeout(() => { cancelPress(); enterSettings(); }, LONG_PRESS_MS),
+    timer: setTimeout(() => { cancelPress(); enterSettings(); history.back(); }, LONG_PRESS_MS),
   };
 });
 for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
   $('run').addEventListener(type, e => { if (press && e.pointerId === press.id) cancelPress(); });
 }
 document.addEventListener('contextmenu', e => e.preventDefault());
+
+// ---------- Puffer speichern ----------
+
+// Gespeichert wird der Teil, der noch gezeigt wird, also vom Bild auf dem Fernseher bis jetzt.
+// Beginn ist der Keyframe davor, damit das Video dekodierbar bleibt.
+function snapshotBuffer() {
+  if (mode !== 'run' || !buffer.length) return null;
+  const T = performance.now() - settings.delay * 1000;
+  let start = 0;
+  for (let i = 0; i < buffer.length; i++) {
+    if (buffer[i].ts > T) break;
+    if (buffer[i].key) start = i;
+  }
+  const config = buffer[start].config;
+  if (!config) return null;
+  const entries = [];
+  for (let i = start; i < buffer.length; i++) {
+    if (buffer[i].key && buffer[i].config !== config) break;   // Auflösung hat gewechselt
+    entries.push(buffer[i]);
+  }
+  return { config, entries };
+}
+
+let toastTimer = 0;
+function showToast(text, bad) {
+  const t = $('toast');
+  t.textContent = text;
+  t.className = bad ? 'bad' : '';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), 3000);
+}
+
+async function saveNow() {
+  if (opStart === null || performance.now() - opStart < settings.delay * 1000) {
+    showToast('Puffer füllt sich noch', true);
+    return;
+  }
+  const snap = snapshotBuffer();
+  if (!snap) { showToast('Nichts zu speichern', true); return; }
+  saveBtn.classList.add('done');
+  try {
+    const c = await saveClip(snap);
+    showToast('Gespeichert · ' + c.nr);
+  } catch (e) {
+    console.warn(e);
+    showToast('Speichern fehlgeschlagen', true);
+  } finally {
+    setTimeout(() => saveBtn.classList.remove('done'), 600);
+  }
+}
+
+// Eine Sekunde halten. Dabei füllt sich der Ring wie beim Zurückkehren.
+const saveBtn = $('saveBtn');
+let savePress = null;
+
+function cancelSavePress() {
+  if (!savePress) return;
+  clearTimeout(savePress.timer);
+  savePress = null;
+  saveBtn.classList.remove('go');
+}
+
+saveBtn.addEventListener('pointerdown', e => {
+  e.stopPropagation();   // löst nicht das Zurück in die Einstellungen aus
+  if (savePress) { cancelSavePress(); return; }
+  cancelPress();
+  saveBtn.classList.remove('go');
+  void saveBtn.getBoundingClientRect();
+  saveBtn.classList.add('go');
+  savePress = {
+    id: e.pointerId,
+    timer: setTimeout(() => { cancelSavePress(); saveNow(); }, SAVE_PRESS_MS),
+  };
+});
+for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
+  saveBtn.addEventListener(type, e => { if (savePress && e.pointerId === savePress.id) cancelSavePress(); });
+}
 
 // ---------- Oberfläche der Einstellungen ----------
 
@@ -683,6 +784,7 @@ function renderCamInfo(err) {
   if (err) lastCamError = err;
   if (camState === 'ok') lastCamError = null;
   err = lastCamError;
+  $('start').disabled = unsupported || camState !== 'ok' || !track;
   const state = $('hudState'), stateTxt = $('hudStateTxt'), msg = $('camMsg');
   const fpsEl = $('hudFps');
   $('hudCam').textContent = CAM_LABEL[settings.facing];
@@ -778,6 +880,142 @@ $('delayMinus').addEventListener('click', () => setDelay(settings.delay - 1));
 $('delayPlus').addEventListener('click', () => setDelay(settings.delay + 1));
 
 $('start').addEventListener('click', () => { goFullscreen(); enterRun(); });
+
+// ---------- Darstellung ----------
+
+const ACCENTS = ['#37d3c4', '#3b82f6', '#22c55e', '#ffffff'];
+const isHex = v => /^#[0-9a-f]{6}$/i.test(v);
+
+// Schrift auf der Akzentfarbe wird dunkel oder weiß, je nachdem was besser lesbar ist
+function inkFor(hex) {
+  const lin = c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = [1, 3, 5].map(i => lin(parseInt(hex.slice(i, i + 2), 16) / 255));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.179 ? '#0b0d0f' : '#ffffff';
+}
+
+function applyUi() {
+  const { acc, theme } = settings.ui;
+  const root = document.documentElement;
+  root.style.setProperty('--acc', acc);
+  root.style.setProperty('--acc-ink', inkFor(acc));
+  root.dataset.theme = theme;
+  document.querySelector('meta[name=theme-color]').content = theme === 'light' ? '#f2f4f6' : '#0b0d0f';
+  for (const sw of $('swatches').querySelectorAll('.sw')) {
+    const custom = sw.classList.contains('custom');
+    sw.classList.toggle('on', custom ? !ACCENTS.includes(acc) : sw.dataset.c === acc);
+  }
+  $('accCustom').style.setProperty('--c', ACCENTS.includes(acc) ? 'transparent' : acc);
+  setSeg('segTheme', theme);
+}
+
+function setUi(part) {
+  Object.assign(settings.ui, part);
+  saveSettings();
+  applyUi();
+}
+
+for (const c of ACCENTS) {
+  const b = document.createElement('button');
+  b.className = 'sw';
+  b.dataset.c = c;
+  b.style.setProperty('--c', c);
+  b.setAttribute('aria-label', 'Farbe ' + c);
+  if (c === '#ffffff') b.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.25)';
+  $('swatches').append(b);
+}
+$('swatches').addEventListener('click', e => {
+  const b = e.target.closest('button.sw');
+  if (!b) return;
+  if (b.id === 'accCustom') openPicker();
+  else setUi({ acc: b.dataset.c });
+});
+
+// Eigener Farbwähler mit Fläche für Sättigung und Helligkeit und einem Regler für den Farbton
+let hsv = [0, 0, 1];
+
+function hexToHsv(hex) {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+  let h = 0;
+  if (d) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+  }
+  return [(h * 60 + 360) % 360, max ? d / max : 0, max];
+}
+
+function hsvToHex([h, s, v]) {
+  const f = n => {
+    const k = (n + h / 60) % 6;
+    return v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
+  };
+  return '#' + [f(5), f(3), f(1)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join('');
+}
+
+function renderPicker() {
+  const hex = hsvToHex(hsv);
+  $('pickSv').style.setProperty('--h', hsv[0]);
+  Object.assign($('pickSvKnob').style, { left: hsv[1] * 100 + '%', top: (1 - hsv[2]) * 100 + '%' });
+  $('pickSvKnob').style.setProperty('--c', hex);
+  $('pickHueKnob').style.left = hsv[0] / 360 * 100 + '%';
+  $('pickHueKnob').style.setProperty('--c', `hsl(${hsv[0]} 100% 50%)`);
+  $('pickPrev').style.setProperty('--c', hex);
+  $('pickHex').textContent = hex;
+}
+
+function openPicker() {
+  hsv = hexToHsv(settings.ui.acc);
+  $('uiMain').classList.add('hidden');
+  $('uiPick').classList.remove('hidden');
+  renderPicker();
+}
+
+function closePicker() {
+  $('uiPick').classList.add('hidden');
+  $('uiMain').classList.remove('hidden');
+}
+
+// Ziehen auf Fläche und Regler, die Farbe gilt sofort
+function dragArea(el, onPos) {
+  const at = e => {
+    const r = el.getBoundingClientRect();
+    onPos(clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1));
+    renderPicker();
+    setUi({ acc: hsvToHex(hsv) });
+  };
+  let down = null;
+  el.addEventListener('pointerdown', e => {
+    down = e.pointerId;
+    try { el.setPointerCapture(e.pointerId); } catch (x) {}
+    at(e);
+  });
+  el.addEventListener('pointermove', e => { if (down === e.pointerId) at(e); });
+  for (const type of ['pointerup', 'pointercancel']) el.addEventListener(type, e => { if (down === e.pointerId) down = null; });
+}
+dragArea($('pickSv'), (x, y) => { hsv[1] = x; hsv[2] = 1 - y; });
+dragArea($('pickHue'), x => { hsv[0] = Math.min(x * 360, 359.9); });
+$('pickDone').addEventListener('click', closePicker);
+$('segTheme').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b) setUi({ theme: b.dataset.v });
+});
+// Das Fenster legt einen Verlaufseintrag an, damit die Zurück-Geste es schließt und nicht die Seite wechselt
+document.addEventListener('click', e => {
+  if (!e.target.closest('[data-ui]') || !$('uiDlg').classList.contains('hidden')) return;
+  $('uiDlg').classList.remove('hidden');
+  history.pushState({ v: 'dlg' }, '');
+  renderStorage();
+});
+function closeUi() {
+  closePicker();
+  $('uiDel').classList.add('hidden');
+  $('uiDlg').classList.add('hidden');
+}
+// Geschlossen wird durch Tippen neben das Fenster oder die Zurück-Geste
+$('uiDlg').addEventListener('click', e => { if (e.target === $('uiDlg')) history.back(); });
+if (!isHex(settings.ui.acc)) settings.ui.acc = DEFAULTS.ui.acc;
+applyUi();
 
 // ---------- Wache Kamera und wacher Bildschirm ----------
 

@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 30.09.2026. Normale App v0 mit Version 24, Test-App Stand 1. Beides lokal committet.
+Stand 30.09.2026. Normale App v1, inhaltlich gleich mit Test-App Stand 1. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -44,7 +44,8 @@ LagTime ist eine Progressive Web App für das Training im Turmspringen. Ein Sams
 
 Seit dem 30.09.2026 gibt es zwei Apps nebeneinander.
 
-- Die normale App „LagTime“ liegt im Hauptordner. Ihr Stand ist mit dem Git-Tag `v0` gesichert. Sie wird im Training genutzt und nur noch bei Fehlern geändert.
+- Die normale App „LagTime“ liegt im Hauptordner. Am 01.10.2026 wurde der Inhalt der Test-App Stand 1 übernommen und als `v1` veröffentlicht, Git-Tag `v1`. Der alte Stand ist unter `v0` gesichert. Sie wird im Training genutzt und nur bei Fehlern oder bei einer neuen Übernahme aus der Test-App geändert.
+- Unterschiede der normalen App zur Test-App: Titel und Logo ohne „Test“, Anzeige `v` + `APP_VERSION`, `STORE_KEY` `turmdelay.settings.v1` ohne Übernahme anderer Einstellungen, IndexedDB `lagtime` statt `lagcam-test`, Offline-Speicher `turm-delay-r1` mit Zählung `r1`, `r2` und so fort, blaues Symbol, Manifest mit Bereich `./index.html`.
 - Die Test-App „LagTime Test“ liegt im Ordner `test/`. Neue Funktionen kommen nur dorthin. Sie hat ein oranges Symbol und in der App ein oranges Schild „Test“. Oben rechts steht „Stand“ mit ihrer Nummer.
 - Beide teilen sich die Adresse von GitHub Pages, sind aber getrennt installiert. Die Test-App speichert ihre Einstellungen unter `lagcam.test.settings` und übernimmt beim ersten Start die Einstellungen der normalen App. Ihr Offline-Speicher heißt `lagcam-test-vN`, der der normalen App `turm-delay-vN`. Jeder Service Worker löscht nur Speicher mit dem eigenen Präfix.
 - Bei Änderungen an der Test-App `APP_VERSION` in `test/app.js` und `VERSION` in `test/sw.js` erhöhen. Am 01.10.2026 wurde die Zählung nach Stand 36 auf „Stand 1“ zurückgesetzt und mit dem Git-Tag `stand-1` gesichert. Der Offline-Speicher heißt seitdem `lagcam-test-s1`, weiter mit `s2`, `s3` und so fort, damit keine Verwechslung mit den alten Namen `v1` bis `v36` entsteht.
@@ -151,7 +152,7 @@ Technik in `test/analysis.js`
 
 ## Offen und als Nächstes
 
-- Version 24 und die Test-App Stand 1 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
+- Normale App v1 und Test-App Stand 1 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
 - Zurückgestellt am 01.10.2026 ist eine weitere, externe Kamera. Besprochene Wege waren eine USB-Kamera, die auf Android 11 bei Samsung oft nicht erkannt wird und einen USB-C-Hub neben dem HDMI-Adapter bräuchte, ein zweites Handy als Funkkamera über WebRTC mit Kopplung per QR-Code, und eine allgemeine Kamerawahl über alle von `enumerateDevices` gemeldeten Kameras als ersten Schritt.
 - `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
