@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 30.09.2026. Normale App v0 mit Version 22, Test-App Stand 16. Beides lokal committet.
+Stand 30.09.2026. Normale App v0 mit Version 22, Test-App Stand 17. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -56,7 +56,7 @@ Seit dem 30.09.2026 gibt es zwei Apps nebeneinander.
 
 Mit dem Nutzer am 30.09.2026 abgestimmt. Gebaut wird in drei Schritten, jeder wird auf dem Tablet geprüft.
 
-1. Erledigt in Stand 2. Speicherknopf, Videoliste, Wiedergabe mit Zeitlupe und Einzelbildern, Schieberegler, Stern, Name, Löschen, Export, Löschen nach 7 Tagen. Teilen wurde in Stand 9 auf Wunsch des Nutzers entfernt, es bleibt nur Herunterladen.
+1. Erledigt in Stand 2. Speicherknopf, Videoliste, Wiedergabe mit Zeitlupe und Einzelbildern, Schieberegler, Stern, Name, Löschen, Export, Löschen nach 7 Tagen. Seit Stand 17 ist die Frist unten in der Videoliste einstellbar, 1, 3, 7, 14 oder 30 Tage oder nie, gespeichert als `settings.keepDays`, 0 bedeutet nie. Eine kürzere Frist löscht sofort. Teilen wurde in Stand 9 auf Wunsch des Nutzers entfernt, es bleibt nur Herunterladen.
 2. Erledigt in Stand 4. Zeichnen im Standbild mit Freihand und geraden Linien, Winkel über drei Punkte messen, Zoom mit zwei Fingern, Schleife über einen Abschnitt. Zeichnungen sind nur vorübergehend und verschwinden, sobald das Video weiterläuft.
 Designdurchsicht in Stand 16. Filter der Liste stehen oben. `--dim` ist in beiden Modi auf etwa 4,5 zu 1 Kontrast angehoben. Kleinschrift ist größer, also Werkzeugleiste 12,5 Pixel, Skala 12,5, Hinweise 14, Version 13. Akzentfarbe als Schrift läuft über `--acc-text`, im Hellmodus 55 Prozent Akzent mit Schwarz gemischt. Die Umschaltung Live und Analyse ist im aktiven Zustand neutral grau, damit „Start“ die einzige große Akzentfläche bleibt. Der Name steht in der Kartenzeile neben Nummer und Uhrzeit. Der schwarze Speicherring hat einen schwachen hellen Schein per `drop-shadow`.
 
@@ -127,7 +127,7 @@ Technik in `test/analysis.js`
 
 ## Offen und als Nächstes
 
-- Version 22 und die Test-App Stand 16 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
+- Version 22 und die Test-App Stand 17 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
 - Zurückgestellt am 01.10.2026 ist eine weitere, externe Kamera. Besprochene Wege waren eine USB-Kamera, die auf Android 11 bei Samsung oft nicht erkannt wird und einen USB-C-Hub neben dem HDMI-Adapter bräuchte, ein zweites Handy als Funkkamera über WebRTC mit Kopplung per QR-Code, und eine allgemeine Kamerawahl über alle von `enumerateDevices` gemeldeten Kameras als ersten Schritt.
 - `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?

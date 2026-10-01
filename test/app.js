@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '16';   // Stand der Test-App
+const APP_VERSION = '17';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -29,6 +29,7 @@ const DEFAULTS = {
   delay: 20,
   cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM } },
   ui: { acc: '#37d3c4', theme: 'dark' },
+  keepDays: 7,           // Videos ohne Stern werden danach gelöscht, 0 bedeutet nie
 };
 
 function loadSettings() {

@@ -3,7 +3,6 @@
 // Gespeicherte Videos und Analysemodus. Nutzt Hilfen aus app.js wie $, clamp und mode.
 
 const DB_NAME = 'lagcam-test';
-const KEEP_DAYS = 7;               // Videos ohne Stern werden danach gelöscht
 const THUMB_BEFORE_END_US = 2e6;   // Vorschaubild etwa 2 Sekunden vor dem Ende, dort liegt meist der Sprung
 
 // ---------- Datenbank ----------
@@ -42,7 +41,9 @@ const deleteClip = id => inTx(['clips', 'data'], 'readwrite', t => {
 });
 
 async function cleanupOld() {
-  const limit = Date.now() - KEEP_DAYS * 864e5;
+  const days = settings.keepDays;
+  if (!days) return;   // nie löschen
+  const limit = Date.now() - days * 864e5;
   for (const c of await allClips()) if (!c.star && c.created < limit) await deleteClip(c.id);
 }
 
@@ -253,6 +254,14 @@ function renderFilter(clips) {
   sel.disabled = !names.length;
   $('fStar').classList.toggle('on', listFilter.star);
 }
+
+// Aufbewahrung der Videos ohne Stern, einstellbar unten in der Liste
+$('keepDays').value = String(settings.keepDays);
+$('keepDays').addEventListener('change', e => {
+  settings.keepDays = +e.target.value;
+  saveSettings();
+  showList();   // eine kürzere Frist löscht sofort
+});
 
 $('fStar').addEventListener('click', () => { listFilter.star = !listFilter.star; renderList(listClips); });
 $('fName').addEventListener('change', e => { listFilter.name = e.target.value; renderList(listClips); });
