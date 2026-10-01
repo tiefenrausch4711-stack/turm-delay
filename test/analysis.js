@@ -251,7 +251,7 @@ function renderFilter(clips) {
   if (listFilter.name && !names.includes(listFilter.name)) listFilter.name = '';
   const sel = $('fName');
   sel.textContent = '';
-  sel.append(new Option('Alle Namen', ''));
+  sel.append(new Option('Filter', ''));
   for (const nm of names) sel.append(new Option(nm, nm));
   sel.value = listFilter.name;
   sel.disabled = !names.length;
@@ -335,7 +335,7 @@ async function renderStorage() {
   try {
     const recs = await inTx(['data'], 'readonly', t => reqP(t.objectStore('data').getAll()));
     const mb = recs.reduce((s, r) => s + (r.data ? r.data.size : 0), 0) / 1048576;
-    $('uiStore').textContent = 'Belegt ' + (!mb ? '0' : mb < 10 ? mb.toFixed(1).replace('.', ',') : Math.round(mb)) + ' MB';
+    $('uiStore').textContent = 'Belegter Speicher ' + (!mb ? '0' : mb < 10 ? mb.toFixed(1).replace('.', ',') : Math.round(mb)) + ' MB';
   } catch (e) { $('uiStore').textContent = ''; }
 }
 
@@ -771,7 +771,7 @@ $('pDel').addEventListener('click', async () => {
   const b = $('pDel');
   if (!b.classList.contains('armed')) {
     b.classList.add('armed');
-    b.textContent = 'Wirklich löschen?';
+    b.textContent = 'Ja, löschen';
     delTimer = setTimeout(resetDelete, 3000);
     return;
   }

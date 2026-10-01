@@ -109,7 +109,7 @@
       <div class="barR"><button class="gear" data-ui aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8.4" stroke-width="3.6" stroke-dasharray="3.2 3.4"/><circle cx="12" cy="12" r="6" stroke-width="3"/></svg></button></div>
     </header>
     <div class="filters">
-      <button id="fStar" class="chip">★ Nur mit Stern</button>
+      <button id="fStar" class="chip" aria-label="Nur mit Stern">★</button>
       <select id="fName" aria-label="Name"></select>
     </div>
     <div id="aGrid"></div>
@@ -119,11 +119,11 @@
   <section id="aPlayer" class="hidden">
     <header class="pbar">
       <button id="pBack" class="nav">‹ Liste</button>
+      <div id="pTitle"></div>
       <div class="clipNav">
         <button id="pPrevClip" class="nav" aria-label="Vorheriges Video">‹</button>
         <button id="pNextClip" class="nav" aria-label="Nächstes Video">›</button>
       </div>
-      <div id="pTitle"></div>
       <input id="pName" list="pNames" placeholder="Name" autocomplete="off" enterkeyhint="done">
       <datalist id="pNames"></datalist>
       <button id="pStar" class="star" aria-label="Stern">☆</button>
@@ -179,7 +179,8 @@
       <h2>Einstellungen</h2>
       <div class="label"><span class="no">01</span>Farbe</div>
       <div class="swatches" id="swatches">
-        <button class="sw custom" id="accCustom" aria-label="Eigene Farbe"></button>
+        <button class="sw custom" id="accCustom" aria-label="Farbe frei wählen"></button>
+        <button class="sw saved" id="accSaved" aria-label="Eigene Farbe"></button>
       </div>
       <div class="label"><span class="no">02</span>Modus</div>
       <div class="seg" id="segTheme">

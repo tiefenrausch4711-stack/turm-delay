@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 30.09.2026. Normale App v1, inhaltlich gleich mit Test-App Stand 1. Beides lokal committet.
+Stand 30.09.2026. Normale App v1. Test-App Stand 2, noch nicht übernommen. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -115,6 +115,14 @@ Technik in `test/analysis.js`
 - Die Schleife setzt mit dem ersten Druck den Anfang, mit dem zweiten das Ende, mit dem dritten wird sie aufgehoben. Bei aktiver Schleife springt die Wiedergabe am Ende über `startFeed(loopA)` zurück.
 - In der Vorschau im Claude-Desktop läuft `requestAnimationFrame` nicht, wenn das Fenster im Hintergrund liegt. Die Wiedergabe lässt sich dann durch direkte Aufrufe von `playerTick(performance.now())` prüfen.
 
+## Test-App seit Stand 2, noch nicht in der normalen App
+
+Gearbeitet wird nur an der Test-App. Übertragen in die normale App wird erst, wenn der Nutzer nach dem Testen Bescheid gibt.
+
+- Einstellungen. Tage in derselben dezenten Schrift wie „Belegter Speicher“. „Belegt“ heißt jetzt „Belegter Speicher“. Sechs Farbkreise, nämlich Farbwähler, vier mildere Vorschläge `#4fbfb3`, `#5b8fd6`, `#4caf7d`, `#e9edf0` und als sechster Kreis die eigene Farbe in `settings.ui.custom`. Der sechste Kreis ist gestrichelt leer, bis im Farbwähler eine Farbe gezogen wird. Frühere kräftige Werte werden beim Start auf die milderen umgestellt.
+- Analyse. Der Sternfilter zeigt nur „★“, die Namensauswahl heißt „Filter“. In der Wiedergabe stehen „‹“ und „›“ rechts neben der Aufnahmezeit. „‹ Liste“ ist größer. Das Löschen eines einzelnen Videos fragt mit „Ja, löschen“.
+- Das Schild „TEST“ bleibt in der Test-App.
+
 ## Neue Version veröffentlichen
 
 1. `APP_VERSION` in `app.js` und `VERSION` in `sw.js` um eins erhöhen. Das ist bei jeder Änderung Pflicht, sonst bleibt das Tablet auf der alten Version.
@@ -152,7 +160,7 @@ Technik in `test/analysis.js`
 
 ## Offen und als Nächstes
 
-- Normale App v1 und Test-App Stand 1 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
+- Normale App v1 und Test-App Stand 2 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
 - Zurückgestellt am 01.10.2026 ist eine weitere, externe Kamera. Besprochene Wege waren eine USB-Kamera, die auf Android 11 bei Samsung oft nicht erkannt wird und einen USB-C-Hub neben dem HDMI-Adapter bräuchte, ein zweites Handy als Funkkamera über WebRTC mit Kopplung per QR-Code, und eine allgemeine Kamerawahl über alle von `enumerateDevices` gemeldeten Kameras als ersten Schritt.
 - `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?

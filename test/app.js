@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1';   // Stand der Test-App
+const APP_VERSION = '2';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -28,7 +28,7 @@ const DEFAULTS = {
   fps: 30,
   delay: 20,
   cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM } },
-  ui: { acc: '#37d3c4', theme: 'dark' },
+  ui: { acc: '#4fbfb3', theme: 'dark', custom: '' },
   keepDays: 7,           // Videos ohne Stern werden nach so vielen Tagen gelöscht, 1 bis 30, 0 bedeutet nie
 };
 
@@ -885,7 +885,9 @@ $('start').addEventListener('click', () => { goFullscreen(); enterRun(); });
 
 // ---------- Darstellung ----------
 
-const ACCENTS = ['#37d3c4', '#3b82f6', '#22c55e', '#ffffff'];
+// Etwas mildere Vorschläge. Die früheren, kräftigeren Werte werden auf die neuen umgestellt.
+const ACCENTS = ['#4fbfb3', '#5b8fd6', '#4caf7d', '#e9edf0'];
+const OLD_ACCENTS = { '#37d3c4': '#4fbfb3', '#3b82f6': '#5b8fd6', '#22c55e': '#4caf7d', '#ffffff': '#e9edf0' };
 const isHex = v => /^#[0-9a-f]{6}$/i.test(v);
 
 // Schrift auf der Akzentfarbe wird dunkel oder weiß, je nachdem was besser lesbar ist
@@ -902,11 +904,12 @@ function applyUi() {
   root.style.setProperty('--acc-ink', inkFor(acc));
   root.dataset.theme = theme;
   document.querySelector('meta[name=theme-color]').content = theme === 'light' ? '#f2f4f6' : '#0b0d0f';
-  for (const sw of $('swatches').querySelectorAll('.sw')) {
-    const custom = sw.classList.contains('custom');
-    sw.classList.toggle('on', custom ? !ACCENTS.includes(acc) : sw.dataset.c === acc);
-  }
-  $('accCustom').style.setProperty('--c', ACCENTS.includes(acc) ? 'transparent' : acc);
+  for (const sw of $('swatches').querySelectorAll('.sw[data-c]')) sw.classList.toggle('on', sw.dataset.c === acc);
+  // Sechster Kreis mit der eigenen Farbe, leer bis zur ersten freien Wahl
+  const own = settings.ui.custom;
+  $('accSaved').classList.toggle('empty', !own);
+  $('accSaved').style.setProperty('--c', own || 'transparent');
+  $('accSaved').classList.toggle('on', !!own && acc === own && !ACCENTS.includes(acc));
   setSeg('segTheme', theme);
 }
 
@@ -916,19 +919,21 @@ function setUi(part) {
   applyUi();
 }
 
+// Reihenfolge: Farbwähler, vier Vorschläge, eigene Farbe
 for (const c of ACCENTS) {
   const b = document.createElement('button');
   b.className = 'sw';
   b.dataset.c = c;
   b.style.setProperty('--c', c);
   b.setAttribute('aria-label', 'Farbe ' + c);
-  if (c === '#ffffff') b.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.25)';
-  $('swatches').append(b);
+  if (c === '#e9edf0') b.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.25)';
+  $('swatches').insertBefore(b, $('accSaved'));
 }
 $('swatches').addEventListener('click', e => {
   const b = e.target.closest('button.sw');
   if (!b) return;
   if (b.id === 'accCustom') openPicker();
+  else if (b.id === 'accSaved') { if (settings.ui.custom) setUi({ acc: settings.ui.custom }); else openPicker(); }
   else setUi({ acc: b.dataset.c });
 });
 
@@ -967,7 +972,7 @@ function renderPicker() {
 }
 
 function openPicker() {
-  hsv = hexToHsv(settings.ui.acc);
+  hsv = hexToHsv(settings.ui.custom || settings.ui.acc);
   $('uiMain').classList.add('hidden');
   $('uiPick').classList.remove('hidden');
   renderPicker();
@@ -984,7 +989,8 @@ function dragArea(el, onPos) {
     const r = el.getBoundingClientRect();
     onPos(clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1));
     renderPicker();
-    setUi({ acc: hsvToHex(hsv) });
+    const hex = hsvToHex(hsv);
+    setUi({ acc: hex, custom: hex });   // die freie Wahl landet im sechsten Kreis
   };
   let down = null;
   el.addEventListener('pointerdown', e => {
@@ -1017,6 +1023,9 @@ function closeUi() {
 // Geschlossen wird durch Tippen neben das Fenster oder die Zurück-Geste
 $('uiDlg').addEventListener('click', e => { if (e.target === $('uiDlg')) history.back(); });
 if (!isHex(settings.ui.acc)) settings.ui.acc = DEFAULTS.ui.acc;
+if (OLD_ACCENTS[settings.ui.acc]) settings.ui.acc = OLD_ACCENTS[settings.ui.acc];
+// Eine früher frei gewählte Farbe bekommt ihren eigenen Platz
+if (!isHex(settings.ui.custom || '')) settings.ui.custom = ACCENTS.includes(settings.ui.acc) ? '' : settings.ui.acc;
 applyUi();
 
 // ---------- Wache Kamera und wacher Bildschirm ----------
