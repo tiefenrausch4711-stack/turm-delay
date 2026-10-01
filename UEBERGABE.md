@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 30.09.2026. Normale App v0 mit Version 23, Test-App Stand 35. Beides lokal committet.
+Stand 30.09.2026. Normale App v0 mit Version 24, Test-App Stand 36. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -33,7 +33,7 @@ LagTime ist eine Progressive Web App für das Training im Turmspringen. Ein Sams
 | `app.js` | Gesamte Logik mit Kamera, Kodierung, Puffer, Wiedergabe, Überwachung und Oberfläche |
 | `sw.js` | Service Worker für den Offline-Betrieb und für Updates |
 | `manifest.webmanifest` | Installation als App, Vollbild, Querformat |
-| `icon-192.png`, `icon-512.png` | Symbol, weiße Kamera mit einer Uhr als Objektiv auf dunkelblauem Grund |
+| `icon-192.png`, `icon-512.png` | Symbol, seit Version 24 und Stand 36 weiß gefüllte Kamera mit runden Ecken und weichen Übergängen am Aufsatz, verkleinert und mittig. Die Uhr als Objektiv ist innen in der Hintergrundfarbe mit weißem Ring und weißen Zeigern. Blau für die normale App, orange für die Test-App |
 | `icon.py` | Erzeugt beide Symbole, Aufruf `python icon.py .` im Projektordner, braucht Pillow |
 | `test/` | Test-App „LagTime Test“, vollständige Kopie der App mit eigenen Änderungen |
 | `test.html` | Testseite für die Fähigkeiten des Tablets |
@@ -151,7 +151,7 @@ Technik in `test/analysis.js`
 
 ## Offen und als Nächstes
 
-- Version 23 und die Test-App Stand 35 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
+- Version 24 und die Test-App Stand 36 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
 - Zurückgestellt am 01.10.2026 ist eine weitere, externe Kamera. Besprochene Wege waren eine USB-Kamera, die auf Android 11 bei Samsung oft nicht erkannt wird und einen USB-C-Hub neben dem HDMI-Adapter bräuchte, ein zweites Handy als Funkkamera über WebRTC mit Kopplung per QR-Code, und eine allgemeine Kamerawahl über alle von `enumerateDevices` gemeldeten Kameras als ersten Schritt.
 - `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
