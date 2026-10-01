@@ -338,10 +338,10 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .star.on { color: var(--warn); }
 #aEmpty { margin: auto; text-align: center; color: var(--mut); font-size: 17px; line-height: 1.6; }
 .aNote { flex: 0 0 auto; margin: 6px 0 0; text-align: center; font-size: 14px; color: var(--dim); }
-#keepDays {
-  margin-left: 6px; min-height: 36px; padding: 0 10px; border-radius: 8px;
-  border: 1px solid var(--line-2); background: var(--surface); color: var(--fg); font: 600 14px var(--sans);
-}
+.aNote { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.step.xs { width: 40px; height: 40px; flex: 0 0 40px; font-size: 22px; }
+.step:disabled { opacity: 0.35; }
+#keepDays { min-width: 74px; text-align: center; color: var(--fg); font: 600 15px var(--sans); }
 
 #aPlayer { position: absolute; inset: 0; display: flex; flex-direction: column; background: #000; }
 .pbar, .pctl {

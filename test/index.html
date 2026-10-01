@@ -115,16 +115,11 @@
     </div>
     <div id="aGrid"></div>
     <p id="aEmpty" class="hidden"></p>
-    <p class="aNote">Videos ohne Stern löschen nach
-      <select id="keepDays" aria-label="Aufbewahrung">
-        <option value="1">1 Tag</option>
-        <option value="3">3 Tagen</option>
-        <option value="7">7 Tagen</option>
-        <option value="14">14 Tagen</option>
-        <option value="30">30 Tagen</option>
-        <option value="0">nie</option>
-      </select>
-    </p>
+    <div class="aNote">Videos ohne Stern löschen nach
+      <button id="keepMinus" class="step xs" aria-label="Ein Tag weniger">−</button>
+      <b id="keepDays"></b>
+      <button id="keepPlus" class="step xs" aria-label="Ein Tag mehr">+</button>
+    </div>
   </section>
 
   <section id="aPlayer" class="hidden">

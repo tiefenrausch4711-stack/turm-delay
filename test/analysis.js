@@ -41,9 +41,7 @@ const deleteClip = id => inTx(['clips', 'data'], 'readwrite', t => {
 });
 
 async function cleanupOld() {
-  const days = settings.keepDays;
-  if (!days) return;   // nie löschen
-  const limit = Date.now() - days * 864e5;
+  const limit = Date.now() - settings.keepDays * 864e5;
   for (const c of await allClips()) if (!c.star && c.created < limit) await deleteClip(c.id);
 }
 
@@ -255,13 +253,29 @@ function renderFilter(clips) {
   $('fStar').classList.toggle('on', listFilter.star);
 }
 
-// Aufbewahrung der Videos ohne Stern, einstellbar unten in der Liste
-$('keepDays').value = String(settings.keepDays);
-$('keepDays').addEventListener('change', e => {
-  settings.keepDays = +e.target.value;
+// Aufbewahrung der Videos ohne Stern, 1 bis 30 Tage, einstellbar unten in der Liste
+const KEEP_MIN = 1, KEEP_MAX = 30;
+settings.keepDays = clamp(Math.round(+settings.keepDays) || 7, KEEP_MIN, KEEP_MAX);
+let keepTimer = 0;
+
+function renderKeep() {
+  const d = settings.keepDays;
+  $('keepDays').textContent = d === 1 ? '1 Tag' : d + ' Tagen';
+  $('keepMinus').disabled = d <= KEEP_MIN;
+  $('keepPlus').disabled = d >= KEEP_MAX;
+}
+
+function stepKeep(delta) {
+  settings.keepDays = clamp(settings.keepDays + delta, KEEP_MIN, KEEP_MAX);
   saveSettings();
-  showList();   // eine kürzere Frist löscht sofort
-});
+  renderKeep();
+  // Erst kurz nach dem letzten Tippen aufräumen, eine kürzere Frist löscht dann sofort
+  clearTimeout(keepTimer);
+  keepTimer = setTimeout(() => { if (mode === 'analysis' && !pc) showList(); }, 1500);
+}
+$('keepMinus').addEventListener('click', () => stepKeep(-1));
+$('keepPlus').addEventListener('click', () => stepKeep(1));
+renderKeep();
 
 $('fStar').addEventListener('click', () => { listFilter.star = !listFilter.star; renderList(listClips); });
 $('fName').addEventListener('change', e => { listFilter.name = e.target.value; renderList(listClips); });
