@@ -168,6 +168,7 @@ function clipFileName(c) {
 
 function enterAnalysis() {
   mode = 'analysis';
+  history.pushState({ v: 'list' }, '');
   camOp(async () => { stopCamera(); });
   $('settings').classList.add('hidden');
   $('analysis').classList.remove('hidden');
@@ -202,6 +203,7 @@ function dayLabel(day) {
 
 let listUrls = [];
 let listGen = 0;
+let listScroll = null;   // Position der Liste, bevor ein Video geöffnet wurde
 let listClips = [];
 const listFilter = { star: false, name: '' };
 
@@ -215,6 +217,7 @@ async function showList() {
   if (gen !== listGen) return;
   listClips = clips;
   renderList(clips);
+  if (listScroll !== null) { $('aGrid').scrollTop = listScroll; listScroll = null; }
   renderStorage();
   makeMissingThumbs(clips, gen);
 }
@@ -252,6 +255,7 @@ function renderFilter(clips) {
   sel.value = listFilter.name;
   sel.disabled = !names.length;
   $('fStar').classList.toggle('on', listFilter.star);
+  $('fStar').disabled = !clips.length;
 }
 
 // Aufbewahrung der Videos ohne Stern, 1 bis 30 Tage oder nie, einstellbar unten in der Liste.
@@ -317,14 +321,20 @@ function clipCard(c) {
   if (c.name) info.append(el('span', 'nm', c.name));
   info.append(star);
   card.append(th, info);
-  card.addEventListener('click', () => openClip(c));
+  card.addEventListener('click', () => {
+    listScroll = $('aGrid').scrollTop;
+    history.pushState({ v: 'player' }, '');
+    openClip(c);
+  });
   return card;
 }
 
+// Zeigt nur den Platz der Videos, nicht den der Offline-Dateien
 async function renderStorage() {
   try {
-    const { usage } = await navigator.storage.estimate();
-    $('aStore').textContent = 'Belegt ' + Math.round(usage / 1048576) + ' MB';
+    const recs = await inTx(['data'], 'readonly', t => reqP(t.objectStore('data').getAll()));
+    const mb = recs.reduce((s, r) => s + (r.data ? r.data.size : 0), 0) / 1048576;
+    $('aStore').textContent = 'Videos ' + (mb < 10 ? mb.toFixed(1).replace('.', ',') : Math.round(mb)) + ' MB';
   } catch (e) { $('aStore').textContent = ''; }
 }
 
@@ -344,20 +354,27 @@ async function makeMissingThumbs(clips, gen) {
 
 async function makeThumb(id) {
   const d = await getData(id);
-  const end = d.frames[d.frames.length - 1][0];
-  let k = 0;
-  d.frames.forEach((f, i) => { if (f[1] && f[0] <= end - THUMB_BEFORE_END_US) k = i; });
-  const [, , off, len] = d.frames[k];
-  const buf = await d.data.slice(off, off + len).arrayBuffer();
+  const fr = d.frames, skip = d.skip || 0;
+  const end = fr[fr.length - 1][0];
+  // Bild etwa 2 Sekunden vor dem Ende, aber nie aus dem Vorlauf vor einem Schnitt
+  let t = fr.length - 1;
+  while (t > skip && fr[t][0] > end - THUMB_BEFORE_END_US) t--;
+  let k = t;
+  while (k > 0 && !fr[k][1]) k--;
+  const base = fr[k][2];
+  const bytes = new Uint8Array(await d.data.slice(base, fr[t][2] + fr[t][3]).arrayBuffer());
   const cv = document.createElement('canvas');
   cv.width = 384; cv.height = 216;
   await new Promise((res, rej) => {
     const dec = new VideoDecoder({
-      output: f => { cv.getContext('2d').drawImage(f, 0, 0, cv.width, cv.height); f.close(); },
+      output: f => { if (f.timestamp === fr[t][0]) cv.getContext('2d').drawImage(f, 0, 0, cv.width, cv.height); f.close(); },
       error: rej,
     });
     dec.configure(d.cfg);
-    dec.decode(new EncodedVideoChunk({ type: 'key', timestamp: 0, data: buf }));
+    for (let i = k; i <= t; i++) {
+      const [ts, key, off, len] = fr[i];
+      dec.decode(new EncodedVideoChunk({ type: key ? 'key' : 'delta', timestamp: ts, data: bytes.subarray(off - base, off - base + len) }));
+    }
     dec.flush().then(() => { dec.close(); res(); }, rej);
   });
   return new Promise(res => cv.toBlob(res, 'image/jpeg', 0.75));
@@ -614,13 +631,35 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-tab]');
   if (!b) return;
   if (b.dataset.tab === 'analyse' && mode === 'settings') { goFullscreen(); enterAnalysis(); }
-  else if (b.dataset.tab === 'live' && mode === 'analysis') leaveAnalysis();
+  else if (b.dataset.tab === 'live' && mode === 'analysis') history.back();
 });
-$('pBack').addEventListener('click', showList);
+
+// Zurück-Taste und Zurück-Geste von Android. Wiedergabe führt zur Liste, Liste zu Live.
+// Im Betrieb bleibt sie wirkungslos, damit ein versehentliches Wischen den Betrieb nicht beendet.
+window.addEventListener('popstate', () => {
+  if (mode === 'run') { history.pushState({ v: 'run' }, ''); return; }
+  if (mode !== 'analysis') return;
+  if (!$('aPlayer').classList.contains('hidden')) showList();
+  else leaveAnalysis();
+});
+$('pBack').addEventListener('click', () => history.back());
 
 $('pPlay').addEventListener('click', () => (pPlaying ? pause() : play()));
-$('pPrev').addEventListener('click', () => seek(pPos - 1));
-$('pNext').addEventListener('click', () => seek(pPos + 1));
+// Ein Bild vor oder zurück. Gehalten schaltet die Taste fortlaufend weiter.
+const stepBase = () => (pPending >= 0 ? pPending : pTarget >= 0 ? pTarget : pPos);
+function holdRepeat(btn, fn) {
+  let timer = 0;
+  const stop = () => { clearTimeout(timer); timer = 0; };
+  btn.addEventListener('pointerdown', () => {
+    stop();
+    fn();
+    const loop = () => { fn(); timer = setTimeout(loop, 110); };
+    timer = setTimeout(loop, 450);
+  });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) btn.addEventListener(type, stop);
+}
+holdRepeat($('pPrev'), () => seek(stepBase() - 1));
+holdRepeat($('pNext'), () => seek(stepBase() + 1));
 $('pSpeed').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (b) setSpeed(+b.dataset.v);
@@ -681,7 +720,7 @@ $('pDel').addEventListener('click', async () => {
   const id = pc.meta.id;
   closePlayer();
   await deleteClip(id);
-  showList();
+  history.back();   // zurück zur Liste
 });
 
 // ---------- Foto ----------
@@ -750,7 +789,10 @@ function renderRange() {
   $('pSel').style.setProperty('--a', selFrac(selA));
   $('pSel').style.setProperty('--w', selFrac(selB) - selFrac(selA));
   $('rgInfo').textContent = fmtSec(pc.frames[selB][0] - pc.frames[selA][0]);
-  $('rgCount').textContent = strobeCount;
+  const cnt = strobeShown();
+  $('rgCount').textContent = cnt;
+  $('rgMinus').disabled = cnt <= STROBE_MIN;
+  $('rgPlus').disabled = cnt >= Math.min(STROBE_MAX, selB - selA + 1);
 }
 
 // Die Punkte für Anfang und Ende liegen auf dem Zeitregler und können sich nicht überholen.
@@ -779,8 +821,10 @@ for (const [id, isA] of [['hA', true], ['hB', false]]) {
   });
   for (const type of ['pointerup', 'pointercancel']) h.addEventListener(type, e => { if (drag === e.pointerId) drag = null; });
 }
-$('rgMinus').addEventListener('click', () => { strobeCount = Math.max(STROBE_MIN, strobeCount - 1); renderRange(); });
-$('rgPlus').addEventListener('click', () => { strobeCount = Math.min(STROBE_MAX, strobeCount + 1); renderRange(); });
+// Die Bildfolge kann nicht mehr Bilder haben, als der Abschnitt enthält
+const strobeShown = () => Math.min(strobeCount, selB - selA + 1);
+$('rgMinus').addEventListener('click', () => { strobeCount = Math.max(STROBE_MIN, strobeShown() - 1); renderRange(); });
+$('rgPlus').addEventListener('click', () => { strobeCount = Math.min(STROBE_MAX, strobeShown() + 1); renderRange(); });
 $('rgCancel').addEventListener('click', closeRange);
 $('dCut').addEventListener('click', () => openRange('cut'));
 $('dStrobe').addEventListener('click', () => openRange('strobe'));
@@ -793,7 +837,7 @@ $('rgOk').addEventListener('click', async () => {
   ok.textContent = rangeMode === 'cut' ? 'Wird geschnitten …' : 'Wird erstellt …';
   try {
     if (rangeMode === 'cut') await cutClip(a, b);
-    else { await makeStrobe(a, b, strobeCount); closeRange(); }
+    else { await makeStrobe(a, b, strobeShown()); closeRange(); }
   } catch (e) {
     console.warn(e);
     ok.textContent = 'Fehler';

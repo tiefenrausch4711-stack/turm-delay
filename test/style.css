@@ -232,6 +232,8 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   transition: transform .1s, filter .15s;
 }
 #start:active { transform: scale(0.99); filter: brightness(1.08); }
+#start:disabled { opacity: 0.35; filter: grayscale(0.7); cursor: default; }
+.chip:disabled { opacity: 0.4; }
 #start .go { font-size: 20px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; }
 #start .go::after { content: ""; display: inline-block; margin-left: 14px; border: 7px solid transparent; border-left: 11px solid currentColor; border-right: 0; vertical-align: -1px; }
 .hint { margin: -6px 0 0; font-size: 14px; color: var(--dim); text-align: center; }
@@ -285,7 +287,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #ring circle { fill: none; stroke-width: 5; }
 #ring .track { fill: rgba(0, 0, 0, 0.45); stroke: rgba(255, 255, 255, 0.2); }
 #ring .prog { stroke: var(--acc); stroke-linecap: round; stroke-dasharray: 314.2; stroke-dashoffset: 314.2; }
-#ring.go .prog { transition: stroke-dashoffset 2s linear; stroke-dashoffset: 0; }
+#ring.go .prog { transition: stroke-dashoffset 1s linear; stroke-dashoffset: 0; }
 
 /* Speicherknopf. Beim Halten verschwindet das Schwarz im Kreis. */
 #saveBtn {

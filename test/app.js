@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '19';   // Stand der Test-App
+const APP_VERSION = '20';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -10,7 +10,7 @@ const WATCHDOG_MS = 2000;          // so lange ohne Bild gilt die Kamera als aus
 const RECONNECT_MS = 3000;
 const CONSTRAINT_TIMEOUT_MS = 3000; // so lange darf ein Kamerabefehl höchstens dauern
 const CONSTRAINT_GRACE_MS = 3000;   // so lange nach einem Kamerabefehl schweigt die Überwachung
-const LONG_PRESS_MS = 2000;
+const LONG_PRESS_MS = 1000;
 const SAVE_PRESS_MS = 1000;       // so lange muss der Speicherknopf gehalten werden
 const OVERLOAD_HOLD_MS = 5000;     // so lange bleibt die Anzeige nach einer Überlast gelb
 
@@ -212,7 +212,9 @@ async function cameraLost(err) {
   reconnecting = true;
   camState = 'lost';
   stopCamera();
-  resetPlayback();
+  // Im Betrieb bleibt der Puffer erhalten. Was schon aufgenommen ist, läuft weiter auf den Fernseher
+  // und lässt sich speichern, während die Kamera neu verbindet.
+  if (mode !== 'run') resetPlayback();
   renderSettings(err);
   while (true) {
     await sleep(RECONNECT_MS);
@@ -227,8 +229,8 @@ async function cameraLost(err) {
     if (ok) break;
   }
   reconnecting = false;
-  opStart = null;
-  resetPlayback();
+  // Im Betrieb kommen die neuen Bilder hinter die Lücke in denselben Puffer
+  if (mode !== 'run') { opStart = null; resetPlayback(); }
 }
 
 // Liefert immer nur die neueste Anforderung an die Kamera aus
@@ -521,11 +523,15 @@ function tick() {
   requestAnimationFrame(tick);
   const now = performance.now();
 
-  if (camState === 'lost') { setBadge(settings.delay + ' s', 'bad'); return; }
-  if (camState !== 'ok') { setBadge(String(settings.delay), ''); return; }   // Kamera startet noch
+  const lost = camState === 'lost';
+  if (!lost && camState !== 'ok') { setBadge(String(settings.delay), ''); return; }   // Kamera startet noch
 
   const remaining = opStart === null ? settings.delay : settings.delay - (now - opStart) / 1000;
-  if (remaining > 0) { setBadge(String(Math.ceil(remaining)), ''); return; }
+  if (remaining > 0) {
+    if (lost) setBadge(settings.delay + ' s', 'bad');
+    else setBadge(String(Math.ceil(remaining)), '');
+    return;
+  }
 
   const T = now - settings.delay * 1000;
   feed(T + LOOKAHEAD_MS, T);
@@ -540,19 +546,30 @@ function tick() {
     lastShownTs = show.timestamp / 1000;
     show.close();
   }
-  // Anzeige hängt deutlich hinter dem Soll zurück
-  if (lastShownTs && T - lastShownTs > 400) markOverload();
+  // Anzeige hängt deutlich hinter dem Soll zurück. Eine Lücke nach einem Kameraausfall zählt nicht.
+  if (lastShownTs && T - lastShownTs > 400 && hasDueFrame(lastShownTs, T - 400)) markOverload();
 
   if (now - lastTrimAt > 1000) { trim(now); lastTrimAt = now; }
 
   const warn = degraded || now < overloadUntil;
-  setBadge(settings.delay + ' s', warn ? 'warn' : '');
+  setBadge(settings.delay + ' s', lost ? 'bad' : warn ? 'warn' : '');
+}
+
+// Gibt es im Puffer ein Bild nach after, das spätestens bis until hätte erscheinen müssen?
+function hasDueFrame(after, until) {
+  let lo = 0, hi = buffer.length;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if (buffer[m].ts <= after) lo = m + 1; else hi = m;
+  }
+  return lo < buffer.length && buffer[lo].ts <= until;
 }
 
 // ---------- Wechsel zwischen Einstellungen und Betrieb ----------
 
 function enterRun() {
   mode = 'run';
+  history.pushState({ v: 'run' }, '');
   $('settings').classList.add('hidden');
   $('run').classList.remove('hidden');
   video.srcObject = null;
@@ -602,7 +619,7 @@ $('run').addEventListener('pointerdown', e => {
   ring.classList.add('go');
   press = {
     id: e.pointerId,
-    timer: setTimeout(() => { cancelPress(); enterSettings(); }, LONG_PRESS_MS),
+    timer: setTimeout(() => { cancelPress(); enterSettings(); history.back(); }, LONG_PRESS_MS),
   };
 });
 for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
@@ -615,7 +632,7 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 // Gespeichert wird der Teil, der noch gezeigt wird, also vom Bild auf dem Fernseher bis jetzt.
 // Beginn ist der Keyframe davor, damit das Video dekodierbar bleibt.
 function snapshotBuffer() {
-  if (mode !== 'run' || camState !== 'ok' || !buffer.length) return null;
+  if (mode !== 'run' || !buffer.length) return null;
   const T = performance.now() - settings.delay * 1000;
   let start = 0;
   for (let i = 0; i < buffer.length; i++) {
@@ -642,6 +659,10 @@ function showToast(text, bad) {
 }
 
 async function saveNow() {
+  if (opStart === null || performance.now() - opStart < settings.delay * 1000) {
+    showToast('Puffer füllt sich noch', true);
+    return;
+  }
   const snap = snapshotBuffer();
   if (!snap) { showToast('Nichts zu speichern', true); return; }
   saveBtn.classList.add('done');
@@ -765,6 +786,7 @@ function renderCamInfo(err) {
   if (err) lastCamError = err;
   if (camState === 'ok') lastCamError = null;
   err = lastCamError;
+  $('start').disabled = unsupported || camState !== 'ok' || !track;
   const state = $('hudState'), stateTxt = $('hudStateTxt'), msg = $('camMsg');
   const fpsEl = $('hudFps');
   $('hudCam').textContent = CAM_LABEL[settings.facing];
