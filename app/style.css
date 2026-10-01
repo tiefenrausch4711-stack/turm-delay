@@ -6,7 +6,7 @@
   --fg: #e9edf0;
   --mut: #7b858f;
   --dim: #78828c;
-  --acc: #37d3c4;
+  --acc: #4fbfb3;
   --acc-ink: #04201d;
   --warn: #ffcc33;
   --bad: #ff5a5a;
@@ -329,7 +329,8 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   min-height: 48px; padding: 0 16px; border-radius: var(--r);
   border: 1px solid var(--line-2); font-size: 15px; font-weight: 600; color: var(--fg);
 }
-.clipNav { display: flex; gap: 6px; }
+.clipNav { display: flex; gap: 6px; margin-right: auto; }
+#pBack { min-height: 52px; padding: 0 22px; font-size: 17px; }
 .clipNav .nav { width: 48px; padding: 0; font-size: 26px; line-height: 1; }
 .nav:disabled { opacity: 0.3; }
 .nav:active, .tool:active { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 8%, transparent); }
@@ -359,7 +360,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #aEmpty { margin: auto; text-align: center; color: var(--mut); font-size: 17px; line-height: 1.6; }
 .step.xs { width: 40px; height: 40px; flex: 0 0 40px; font-size: 22px; }
 .step:disabled { opacity: 0.35; }
-#keepDays { flex: 1; text-align: center; color: var(--fg); font: 600 15px var(--mono); }
+#keepDays { flex: 1; text-align: center; color: var(--mut); font: 14px var(--mono); }
 /* Einstellungen */
 /* Videos in zwei Spalten. Die Tasten für die Tage sind so breit wie „Videos löschen …“ und schließen bündig ab. */
 .vidGrid { display: grid; grid-template-columns: 1fr 190px; align-items: center; gap: 10px 12px; }
@@ -378,7 +379,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 }
 .pbar { border-bottom: 1px solid var(--line); }
 .pctl { border-top: 1px solid var(--line); }
-#pTitle { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; font-weight: 600; }
+#pTitle { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; font-weight: 600; }
 #pName {
   width: 200px; min-height: 44px; padding: 0 12px; border-radius: var(--r);
   border: 1px solid var(--line-2); background: var(--surface); color: var(--fg); font: 16px var(--sans);
@@ -458,7 +459,9 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 }
 .dlg h2 { margin: 0; font-size: 18px; font-weight: 650; }
 .dlg .label { margin: 6px 0 0; }
-.swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+/* Sechster Kreis, gestrichelt leer, bis eine eigene Farbe gewählt ist */
+.sw.saved.empty { background: transparent; border: 2px dashed var(--line-2); }
 .sw {
   position: relative; aspect-ratio: 1; border-radius: 50%;
   background: var(--c); cursor: pointer;
@@ -548,3 +551,12 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .step.sm { width: 44px; height: 44px; flex: 0 0 44px; font-size: 24px; }
 .tool.ok { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
 .tool:disabled { opacity: 0.6; }
+
+/* Startbildschirm in der Farbe des Symbols. Er blendet aus, sobald die App bereit ist, frühestens nach SPLASH_MS. */
+#splash {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  background: #455a6f; transition: opacity .45s ease;
+}
+#splash img { width: min(38vmin, 220px); height: auto; }
+#splash.out { opacity: 0; pointer-events: none; }
