@@ -335,8 +335,8 @@ async function renderStorage() {
   try {
     const recs = await inTx(['data'], 'readonly', t => reqP(t.objectStore('data').getAll()));
     const mb = recs.reduce((s, r) => s + (r.data ? r.data.size : 0), 0) / 1048576;
-    $('aStore').textContent = 'Videos ' + (mb < 10 ? mb.toFixed(1).replace('.', ',') : Math.round(mb)) + ' MB';
-  } catch (e) { $('aStore').textContent = ''; }
+    $('uiStore').textContent = 'Belegt ' + (!mb ? '0' : mb < 10 ? mb.toFixed(1).replace('.', ',') : Math.round(mb)) + ' MB';
+  } catch (e) { $('uiStore').textContent = ''; }
 }
 
 // Vorschaubilder entstehen erst in der Liste, damit das Speichern im Betrieb nichts dekodieren muss
@@ -1000,6 +1000,38 @@ async function makeStrobe(a, b, count) {
   $('pStill').textContent = `Bildfolge · ${n} Bilder`;
   $('pStill').classList.remove('hidden');
 }
+
+// ---------- Videos löschen in den Einstellungen ----------
+
+// Zwei Schritte, damit nichts aus Versehen verloren geht. Die Zahlen zeigen vorher, wie viele betroffen sind.
+$('delOpen').addEventListener('click', async () => {
+  const clips = await allClips();
+  const noStar = clips.filter(c => !c.star).length;
+  $('delNoStar').textContent = `Ohne Stern löschen (${noStar})`;
+  $('delNoStar').disabled = !noStar;
+  $('delAll').textContent = `Alle löschen (${clips.length})`;
+  $('delAll').disabled = !clips.length;
+  $('uiMain').classList.add('hidden');
+  $('uiDel').classList.remove('hidden');
+});
+
+function closeDelete() {
+  $('uiDel').classList.add('hidden');
+  $('uiMain').classList.remove('hidden');
+}
+
+async function deleteMany(onlyNoStar) {
+  const ids = (await allClips()).filter(c => !onlyNoStar || !c.star).map(c => c.id);
+  await inTx(['clips', 'data'], 'readwrite', t => {
+    for (const id of ids) { t.objectStore('clips').delete(id); t.objectStore('data').delete(id); }
+  });
+  closeDelete();
+  renderStorage();
+  if (mode === 'analysis' && !pc) showList();
+}
+$('delNoStar').addEventListener('click', () => deleteMany(true));
+$('delAll').addEventListener('click', () => deleteMany(false));
+$('delCancel').addEventListener('click', closeDelete);
 
 // ---------- Start ----------
 

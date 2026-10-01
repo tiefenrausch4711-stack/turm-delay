@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '28';   // Stand der Test-App
+const APP_VERSION = '29';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -1007,9 +1007,11 @@ document.addEventListener('click', e => {
   if (!e.target.closest('[data-ui]') || !$('uiDlg').classList.contains('hidden')) return;
   $('uiDlg').classList.remove('hidden');
   history.pushState({ v: 'dlg' }, '');
+  renderStorage();
 });
 function closeUi() {
   closePicker();
+  $('uiDel').classList.add('hidden');
   $('uiDlg').classList.add('hidden');
 }
 $('uiDone').addEventListener('click', () => history.back());
