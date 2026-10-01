@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 01.10.2026. Normale App v1 ist online. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 01.10.2026. Normale App v1 ist online, v1.1 mit neuem Symbol lokal committet. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -33,7 +33,7 @@ LagTime ist eine Progressive Web App für das Training im Turmspringen. Ein Sams
 | `app.js` | Gesamte Logik mit Kamera, Kodierung, Puffer, Wiedergabe, Überwachung und Oberfläche |
 | `sw.js` | Service Worker für den Offline-Betrieb und für Updates |
 | `manifest.webmanifest` | Installation als App, Vollbild, Querformat |
-| `icon-192.png`, `icon-512.png` | Symbol, seit Version 24 und Stand 36 weiß gefüllte Kamera mit runden Ecken und weichen Übergängen am Aufsatz, verkleinert und mittig. Die Uhr als Objektiv ist innen in der Hintergrundfarbe mit weißem Ring und weißen Zeigern. Blau für die normale App, orange für die Test-App |
+| `icon-192.png`, `icon-512.png` | Symbol, seit Version 24 und Stand 36 weiß gefüllte Kamera mit runden Ecken und weichen Übergängen am Aufsatz, verkleinert und mittig. Die Uhr als Objektiv ist innen in der Hintergrundfarbe mit weißem Ring und weißen Zeigern. Die normale App hat seit v1.1 einen blaugrauen Hintergrund `#455a6f` und ein oranges Objektiv `#c2570c`, die Test-App ist orange mit orangem Objektiv. Erzeugt mit `python icon.py . 455a6f c2570c` und `python icon.py test c2570c` |
 | `icon.py` | Erzeugt beide Symbole, Aufruf `python icon.py .` im Projektordner, braucht Pillow |
 | `test/` | Test-App „LagTime Test“, vollständige Kopie der App mit eigenen Änderungen |
 | `test.html` | Testseite für die Fähigkeiten des Tablets |

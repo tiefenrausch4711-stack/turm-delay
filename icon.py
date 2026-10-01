@@ -1,8 +1,10 @@
 import math, sys
 from PIL import Image, ImageDraw
-# Aufruf: python icon.py <Zielordner> [Hintergrundfarbe als Hex, ohne #]
-# Weiß gefüllte Kamera, die Uhr als Objektiv ist innen in der Hintergrundfarbe.
+# Aufruf: python icon.py <Zielordner> [Hintergrundfarbe] [Farbe des Objektivs], beide als Hex ohne #
+# Weiß gefüllte Kamera, die Uhr als Objektiv ist innen farbig.
+# Normale App: python icon.py . 455a6f c2570c   Test-App: python icon.py test c2570c
 BG=tuple(bytes.fromhex(sys.argv[2])) if len(sys.argv)>2 else (17,32,62); FG=(255,255,255)
+LENS=tuple(bytes.fromhex(sys.argv[3])) if len(sys.argv)>3 else BG
 S=4; N=512*S
 SC=0.84                      # Größe der ganzen Kamera gegenüber dem Entwurf
 OX,OY=256,259                # Mitte der Kamera im Entwurf, landet genau in der Bildmitte
@@ -25,7 +27,7 @@ d.ellipse([X(hx1),Y(by0-2*f),X(hx1+2*f),Y(by0)],fill=BG)
 d.ellipse([X(356-12),Y(214-12),X(356+12),Y(214+12)],fill=BG)
 # Uhr als Objektiv, innen farbig mit weißem Ring und weißen Zeigern
 cx,cy=256,284; R=86
-d.ellipse([X(cx-R),Y(cy-R),X(cx+R),Y(cy+R)],fill=BG)
+d.ellipse([X(cx-R),Y(cy-R),X(cx+R),Y(cy+R)],fill=LENS)
 rr=R-16; rw=9
 d.ellipse([X(cx-rr),Y(cy-rr),X(cx+rr),Y(cy+rr)],outline=FG,width=L(rw))
 def hand(x2,y2,w):
