@@ -867,7 +867,7 @@ function renderRange() {
   $('hB').style.setProperty('--x', selFrac(selB));
   $('pSel').style.setProperty('--a', selFrac(selA));
   $('pSel').style.setProperty('--w', selFrac(selB) - selFrac(selA));
-  $('rgInfo').textContent = fmtSec(pc.frames[selB][0] - pc.frames[selA][0]);
+  $('rgInfo').textContent = 'Länge ' + fmtSec(pc.frames[selB][0] - pc.frames[selA][0]);
   const cnt = strobeShown();
   $('rgCount').textContent = cnt;
   $('rgMinus').disabled = cnt <= STROBE_MIN;

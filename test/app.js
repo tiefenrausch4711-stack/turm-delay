@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '24';   // Stand der Test-App
+const APP_VERSION = '25';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
