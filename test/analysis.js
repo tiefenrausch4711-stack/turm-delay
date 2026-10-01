@@ -41,6 +41,7 @@ const deleteClip = id => inTx(['clips', 'data'], 'readwrite', t => {
 });
 
 async function cleanupOld() {
+  if (!settings.keepDays) return;   // nie löschen
   const limit = Date.now() - settings.keepDays * 864e5;
   for (const c of await allClips()) if (!c.star && c.created < limit) await deleteClip(c.id);
 }
@@ -253,20 +254,25 @@ function renderFilter(clips) {
   $('fStar').classList.toggle('on', listFilter.star);
 }
 
-// Aufbewahrung der Videos ohne Stern, 1 bis 30 Tage, einstellbar unten in der Liste
+// Aufbewahrung der Videos ohne Stern, 1 bis 30 Tage oder nie, einstellbar unten in der Liste.
+// Nie ist intern 0 und folgt als Stufe auf 30.
 const KEEP_MIN = 1, KEEP_MAX = 30;
-settings.keepDays = clamp(Math.round(+settings.keepDays) || 7, KEEP_MIN, KEEP_MAX);
+const keepRaw = Math.round(+settings.keepDays);
+settings.keepDays = keepRaw === 0 ? 0 : clamp(keepRaw || 7, KEEP_MIN, KEEP_MAX);
 let keepTimer = 0;
 
 function renderKeep() {
   const d = settings.keepDays;
-  $('keepDays').textContent = d === 1 ? '1 Tag' : d + ' Tagen';
-  $('keepMinus').disabled = d <= KEEP_MIN;
-  $('keepPlus').disabled = d >= KEEP_MAX;
+  $('keepLabel').textContent = d ? 'Videos ohne Stern löschen nach' : 'Videos ohne Stern löschen';
+  $('keepDays').textContent = !d ? 'nie' : d === 1 ? '1 Tag' : d + ' Tagen';
+  $('keepMinus').disabled = d === KEEP_MIN;
+  $('keepPlus').disabled = d === 0;
 }
 
 function stepKeep(delta) {
-  settings.keepDays = clamp(settings.keepDays + delta, KEEP_MIN, KEEP_MAX);
+  const d = settings.keepDays || KEEP_MAX + 1;   // nie liegt eine Stufe über 30
+  const next = clamp(d + delta, KEEP_MIN, KEEP_MAX + 1);
+  settings.keepDays = next > KEEP_MAX ? 0 : next;
   saveSettings();
   renderKeep();
   // Erst kurz nach dem letzten Tippen aufräumen, eine kürzere Frist löscht dann sofort
