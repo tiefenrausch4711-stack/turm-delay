@@ -579,8 +579,13 @@ function resetDelete() {
 
 // ---------- Bedienung ----------
 
-$('analyse').addEventListener('click', () => { goFullscreen(); enterAnalysis(); });
-$('aBack').addEventListener('click', leaveAnalysis);
+// Umschaltung oben zwischen Live und Analyse
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]');
+  if (!b) return;
+  if (b.dataset.tab === 'analyse' && mode === 'settings') { goFullscreen(); enterAnalysis(); }
+  else if (b.dataset.tab === 'live' && mode === 'analysis') leaveAnalysis();
+});
 $('pBack').addEventListener('click', showList);
 
 $('pPlay').addEventListener('click', () => (pPlaying ? pause() : play()));
