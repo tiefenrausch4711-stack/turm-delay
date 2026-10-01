@@ -251,7 +251,7 @@ function renderFilter(clips) {
   if (listFilter.name && !names.includes(listFilter.name)) listFilter.name = '';
   const sel = $('fName');
   sel.textContent = '';
-  sel.append(new Option('Alle Springer', ''));
+  sel.append(new Option('Alle Namen', ''));
   for (const nm of names) sel.append(new Option(nm, nm));
   sel.value = listFilter.name;
   sel.disabled = !names.length;
