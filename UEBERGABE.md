@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 30.09.2026. Normale App v0 mit Version 23, Test-App Stand 27. Beides lokal committet.
+Stand 30.09.2026. Normale App v0 mit Version 23, Test-App Stand 28. Beides lokal committet.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -85,10 +85,10 @@ Navigation seit Stand 15. Die Seite mit Kamera und Einstellungen heißt „Live�
 
 Zusätzlich in Stand 6. Ein Zahnrad oben rechts in Einstellungen und Analyse öffnet das Fenster „Darstellung“. Dort gibt es seit Stand 7 vier Farbvorschläge, nämlich Türkis, Blau, Grün und Weiß, und links ein buntes Feld. Es öffnet sofort einen eigenen Farbwähler mit Fläche und Farbtonregler, der dem Hell- und Dunkelmodus folgt. Der Farbwähler von Android wird bewusst nicht genutzt. Dazu kommt die Wahl zwischen Dunkel und Hell. Der Betrieb bleibt immer schwarz. Gespeichert in `settings.ui`. Alle Türkistöne im CSS sind `color-mix` aus `--acc`. Die Schrift auf Akzentflächen `--acc-ink` wird nach Helligkeit dunkel oder weiß. Die hellen Werte gelten nur für `#settings`, `#analysis` und `#uiDlg`.
 3. Erledigt in Stand 10, abgestimmt am 01.10.2026.
-   - Foto. Speichert das angezeigte Bild mit Zeichnung, ohne Griffe, als JPG über Herunterladen.
+   - Foto. Entfallen in Stand 28.
    - Filter in der Liste nach Stern und nach Name. Seit Stand 23 heißt die Auswahl „Alle Namen“ statt „Alle Springer“, weil das allgemeiner ist.
    - Lot. Gestrichelte Senkrechte über die ganze Bildhöhe, mit Griff verschiebbar.
-   - Schneiden. Rechts anwählen. Seit Stand 13 erscheinen auf dem normalen Zeitregler zwei zusätzliche Punkte, neutral weiß mit dunklem Rand, seit Stand 25 ohne Buchstaben und ohne Erklärung, mit markiertem Abschnitt dazwischen. Die Leiste darüber zeigt nur „Länge …“. Die Werkzeugleiste ist seit Stand 25 86 Pixel breit, damit „Rückgängig“ passt. Seit Stand 26 sitzt „Rückgängig“ ganz unten in der Werkzeugleiste unter „Bildfolge“, abgesetzt mit `margin-top: auto`. Seit Stand 27 steht „1:1“ zum Zurücksetzen des Zooms direkt unter „Ansehen“. Farben wurden bewusst vermieden, weil sie mit der frei wählbaren Akzentfarbe kollidieren können. Eigene Regler gibt es nicht mehr. Darüber liegt eine schmale Leiste mit Länge, „Abbrechen“ und „Schneiden“. Das Original wird ersetzt und behält Nummer, Name und Stern. Neu kodiert wird nicht. Ab dem Keyframe vor dem Anfang bleibt ein unsichtbarer Vorlauf, gespeichert als `skip` im Datensatz `data`. Die Wiedergabe beginnt bei `pFirst`. Das MP4 überspringt den Vorlauf über eine Edit List `elst`.
+   - Schneiden. Rechts anwählen. Seit Stand 13 erscheinen auf dem normalen Zeitregler zwei zusätzliche Punkte, neutral weiß mit dunklem Rand, seit Stand 25 ohne Buchstaben und ohne Erklärung, mit markiertem Abschnitt dazwischen. Die Leiste darüber zeigt nur „Länge …“. Die Werkzeugleiste ist seit Stand 25 86 Pixel breit, damit „Rückgängig“ passt. Seit Stand 26 sitzt „Rückgängig“ ganz unten in der Werkzeugleiste unter „Bildfolge“, abgesetzt mit `margin-top: auto`. Seit Stand 27 steht „1:1“ zum Zurücksetzen des Zooms direkt unter „Ansehen“. Seit Stand 28 steht „Leeren“ unter „Rückgängig“ ganz unten, und das Werkzeug „Foto“ ist auf Wunsch des Nutzers entfallen. Farben wurden bewusst vermieden, weil sie mit der frei wählbaren Akzentfarbe kollidieren können. Eigene Regler gibt es nicht mehr. Darüber liegt eine schmale Leiste mit Länge, „Abbrechen“ und „Schneiden“. Das Original wird ersetzt und behält Nummer, Name und Stern. Neu kodiert wird nicht. Ab dem Keyframe vor dem Anfang bleibt ein unsichtbarer Vorlauf, gespeichert als `skip` im Datensatz `data`. Die Wiedergabe beginnt bei `pFirst`. Das MP4 überspringt den Vorlauf über eine Edit List `elst`.
    - Bildfolge. Abschnitt wie beim Schneiden mit den Punkten auf dem Zeitregler wählen, dazu 3 bis 16 Bilder, dann „Erstellen“. Ein eigener Decoder holt die Bilder in 1280 x 720. Der Hintergrund ist der Median der Helligkeit auf einem Raster von 4 Bildpunkten. Wo ein Bild deutlich abweicht, wird es eingesetzt, spätere Bilder liegen oben. Das Ergebnis ersetzt das Videobild, bis wieder ein Videobild erscheint. Man kann darauf zeichnen und es als Foto speichern.
    - Seit Stand 24 gibt es in der Wiedergabe neben „‹ Liste“ die Tasten „‹“ und „›“ für das vorherige und nächste Video, chronologisch und innerhalb des Filters der Liste, siehe `clipNeighbor`. Der Wechsel legt keinen Verlaufseintrag an. Zeitlupe bleibt, Zoom, Zeichnung, Schleife und Schnittauswahl werden zurückgesetzt.
    - Vergleich zweier Sprünge entfällt, weil von verschiedenen Brettern gesprungen wird. Zeitmessung und alle Vorschläge für den Betrieb wollte der Nutzer nicht.
@@ -149,7 +149,7 @@ Technik in `test/analysis.js`
 
 ## Offen und als Nächstes
 
-- Version 23 und die Test-App Stand 27 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
+- Version 23 und die Test-App Stand 28 müssen noch hochgeladen und auf dem Tablet geprüft werden. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
 - Zurückgestellt am 01.10.2026 ist eine weitere, externe Kamera. Besprochene Wege waren eine USB-Kamera, die auf Android 11 bei Samsung oft nicht erkannt wird und einen USB-C-Hub neben dem HDMI-Adapter bräuchte, ein zweites Handy als Funkkamera über WebRTC mit Kopplung per QR-Code, und eine allgemeine Kamerawahl über alle von `enumerateDevices` gemeldeten Kameras als ersten Schritt.
 - `navigator.storage.persist()` ist nur in der Test-App eingebaut. Für die normale App ist es angeboten und noch nicht entschieden.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?

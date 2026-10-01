@@ -782,46 +782,6 @@ $('pDel').addEventListener('click', async () => {
   history.back();   // zurück zur Liste
 });
 
-// ---------- Foto ----------
-
-// Speichert das angezeigte Bild mit Zeichnung, aber ohne die Griffe
-// Bei Zoom wird nur der sichtbare Ausschnitt gespeichert, auf volle Größe gebracht
-let photoBusy = false;
-function savePhoto() {
-  if (!pc || photoBusy) return;
-  pause();
-  photoBusy = true;
-  $('dPhoto').disabled = true;
-  const W = pCanvas.width, H = pCanvas.height;
-  const sw = W / vz.z, sh = H / vz.z;
-  const sx = -vz.x / vz.z * W / vbox.w, sy = -vz.y / vz.z * H / vbox.h;
-  const c = document.createElement('canvas');
-  c.width = W;
-  c.height = H;
-  const x = c.getContext('2d');
-  x.drawImage(pCanvas, sx, sy, sw, sh, 0, 0, W, H);
-  renderDrawing(false);
-  x.drawImage(dCanvas, sx, sy, sw, sh, 0, 0, W, H);
-  renderDrawing();
-  const t = ((pc.frames[pPos][0] - pc.frames[pFirst][0]) / 1e6).toFixed(2).replace('.', ',');
-  const name = clipFileName(pc.meta).replace(/\.mp4$/, pStill ? '_Bildfolge.jpg' : `_${t}s.jpg`);
-  c.toBlob(b => {
-    download(new File([b], name, { type: 'image/jpeg' }));
-    photoBusy = false;
-    $('dPhoto').disabled = false;
-    playerMsg('Foto gespeichert');
-  }, 'image/jpeg', 0.92);
-}
-
-let playerMsgTimer = 0;
-function playerMsg(text) {
-  $('pMsg').textContent = text;
-  $('pMsg').classList.remove('hidden');
-  clearTimeout(playerMsgTimer);
-  playerMsgTimer = setTimeout(() => $('pMsg').classList.add('hidden'), 2000);
-}
-$('dPhoto').addEventListener('click', savePhoto);
-
 // ---------- Abschnitt wählen für Schneiden und Bildfolge ----------
 
 const STROBE_MIN = 3, STROBE_MAX = 16;

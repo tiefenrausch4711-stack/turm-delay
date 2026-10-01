@@ -394,7 +394,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .tl.on { background: var(--acc); color: var(--acc-ink); }
 .tl:active { filter: brightness(1.25); }
 .tl:disabled { opacity: 0.3; }
-/* Rückgängig sitzt ganz unten, nah an der unteren Leiste */
+/* Rückgängig und Leeren sitzen ganz unten, nah an der unteren Leiste */
 #dUndo { margin-top: auto; }
 .tl .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--c, #ffd21f); border: 2px solid rgba(255, 255, 255, 0.35); }
 .seekWrap { flex: 1; min-width: 120px; position: relative; display: flex; align-items: center; }
@@ -501,11 +501,6 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #fName { max-width: 280px; text-overflow: ellipsis; }
 #aEmpty { white-space: pre-line; }
 
-/* Kurze Meldung in der Wiedergabe */
-#pMsg {
-  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); padding: 8px 16px; border-radius: 8px;
-  background: rgba(0, 0, 0, 0.7); color: #fff; font: 600 15px var(--sans); pointer-events: none;
-}
 
 /* Bildfolge statt Videobild */
 #pStill {
