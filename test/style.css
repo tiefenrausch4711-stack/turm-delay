@@ -193,7 +193,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transition: background .18s, color .18s;
 }
 .seg button small { font: 11px var(--mono); margin-left: 4px; opacity: 0.75; }
-.seg button.on { background: var(--acc); color: var(--acc-ink); font-weight: 650; }
+/* Gewählter Teil dezent, damit „Start“ die einzige volle Akzentfläche bleibt */
+.seg button.on {
+  background: color-mix(in srgb, var(--acc) 16%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--acc-text);
+  color: var(--fg); font-weight: 650;
+}
 /* Helligkeit, dunkler und heller Endpunkt */
 .lum { flex: 0 0 18px; height: 18px; border-radius: 50%; }
 .lum.dark { border: 2px solid var(--dim); background: #000; }
