@@ -480,26 +480,36 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   padding: 4px 12px; background: var(--bg); border-top: 1px solid var(--line);
 }
 .rgLegend { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--mut); }
-.rgLegend i { width: 14px; height: 14px; border-radius: 50%; margin-left: 6px; }
-.rgLegend .la { background: #22c55e; margin-left: 0; }
-.rgLegend .lb { background: #ef4444; }
+.rgLegend i {
+  width: 22px; height: 22px; border-radius: 50%; margin-left: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #fff; color: #14181c; border: 2px solid #14181c;
+  font: 800 12px/1 var(--sans); font-style: normal;
+}
+.rgLegend .la { margin-left: 0; }
+.rgLegend .la::before { content: "A"; }
+.rgLegend .lb::before { content: "E"; }
 #rgInfo { margin-left: 16px; font: 14px var(--mono); }
 /* Anfang und Ende als zusätzliche Punkte auf dem Zeitregler */
 #pSel {
   position: absolute; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; pointer-events: none;
   left: calc(13px + (100% - 26px) * var(--a, 0)); width: calc((100% - 26px) * var(--w, 0));
-  background: rgba(255, 255, 255, 0.4);
+  background: color-mix(in srgb, var(--fg) 35%, transparent);
 }
 .hd {
   position: absolute; top: 50%; z-index: 2; width: 44px; height: 44px; margin: -22px 0 0 -22px;
   left: calc(13px + (100% - 26px) * var(--x, 0)); touch-action: none; cursor: pointer;
 }
+/* Neutrale Punkte mit Buchstaben, damit sie sich von jeder Akzentfarbe abheben */
 .hd::after {
-  content: ""; position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px;
-  border-radius: 50%; background: var(--hc); border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: #fff; color: #14181c; border: 2px solid #14181c;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  font: 800 14px/1 var(--sans);
 }
-.hd.a { --hc: #22c55e; }
-.hd.b { --hc: #ef4444; }
+.hd.a::after { content: "A"; }
+.hd.b::after { content: "E"; }
 .rgCount { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
 .rgCount small { color: var(--mut); font-size: 13px; }
 #rgCount { min-width: 26px; text-align: center; font: 600 20px var(--mono); }
