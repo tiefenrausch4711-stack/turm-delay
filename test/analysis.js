@@ -268,7 +268,7 @@ let keepTimer = 0;
 
 function renderKeep() {
   const d = settings.keepDays;
-  $('keepLabel').textContent = d ? 'Videos ohne Stern löschen nach' : 'Videos ohne Stern löschen';
+  $('keepLabel').textContent = d ? 'Ohne Stern löschen nach' : 'Ohne Stern löschen';
   $('keepDays').textContent = !d ? 'nie' : d === 1 ? '1 Tag' : d + ' Tagen';
   $('keepMinus').disabled = d === KEEP_MIN;
   $('keepPlus').disabled = d === 0;

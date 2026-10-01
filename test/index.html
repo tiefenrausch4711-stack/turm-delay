@@ -177,23 +177,26 @@
   <div class="dlg" role="dialog" aria-label="Einstellungen">
     <div id="uiMain">
       <h2>Einstellungen</h2>
-      <h3 class="dlgSec">Darstellung</h3>
-      <div class="label">Farbe</div>
+      <div class="label"><span class="no">01</span>Farbe</div>
       <div class="swatches" id="swatches">
         <button class="sw custom" id="accCustom" aria-label="Eigene Farbe"></button>
       </div>
-      <div class="label">Modus</div>
+      <div class="label"><span class="no">02</span>Modus</div>
       <div class="seg" id="segTheme">
         <button data-v="dark">Dunkel</button>
         <button data-v="light">Hell</button>
       </div>
-      <h3 class="dlgSec">Videos</h3>
-      <div class="keepRow"><span id="keepLabel">Videos ohne Stern löschen nach</span>
-        <button id="keepMinus" class="step xs" aria-label="Ein Tag weniger">−</button>
-        <b id="keepDays"></b>
-        <button id="keepPlus" class="step xs" aria-label="Ein Tag mehr">+</button>
+      <div class="label"><span class="no">03</span>Videos</div>
+      <div class="vidGrid">
+        <span id="keepLabel" class="vidText">Ohne Stern löschen nach</span>
+        <div class="keepCtl">
+          <button id="keepMinus" class="step xs" aria-label="Ein Tag weniger">−</button>
+          <b id="keepDays"></b>
+          <button id="keepPlus" class="step xs" aria-label="Ein Tag mehr">+</button>
+        </div>
+        <span id="uiStore" class="vidText"></span>
+        <button id="delOpen" class="tool danger">Videos löschen …</button>
       </div>
-      <div class="storeRow"><span id="uiStore"></span><button id="delOpen" class="tool danger">Videos löschen …</button></div>
     </div>
     <div id="uiDel" class="hidden">
       <h2>Videos löschen</h2>

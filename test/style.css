@@ -357,13 +357,13 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #aEmpty { margin: auto; text-align: center; color: var(--mut); font-size: 17px; line-height: 1.6; }
 .step.xs { width: 40px; height: 40px; flex: 0 0 40px; font-size: 22px; }
 .step:disabled { opacity: 0.35; }
-#keepDays { min-width: 74px; text-align: center; color: var(--fg); font: 600 15px var(--sans); }
+#keepDays { flex: 1; text-align: center; color: var(--fg); font: 600 15px var(--mono); }
 /* Einstellungen */
-.dlgSec { margin: 8px 0 -4px; font-size: 13px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--acc-text); }
-.keepRow { display: flex; align-items: center; gap: 8px; }
-#keepLabel { flex: 1; font-size: 15px; color: var(--fg); }
-.storeRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-#uiStore { font: 14px var(--mono); color: var(--mut); }
+/* Videos in zwei Spalten. Die Tasten für die Tage sind so breit wie „Videos löschen …“ und schließen bündig ab. */
+.vidGrid { display: grid; grid-template-columns: 1fr 190px; align-items: center; gap: 10px 12px; }
+.vidText { font: 14px var(--mono); color: var(--mut); }
+.keepCtl { display: flex; align-items: center; justify-content: space-between; }
+.vidGrid #delOpen { width: 100%; }
 #uiDel, .delStep { display: flex; flex-direction: column; gap: 12px; }
 .delText { margin: 0 0 4px; font-size: 15px; line-height: 1.45; color: var(--mut); }
 #uiDel .tool { min-height: 52px; font-size: 16px; }
