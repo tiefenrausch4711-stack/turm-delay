@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 01.10.2026. Normale App v1.4 unter `app/`. Test-App Stand 8 unter `test/`, noch nicht übernommen, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 01.10.2026. Normale App v1.4 unter `app/`. Test-App Stand 9 unter `test/`, noch nicht übernommen, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -122,7 +122,7 @@ Gearbeitet wird nur an der Test-App. Übertragen in die normale App wird erst, w
 - Analyse. Der Sternfilter zeigt nur „★“, die Namensauswahl heißt „Filter“. In der Wiedergabe stehen „‹“ und „›“ rechts neben der Aufnahmezeit. „‹ Liste“ ist größer. Das Löschen eines einzelnen Videos fragt mit „Ja, löschen“.
 - Das Schild „TEST“ bleibt in der Test-App.
 - In die normale App übernommen mit v1.4 am 01.10.2026, Git-Tag `v1.4`. Der Startbildschirm ist dort blaugrau `#455a6f`.
-- Seit Stand 4 ein eigener Startbildschirm `#splash` in der Symbolfarbe mit dem Symbol in der Mitte. Er steht ab dem Öffnen mindestens `SPLASH_MS` 1,3 Sekunden und blendet dann in 0,45 Sekunden aus, mit Sicherheitsabschaltung nach 6 Sekunden. Das Manifest hat dafür `background_color` in der Symbolfarbe, damit der Startbildschirm von Android ohne Farbsprung übergeht. Wirkt bei Android erst nach Aktualisierung oder Neuinstallation der App.
+- Seit Stand 4 ein eigener Startbildschirm `#splash` in der Symbolfarbe mit dem Symbol in der Mitte. Das Symbol ist seit Stand 9 128 Pixel groß wie bei Chromes eigenem Startbildschirm, vorher sprang es beim Übergang auf eine größere Fläche. Er steht ab dem Öffnen mindestens `SPLASH_MS` 1,3 Sekunden und blendet dann in 0,45 Sekunden aus, mit Sicherheitsabschaltung nach 6 Sekunden. Das Manifest hat dafür `background_color` in der Symbolfarbe, damit der Startbildschirm von Android ohne Farbsprung übergeht. Wirkt bei Android erst nach Aktualisierung oder Neuinstallation der App.
 
 ## Test-App Stand 5 und 6, Bilder, Eigenschaft und neue Dateinamen
 

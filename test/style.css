@@ -582,7 +582,8 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   display: flex; align-items: center; justify-content: center;
   background: #c2570c; transition: opacity .45s ease;
 }
-#splash img { width: min(38vmin, 220px); height: auto; }
+/* Gleiche Größe wie der Startbildschirm von Chrome, damit das Symbol beim Übergang nicht springt */
+#splash img { width: 128px; height: 128px; }
 #splash.out { opacity: 0; pointer-events: none; }
 
 /* Umschaltung „Video | Bilder“ in der Kopfzeile des Fensters */
