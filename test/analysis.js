@@ -192,6 +192,10 @@ const imageLabel = (c, im) => `V${c.nr}_B${im.n}`;
 
 function enterAnalysis() {
   mode = 'analysis';
+  // Jedes Öffnen beginnt mit allen Videos, ohne Filter und oben in der Liste
+  Object.assign(listFilter, { kind: 'videos', star: false, name: '', prop: '' });
+  listScroll = null;
+  $('aGrid').scrollTop = 0;
   history.pushState({ v: 'list' }, '');
   camOp(async () => { stopCamera(); });
   $('settings').classList.add('hidden');
