@@ -612,7 +612,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #splash {
   position: fixed; inset: 0; z-index: 100;
   display: flex; align-items: center; justify-content: center;
-  background: #c2570c; transition: opacity .45s ease;
+  background: #3a434d; transition: opacity .45s ease;
 }
 /* Gleiche Größe wie der Startbildschirm von Chrome, damit das Symbol beim Übergang nicht springt */
 #splash img { width: 128px; height: 128px; }
