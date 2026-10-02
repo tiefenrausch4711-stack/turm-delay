@@ -183,6 +183,7 @@ Machbarkeitstest `android/usbtest`, Paket `de.laglab.usbtest`, Java, Bibliothek 
 - In der Vorschau getestet ist nur die Webseite mit nachgestelltem Kamerastrom. Auf dem PC gibt es kein Android-Abbild für den Emulator.
 - Ergebnis Fassung 1 am 02.10.2026 auf dem Tablet: Webcam öffnet über USB, MJPEG 1920x1080 kommt als H.264 in der Webseite an, Verzögerung 21 ms. Aber nur 14 B/s schon von der Kamera, Umwandlung 26 ms je Bild. Encoder `OMX.qcom.video.encoder.avc`. Die C920 meldet sich als 046d:08e5 und bietet kein H.264, nur YUV und MJPEG.
 - Fassung 2 hat Schalter für 1080p und 720p und für die Belichtungspriorität der Kamera (UVC AE Priority, 0 hält die Bildrate). Dazu eine schnelle Zeilenkopie, wenn der Encoder NV12 erwartet. Ziel ist zu klären, ob Licht oder Rechenleistung die Bildrate begrenzt.
+- Ergebnis: Im hellen Licht liefert die C920 etwa 30 B/s in 1080p. Die 14 B/s kamen vom schwachen Licht im Wohnzimmer, nicht von der Rechenleistung. Der Machbarkeitstest gilt damit als bestanden. Nächster Schritt ist die Android-Test-App.
 
 ## Wichtige Erkenntnisse
 
@@ -197,7 +198,7 @@ Machbarkeitstest `android/usbtest`, Paket `de.laglab.usbtest`, Java, Bibliothek 
 ## Offen und als Nächstes
 
 - Test-App Stand 2 muss noch hochgeladen werden. Beide Apps auf dem Tablet prüfen. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
-- Ergebnis des Machbarkeitstests „LagLab USB-Test“ auf dem Tablet abwarten, dann die Android-Test-App planen.
+- Machbarkeitstest bestanden. Als Nächstes die Android-Test-App „LagLab Test“ bauen, sobald der Nutzer zustimmt.
 - Früherer Stand vom 01.10.2026 zur externen Kamera: Besprochene Wege waren eine USB-Kamera, die auf Android 11 bei Samsung oft nicht erkannt wird und einen USB-C-Hub neben dem HDMI-Adapter bräuchte, ein zweites Handy als Funkkamera über WebRTC mit Kopplung per QR-Code, und eine allgemeine Kamerawahl über alle von `enumerateDevices` gemeldeten Kameras als ersten Schritt.
 - `navigator.storage.persist()` steht in `analysis.js` und gilt seit v1 für beide Apps.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
