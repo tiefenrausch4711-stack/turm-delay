@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '29';   // Stand der Test-App
+const APP_VERSION = '30';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -678,8 +678,9 @@ function cancelPress() {
 
 $('run').addEventListener('pointerdown', e => {
   if (press) { cancelPress(); return; }   // zweiter Finger oder Tropfen bricht ab
-  ring.style.left = e.clientX + 'px';
-  ring.style.top = e.clientY + 'px';
+  const a = $('app').getBoundingClientRect();
+  ring.style.left = (e.clientX - a.left) + 'px';
+  ring.style.top = (e.clientY - a.top) + 'px';
   ring.classList.remove('hidden', 'go');
   void ring.getBoundingClientRect();
   ring.classList.add('go');
@@ -1127,11 +1128,12 @@ function placeBox(el, t) {
   Object.assign(el.style, { width: t.w + 'vw', height: t.h + 'vh', left: (50 + t.x) + '%', top: (50 + t.y) + '%', aspectRatio: 'auto' });
 }
 
+// Bei „Angepasst“ liegt die ganze App im Rahmen, bei „Normal“ füllt sie den Bildschirm
 function applyTv() {
-  const t = settings.tv, stage = $('stage');
-  if (t.on && t.h) placeBox(stage, t);
-  else stage.removeAttribute('style');
-  $('out').style.objectFit = t.on && t.h ? 'fill' : '';
+  const t = settings.tv, app = $('app'), fit = !!(t.on && t.h);
+  document.documentElement.classList.toggle('tvfit', fit);
+  if (fit) placeBox(app, t);
+  else app.removeAttribute('style');
   setSeg('segTv', t.on ? 1 : 0);
 }
 

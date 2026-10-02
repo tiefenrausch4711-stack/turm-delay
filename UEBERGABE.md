@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 29 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 29, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 30 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 30, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -235,6 +235,14 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 ## Test-App Stand 29
 
 - Beim Start, nach einem Kamerawechsel (`restartCamera`) und nach einem Abbruch (`cameraLost`) zeigt die Live-Seite 10 s lang „Kamera wird verbunden …“ mit dem Zustand „Verbinde“ (`CONNECT_GRACE_MS`, `startConnecting`). Erst danach erscheint der Grund aus `failText`: keine USB-Kamera, kein erlaubter Zugriff mit Hinweis auf die Android- oder Chrome-Einstellungen, oder „Keine Verbindung zur Kamera. Die App versucht es weiter.“ Die frühere Anzeige „Start“ ohne Kamera entfällt.
+
+## Test-App Stand 30, ganze App im Fernseher-Rahmen
+
+- Wunsch des Nutzers: Bei „Angepasst“ liegt nicht nur der Betrieb, sondern die ganze App im eingestellten Rahmen, rundherum schwarz. Auf dem Fernseher füllt sie dann mit seinem Zoom genau den Bildschirm.
+- Umsetzung: `#app` umschließt `#settings`, `#run`, `#analysis` und `#uiDlg`. Startbild und Prüfbild liegen außerhalb und nutzen den ganzen Bildschirm. `#app` hat `contain: layout paint` und ist damit Bezug für alle `position: fixed` darin, dazu `container-type: size` mit dem Namen `app`. Maße, die vorher `vw` und `vh` nutzten, nutzen jetzt `cqw` und `cqh`. `applyTv` setzt bei „Angepasst“ die Klasse `tvfit` und Lage und Größe von `#app`. Dann füllt `#stage` im Betrieb den ganzen Rahmen mit `object-fit: fill`. Der Haltekreis rechnet die Lage der App heraus.
+- Für niedrige Rahmen gibt es `@container app (max-height: 760px)`: Belichtung und Fokus nebeneinander, Modus und Größe nebeneinander, knappere Abstände, flacheres Farbfeld, Werkzeuge in zwei Spalten und bei Stufe 2 und 3 in drei. Bei Stufe 3 sind die Beschriftungen der Werkzeuge während Schneiden und Bildfolge ausgeblendet.
+- Ab „Groß“ teilen sich Name und Eigenschaft die zweite Zeile der Kopfzeile, auch bei wenig Platz.
+- Geprüft in 1280 × 800 mit einem Rahmen 1203 × 676 und ohne Rahmen, alle vier Größen: Live mit Auto und Manuell, Fenster, Farbwähler, Löschen, Übersicht, Videofenster mit Video, Bild, Schneiden und Bildfolge, Betrieb, Haltekreis, Prüfbild. Ohne Befund.
 
 ## Neue Version veröffentlichen
 

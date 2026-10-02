@@ -56,7 +56,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 #settings {
   position: fixed; inset: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(360px, 32vw, 460px);
+  grid-template-columns: minmax(0, 1fr) clamp(360px, 32cqw, 460px);
   grid-template-rows: auto minmax(0, 1fr);
   gap: 18px 28px;
   padding: 18px 24px 20px;
@@ -280,7 +280,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #run { position: fixed; inset: 0; background: #000; touch-action: none; }
 #stage {
   position: absolute; left: 50%; top: 50%;
-  width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9;
+  width: min(100cqw, calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9;
   transform: translate(-50%, -50%);
   container-type: size;
 }
@@ -483,7 +483,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   background: rgba(0, 0, 0, 0.5);
 }
 .dlg {
-  width: min(510px, 92vw); padding: 20px 22px 18px;
+  width: min(510px, 92cqw); padding: 20px 22px 18px;
   display: flex; flex-direction: column; gap: 14px;
   background: var(--surface); color: var(--fg);
   border: 1px solid var(--line-2); border-radius: 14px;
@@ -618,7 +618,7 @@ html[data-size="2"] { --z: 1.3333; }
 html[data-size="3"] { --z: 1.5; }
 .bar, .filters, .delay, #panel, .dlg, #aGrid, #aEmpty, .pbar, .pctl, #pRange, #pTools,
 .clipNav, #pMsg, #pStill, #camMsg, .hud { zoom: var(--z); }
-#settings { grid-template-columns: minmax(0, 1fr) calc(clamp(360px, 32vw, 460px) * var(--z)); }
+#settings { grid-template-columns: minmax(0, 1fr) calc(clamp(360px, 32cqw, 460px) * var(--z)); }
 /* Ab „Groß“ stehen Belichtung und Fokus nebeneinander, sonst reicht die Höhe nicht */
 html.big #panel {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; align-content: start;
@@ -629,7 +629,7 @@ html.big #panel .row { gap: 10px; }
 #panel .actions { position: sticky; bottom: 0; z-index: 1; background: var(--bg); }
 /* Farbkreise wachsen mit der Stufe nicht über ihre normale Größe hinaus, sonst wird das Fenster zu hoch */
 .swatches { grid-template-columns: repeat(6, minmax(0, calc(64px / var(--z)))); justify-content: space-between; }
-.dlg { max-height: calc((100vh - 16px) / var(--z)); overflow-y: auto; }
+.dlg { max-height: calc((100cqh - 16px) / var(--z)); overflow-y: auto; }
 /* Ab „Groß“: Name und Eigenschaft in einer zweiten Zeile rechts, unter Stern, Herunterladen und Löschen */
 html.big .pR { flex-wrap: wrap; row-gap: 6px; }
 html.big .pR::after { content: ""; flex-basis: 100%; order: 5; }
@@ -716,3 +716,61 @@ html.big #panel .actions { align-self: end; }
 .dlgPair, .dlgPair > div { display: contents; }
 html[data-size="2"] .dlgPair, html[data-size="3"] .dlgPair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
 html[data-size="2"] .dlgPair > div, html[data-size="3"] .dlgPair > div { display: flex; flex-direction: column; gap: 14px; }
+
+/* ---------- Rahmen der ganzen App ----------
+   #app ist Bezugsfläche für alle fest positionierten Seiten und für die Maßeinheiten cqw und cqh.
+   Bei „Normal“ füllt sie den Bildschirm. Bei „Angepasst“ setzt applyTv Lage und Größe. */
+#app { position: fixed; inset: 0; contain: layout paint; container-type: size; container-name: app; overflow: hidden; background: var(--bg); }
+html.tvfit, html.tvfit body { background: #000; }
+html.tvfit #app { inset: auto; transform: translate(-50%, -50%); }
+/* Im Betrieb füllt das Video bei „Angepasst“ den ganzen Rahmen */
+html.tvfit #stage { left: 0; top: 0; width: 100%; height: 100%; aspect-ratio: auto; transform: none; }
+html.tvfit #out { object-fit: fill; }
+
+/* ---------- Niedriger Rahmen ----------
+   Bei „Fernseher angepasst“ ist die App weniger hoch als das Tablet. Dann rückt alles enger zusammen,
+   Belichtung und Fokus stehen nebeneinander, Modus und Größe ebenso. */
+@container app (max-height: 760px) {
+  #panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto 1fr; gap: 6px 16px; align-content: stretch; }
+  #panel > :not(#expGrp):not(#focusGrp) { grid-column: 1 / -1; }
+  #panel .row { gap: 10px; min-height: 44px; }
+  #panel .actions { align-self: end; }
+  #panel .grp { padding-bottom: 6px; }
+  #panel .label { margin-bottom: 6px; }
+  #panel .seg button { min-height: 42px; }
+  .dlgPair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+  .dlgPair > div { display: flex; flex-direction: column; gap: 10px; }
+  #uiMain, #uiPick { gap: 10px; }
+  .dlg { padding-top: 14px; padding-bottom: 14px; }
+  .sv { aspect-ratio: 16 / 7; }
+}
+@container app (max-height: 760px) {
+  html[data-size="3"] #panel .row { min-height: 36px; }
+  html[data-size="3"] #panel .seg button { min-height: 36px; }
+  html[data-size="3"] #panel .grp { padding-bottom: 4px; }
+  html[data-size="3"] #panel .label { margin-bottom: 4px; }
+  html[data-size="3"] #uiMain, html[data-size="3"] #uiPick { gap: 7px; }
+  html[data-size="3"] .dlg .seg button, html[data-size="3"] .tvRow .tool { min-height: 40px; }
+  html[data-size="3"] .dlg .label { margin-top: 2px; }
+  html[data-size="3"] .sv { aspect-ratio: 16 / 6; }
+}
+/* Werkzeuge im niedrigen Rahmen: zwei Spalten, bei 150 % drei */
+@container app (max-height: 760px) {
+  #pTools { flex-basis: 178px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
+  #dUndo, #dSave { grid-column-start: 1; margin-top: 8px; }
+  html[data-size="2"] .tl { min-height: 42px; }
+  html[data-size="3"] #pTools { flex-basis: 260px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html[data-size="3"] .tl { min-height: 40px; }
+}
+@container app (max-height: 760px) {
+  html[data-size="2"] #pTools, html[data-size="3"] #pTools { flex-basis: 250px; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 4px; }
+  html[data-size="2"] .tl, html[data-size="3"] .tl,
+  html[data-size="2"] #aPlayer:has(#pRange:not(.hidden)) .tl, html[data-size="3"] #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 36px; gap: 0; }
+  html[data-size="2"] .tl svg, html[data-size="3"] .tl svg { width: 22px; height: 22px; }
+  html[data-size="2"] #dUndo, html[data-size="2"] #dSave, html[data-size="3"] #dUndo, html[data-size="3"] #dSave { margin-top: 4px; }
+}
+@container app (max-height: 760px) {
+  html[data-size="3"] #aPlayer:has(#pRange:not(.hidden)) .tl span { display: none; }
+}
+/* Ab „Groß“ teilen sich Name und Eigenschaft die zweite Zeile, auch wenn der Platz knapp ist */
+html.big .pR #pName, html.big .pR #pProp { flex: 0 1 calc(50% - 4px); width: auto; max-width: 180px; }
