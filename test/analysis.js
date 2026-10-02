@@ -290,6 +290,9 @@ async function showList() {
   if (gen !== listGen) return;
   listClips = clips;
   listImages = images.filter(im => clipById(im.clipId));
+  // Vorhandene Namen und Eigenschaften gelten als je eingetragen
+  rememberTerms('name', clips.map(c => c.name));
+  rememberTerms('prop', clips.map(c => c.prop));
   renderList(clips);
   if (listScroll !== null) { $('aGrid').scrollTop = listScroll; listScroll = null; }
   renderStorage();
@@ -738,15 +741,10 @@ async function openClip(c) {
 // Stern, Name und Eigenschaft gehören zum Video, auch wenn ein Bild offen ist
 const curClip = () => (viewMode === 'image' ? pimg && pimg.clip : pc && pc.meta);
 
-// Bereits vergebene Namen und Eigenschaften erscheinen beim Eintippen als Auswahl
 function fillClipFields(c) {
+  hideSuggest();
   $('pName').value = c.name || '';
   $('pProp').value = c.prop || '';
-  for (const [id, key] of [['pNames', 'name'], ['pProps', 'prop']]) {
-    const dl = $(id);
-    dl.textContent = '';
-    for (const v of sortedValues(listClips, key)) { const o = document.createElement('option'); o.value = v; dl.append(o); }
-  }
   renderStar();
   renderClipNav();
   resetDelete();
@@ -936,14 +934,75 @@ for (const [id, key] of [['pName', 'name'], ['pProp', 'prop']]) {
     if (!c) return;
     // Doppelte Leerzeichen entfernen und eine vorhandene Schreibweise übernehmen, damit „teo“ und „Teo“ ein Name bleiben
     let v = $(id).value.replace(/\s+/g, ' ').trim();
-    const known = sortedValues(listClips.filter(x => x !== c), key).find(k => k.toLocaleLowerCase('de') === v.toLocaleLowerCase('de'));
+    const known = knownTerms(key).find(k => k.toLocaleLowerCase('de') === v.toLocaleLowerCase('de'));
     if (known) v = known;
     $(id).value = v;
+    rememberTerms(key, [v]);
     c[key] = v;
     renderClipNav();
     await putClip(c);
   });
   $(id).addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+  $(id).addEventListener('input', () => showSuggest($(id), key));
+  $(id).addEventListener('focus', () => showSuggest($(id), key));
+  $(id).addEventListener('blur', () => setTimeout(hideSuggest, 150));
+}
+
+// ---------- Vorschläge für Name und Eigenschaft ----------
+// Erst ab dem ersten Buchstaben. Passend ist der Anfang des Begriffs, danach der Anfang eines Wortes darin.
+// Jeder je eingetragene Begriff bleibt in den Einstellungen gemerkt, auch wenn sein Video gelöscht ist.
+
+const lc = s => s.toLocaleLowerCase('de');
+
+function knownTerms(key) {
+  const seen = new Map();
+  const saved = (settings.terms && settings.terms[key]) || [];
+  for (const t of [...saved, ...listClips.map(c => c[key])]) if (t && !seen.has(lc(t))) seen.set(lc(t), t);
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, 'de'));
+}
+
+function rememberTerms(key, list) {
+  settings.terms = settings.terms || {};
+  const mine = settings.terms[key] || (settings.terms[key] = []);
+  let added = false;
+  for (const t of list) if (t && !mine.some(m => lc(m) === lc(t))) { mine.push(t); added = true; }
+  if (added) saveSettings();
+}
+
+function showSuggest(input, key) {
+  const q = lc(input.value.replace(/\s+/g, ' ').trimStart());
+  if (!q) return hideSuggest();
+  const terms = knownTerms(key).filter(t => lc(t) !== lc(input.value.trim()));
+  const starts = terms.filter(t => lc(t).startsWith(q));
+  const inWord = terms.filter(t => !lc(t).startsWith(q) && lc(t).split(/[\s-]+/).some(w => w.startsWith(q)));
+  const hits = [...starts, ...inWord].slice(0, 8);
+  if (!hits.length) return hideSuggest();
+  const box = $('pSuggest');
+  box.textContent = '';
+  for (const t of hits) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = t;
+    // pointerdown statt click, damit das Feld den Fokus erst nach der Wahl verliert
+    b.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      input.value = t;
+      hideSuggest();
+      input.dispatchEvent(new Event('change'));
+      input.blur();
+    });
+    box.append(b);
+  }
+  // Rechtsbündig direkt unter dem Feld, in den Maßen der Kopfzeile
+  const bar = box.parentElement;
+  box.style.top = (input.offsetTop + input.offsetHeight + 4) + 'px';
+  box.style.right = (bar.clientWidth - input.offsetLeft - input.offsetWidth) + 'px';
+  box.style.minWidth = input.offsetWidth + 'px';
+  box.classList.remove('hidden');
+}
+
+function hideSuggest() {
+  $('pSuggest').classList.add('hidden');
 }
 
 function download(file) {

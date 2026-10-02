@@ -131,13 +131,12 @@
       <nav class="tabs" id="pKind"><button data-pk="video" class="on">Video</button><button data-pk="images">Bilder</button></nav>
       <div class="pR">
         <button id="pStar" class="star" aria-label="Stern">☆</button>
-        <input id="pName" list="pNames" placeholder="Name" autocomplete="off" enterkeyhint="done">
-        <input id="pProp" list="pProps" placeholder="Eigenschaft" autocomplete="off" enterkeyhint="done">
-        <datalist id="pNames"></datalist>
-        <datalist id="pProps"></datalist>
+        <input id="pName" placeholder="Name" autocomplete="off" enterkeyhint="done">
+        <input id="pProp" placeholder="Eigenschaft" autocomplete="off" enterkeyhint="done">
         <button id="pDown" class="tool icon" aria-label="Herunterladen" title="Herunterladen"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>
         <button id="pDel" class="tool danger">Löschen</button>
       </div>
+      <div id="pSuggest" class="hidden" role="listbox"></div>
     </header>
     <div id="pMain">
       <div id="pStage"><div id="pView"><canvas id="pOut"></canvas><canvas id="pDraw"></canvas></div><div id="pStill" class="hidden"></div><div id="pMsg" class="hidden"></div>

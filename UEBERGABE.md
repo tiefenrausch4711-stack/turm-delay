@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 23 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 23, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 24 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 24, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -199,6 +199,13 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 
 - Nach dem Tablet-Test reicht 125 %. Die Stufen sind jetzt „Normal“ 100 %, „Groß“ 112,5 %, „Sehr groß“ 125 %. Die Sonderregeln, die nur für 150 % nötig waren, sind entfernt: flachere Werkzeuge, kleinere Gruppenabstände und flacheres Farbfeld. Alles andere aus Stand 22 gilt weiter, also ab „Groß“ zweite Zeile für Name und Eigenschaft, zwei Werkzeugspalten und Belichtung neben Fokus.
 - Erneut mit dem Prüfskript in 1280 × 800 geprüft, alle Seiten und alle drei Stufen ohne Befund.
+
+## Test-App Stand 24, Vorschläge für Name und Eigenschaft
+
+- Die `datalist` ist weg, weil Chrome damit schon beim Antippen alle Namen zeigt. Stattdessen eigene Liste `#pSuggest` in `.pbar`, weiß mit dunkler Schrift, rechtsbündig unter dem Feld.
+- Sie erscheint erst ab dem ersten Buchstaben. Zuerst Begriffe, die so beginnen, dann Begriffe mit einem Wort, das so beginnt, ohne Unterschied von Groß und Klein, höchstens 8. Jeder weitere Buchstabe schränkt ein. Antippen übernimmt den Begriff und speichert ihn.
+- Gemerkt werden alle je eingetragenen Begriffe in `settings.terms.name` und `settings.terms.prop`, auch nach dem Löschen des Videos. Beim Laden der Übersicht kommen die vorhandenen Werte dazu. Die bestehende Regel bleibt: Eine vorhandene Schreibweise wird übernommen, aus „teo“ wird „Teo“.
+- Noch offen: Es gibt keinen Weg, einen falsch gemerkten Begriff wieder zu entfernen.
 
 ## Neue Version veröffentlichen
 

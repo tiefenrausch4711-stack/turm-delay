@@ -646,3 +646,16 @@ html[data-size="1"] #dSave, html[data-size="2"] #dSave { grid-column-start: 1; }
 #pTools { scrollbar-width: none; }
 /* Die Anzeigen im Kamerabild sind keine Bedienung und wachsen nur wenig mit, damit das Bild frei bleibt */
 .hud { zoom: min(var(--z), 1.15); }
+
+/* Vorschläge unter Name und Eigenschaft, hell wie eine übliche Auswahlliste */
+.pbar { position: relative; z-index: 4; }
+#pSuggest {
+  position: absolute; max-width: 320px; max-height: 360px; overflow-y: auto; z-index: 5;
+  background: #fff; color: #111; border-radius: 10px; padding: 4px 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+#pSuggest button {
+  display: block; width: 100%; min-height: 44px; padding: 0 16px; text-align: left;
+  font: 16px var(--sans); color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#pSuggest button:active { background: #e6e9ec; }
