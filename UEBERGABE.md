@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 28 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 28, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 29 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 29, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -231,6 +231,10 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 - Werte in `settings.tv` = `{ on, set, w, h, x, y }`. `applyTv` setzt bei „Angepasst“ `#stage` auf diese Fläche, das Canvas füllt sie mit `object-fit: fill`. Sekundenanzeige und Speicher-Knopf sitzen in `#stage` und rücken mit.
 - Damit das Fenster bei den Stufen 2 und 3 nicht rollt, stehen dort „Modus“ und „Größe“ nebeneinander (`.dlgPair`).
 - Geprüft in 1280 × 800: Prüfbild, Werte, Fertig, Fläche im Betrieb genau gleich dem Rahmen, Fenster und Prüfbild in allen vier Größen ohne Befund.
+
+## Test-App Stand 29
+
+- Beim Start, nach einem Kamerawechsel (`restartCamera`) und nach einem Abbruch (`cameraLost`) zeigt die Live-Seite 10 s lang „Kamera wird verbunden …“ mit dem Zustand „Verbinde“ (`CONNECT_GRACE_MS`, `startConnecting`). Erst danach erscheint der Grund aus `failText`: keine USB-Kamera, kein erlaubter Zugriff mit Hinweis auf die Android- oder Chrome-Einstellungen, oder „Keine Verbindung zur Kamera. Die App versucht es weiter.“ Die frühere Anzeige „Start“ ohne Kamera entfällt.
 
 ## Neue Version veröffentlichen
 

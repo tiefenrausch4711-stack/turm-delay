@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '28';   // Stand der Test-App
+const APP_VERSION = '29';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -228,6 +228,7 @@ async function pump(rd, gen) {
 }
 
 function restartCamera() {
+  startConnecting();
   return camOp(async () => {
     stopCamera();
     resetPlayback();
@@ -240,6 +241,7 @@ let reconnecting = false;
 async function cameraLost(err) {
   if (reconnecting) return;
   reconnecting = true;
+  startConnecting();
   camState = 'lost';
   stopCamera();
   // Im Betrieb bleibt der Puffer erhalten. Was schon aufgenommen ist, läuft weiter auf den Fernseher
@@ -864,6 +866,27 @@ function renderSettings(err) {
 
 let lastCamError = null;
 let unsupported = false;
+// Beim Start, nach einem Kamerawechsel und nach einem Abbruch heißt es zuerst nur „wird verbunden“.
+// Erst wenn es nach dieser Zeit nicht geklappt hat, erscheint eine Meldung mit dem Grund.
+const CONNECT_GRACE_MS = 10000;
+let connectSince = performance.now();
+let graceTimer = setTimeout(() => renderCamInfo(), CONNECT_GRACE_MS + 50);
+function startConnecting() {
+  connectSince = performance.now();
+  clearTimeout(graceTimer);
+  graceTimer = setTimeout(() => renderCamInfo(), CONNECT_GRACE_MS + 50);
+}
+
+function failText(err) {
+  if (err && err.name === 'NoExternal') return 'Keine USB-Kamera erkannt. ' + err.message;
+  if (err && err.name === 'NotAllowedError') {
+    return 'Keine Verbindung zur Kamera. Der Zugriff ist nicht erlaubt. ' + (NATIVE
+      ? `Bitte in den Android-Einstellungen bei „${document.title}“ die Kamera erlauben.`
+      : 'Bitte in den Chrome-Einstellungen für diese Seite freigeben.');
+  }
+  return 'Keine Verbindung zur Kamera. Die App versucht es weiter.';
+}
+
 function renderCamInfo(err) {
   if (err) lastCamError = err;
   if (camState === 'ok') lastCamError = null;
@@ -873,13 +896,12 @@ function renderCamInfo(err) {
   const fpsEl = $('hudFps');
   $('hudCam').textContent = CAM_LABEL[settings.facing];
 
-  if (unsupported || camState === 'lost' || err) {
-    let text = 'Kamera wird neu verbunden';
-    if (unsupported) text = 'Dieser Browser unterstützt die nötigen Funktionen nicht.';
-    else if (err && err.name === 'NoExternal') text = 'Keine USB-Kamera erkannt. ' + err.message;
-    else if (err && err.name === 'NotAllowedError') text = 'Kamerazugriff wurde nicht erlaubt. Bitte in den Chrome-Einstellungen für diese Seite freigeben.';
-    state.className = 'state bad';
-    stateTxt.textContent = 'Getrennt';
+  if (unsupported || camState !== 'ok' || !track) {
+    const waiting = !unsupported && performance.now() - connectSince < CONNECT_GRACE_MS;
+    const text = unsupported ? 'Dieser Browser unterstützt die nötigen Funktionen nicht.'
+      : waiting ? 'Kamera wird verbunden …' : failText(err);
+    state.className = waiting ? 'state' : 'state bad';
+    stateTxt.textContent = waiting ? 'Verbinde' : 'Getrennt';
     msg.textContent = text;
     msg.classList.remove('hidden');
     $('hudRes').textContent = '–';
@@ -890,11 +912,6 @@ function renderCamInfo(err) {
     return;
   }
   msg.classList.add('hidden');
-  if (!track) {
-    state.className = 'state';
-    stateTxt.textContent = 'Start';
-    return;
-  }
   const st = track.getSettings();
   const low = degraded || (measuredFps && measuredFps < settings.fps * 0.8);
   state.className = 'state ' + (low ? 'warn' : 'ok');
