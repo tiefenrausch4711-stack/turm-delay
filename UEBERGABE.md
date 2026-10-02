@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 36 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 36, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 37 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 37, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -274,6 +274,10 @@ Ohne Befund: Countdown, Speichern zu früh, Zurück-Geste im Betrieb, Videoseite
 ## Test-App Stand 36
 
 - „Eigenschaft“ heißt jetzt „Stichwort“, im Feld des Videofensters und im Filter der Übersicht. Intern bleibt der Schlüssel `prop`, gespeicherte Werte bleiben erhalten.
+
+## Test-App Stand 37
+
+- Dritter Modus „Mittel“ zwischen Dunkel und Hell, `data-theme="mid"`: graublau mit weißer Schrift, Hintergrund `#3a434d`. Wie Hell gilt er für Einstellungen, Analyse und das Fenster, der Betrieb bleibt dunkel. `readableAcc` hellt die Akzentfarbe im mittleren Modus auf, wenn sie dunkler als 0,2 Helligkeit ist. Alle Seiten und das Fenster in allen Größen geprüft.
 
 ## Neue Version veröffentlichen
 

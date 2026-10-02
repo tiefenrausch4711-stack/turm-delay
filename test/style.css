@@ -39,6 +39,25 @@ html[data-theme="light"] #uiDlg {
   --acc-text: color-mix(in srgb, var(--acc) 55%, #000);
 }
 html[data-theme="light"] body { background: #f2f4f6; }
+/* Mittlerer Modus: graublau zwischen Hell und Dunkel, Schrift weiß. Der Betrieb bleibt dunkel. */
+html[data-theme="mid"] #settings,
+html[data-theme="mid"] #analysis,
+html[data-theme="mid"] #uiDlg {
+  --bg: #3a434d;
+  --surface: #46505b;
+  --line: #535e6a;
+  --line-2: #67737f;
+  --fg: #f4f6f8;
+  --mut: #c3cbd3;
+  --dim: #b4bdc6;
+  --grid: rgba(255, 255, 255, 0.03);
+  --tint: rgba(255, 255, 255, 0.04);
+  --card: #4b5561;
+  --card-line: #5d6874;
+  /* Akzentfarbe als Schrift heller, damit sie auf dem mittleren Grund lesbar bleibt */
+  --acc-text: color-mix(in srgb, var(--acc) 70%, #fff);
+}
+html[data-theme="mid"] body { background: #3a434d; }
 #settings, #analysis, #uiDlg { color: var(--fg); }
 * { box-sizing: border-box; }
 html, body {

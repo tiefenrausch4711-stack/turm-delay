@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '36';   // Stand der Test-App
+const APP_VERSION = '37';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -1022,8 +1022,10 @@ function mixHex(hex, to, t) {
 // dunklere Abstufung im hellen Modus und eine hellere im dunklen. Die gewählte Farbe bleibt gespeichert.
 function readableAcc(hex, theme) {
   let out = hex;
+  // Im mittleren Modus braucht die Farbe mehr Helligkeit als im dunklen, sonst geht sie im Grau unter
+  const minLum = theme === 'mid' ? 0.2 : 0.08;
   for (let t = 0.1; t <= 0.9; t += 0.1) {
-    if (theme === 'light' ? lumOf(out) <= 0.4 : lumOf(out) >= 0.08) break;
+    if (theme === 'light' ? lumOf(out) <= 0.4 : lumOf(out) >= minLum) break;
     out = mixHex(hex, theme === 'light' ? 0 : 255, t);
   }
   return out;
@@ -1039,7 +1041,7 @@ function applyUi() {
   const size = clamp(Math.round(+settings.ui.size || 0), 0, 3);
   root.dataset.size = String(size);
   root.classList.toggle('big', size > 0);
-  document.querySelector('meta[name=theme-color]').content = theme === 'light' ? '#f2f4f6' : '#0b0d0f';
+  document.querySelector('meta[name=theme-color]').content = theme === 'light' ? '#f2f4f6' : theme === 'mid' ? '#3a434d' : '#0b0d0f';
   for (const sw of $('swatches').querySelectorAll('.sw[data-c]')) sw.classList.toggle('on', sw.dataset.c === acc);
   // Sechster Kreis mit der eigenen Farbe, leer bis zur ersten freien Wahl
   const own = settings.ui.custom;
