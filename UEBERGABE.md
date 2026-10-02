@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 31 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 31, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 32 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 32, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -253,6 +253,10 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 - Offline im Browser: eigener Speicher `laglab-mp-1.0.1`, den neue Versionen nicht löschen. `pose.js` holt die Dateien 20 s nach dem Start einmal im Hintergrund. Die Android-App bringt sie als Assets mit, `MainActivity` setzt für `.wasm` und `.mjs` die richtige Dateiart.
 - Wegen des 13. Werkzeugs sind die Werkzeugknöpfe 44 px statt 46 px hoch, beim Schneiden kleinere Symbole. Alle Größen mit und ohne Fernseher-Rahmen geprüft.
 - Offen: Jede APK im Repository vergrößert den Verlauf, inzwischen etwa 23 MB je Fassung. Später auf GitHub Releases umstellen oder nur ausgewählte Stände hochladen.
+
+## Test-App Stand 32
+
+- Speicher-Knopf im Betrieb halb so groß, `5.25cqh` mit Innenabstand `0.9cqh`, sichtbarer Kreis etwa 25 px auf dem Tablet. Beim Drücken (`.go`) wächst er mit `scale(4.2)` auf etwa 104 px, die Größe des Kreises beim Verlassen, und schrumpft beim Loslassen. Er sitzt bei `6cqh` von links und unten, damit der große Kreis ganz im Bild bleibt. Eine unsichtbare Fläche `::before` macht die Tippfläche größer. Die Meldung „Gespeichert“ sitzt daneben bei `13cqh`.
 
 ## Neue Version veröffentlichen
 
