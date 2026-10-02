@@ -6,4 +6,4 @@ dependencyResolutionManagement {
     repositories { google(); mavenCentral() }
 }
 rootProject.name = 'LagLabAndroid'
-include ':usbtest'
+include ':usbtest', ':laglab'

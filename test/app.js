@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '11';   // Stand der Test-App
+const APP_VERSION = '12';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -148,7 +148,7 @@ async function externalCam() {
   }
   const ext = all.find(d => d.label && !BUILTIN_RE.test(d.label));
   if (ext) return ext;
-  const e = new Error(all.map(d => d.label || 'ohne Namen').join(' · ') || 'keine');
+  const e = new Error('Gefundene Kameras: ' + (all.map(d => d.label || 'ohne Namen').join(' · ') || 'keine'));
   e.name = 'NoExternal';
   throw e;
 }
@@ -160,6 +160,7 @@ async function getStream() {
     frameRate: { ideal: settings.fps, max: settings.fps },
   };
   if (settings.facing === 'external') {
+    if (NATIVE) return native.usbStream();
     const d = await externalCam();
     const id = { deviceId: { exact: d.deviceId } };
     try { return await navigator.mediaDevices.getUserMedia({ audio: false, video: { ...base, ...id, zoom: true } }); }
@@ -618,7 +619,7 @@ function enterSettings() {
 
 // Als installierte App läuft LagLab schon im Vollbild. Ein zusätzlicher Vollbildwunsch würde nur
 // Chromes Hinweis zum Herauswischen auslösen, deshalb gibt es ihn nur im normalen Browser-Tab.
-const installedApp = () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
+const installedApp = () => NATIVE || matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
 async function goFullscreen() {
   try {
     if (!installedApp() && !document.fullscreenElement) await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
@@ -803,7 +804,7 @@ function renderSettings(err) {
   $('delay').value = settings.delay;
   $('delayVal').textContent = settings.delay;
   fillRange($('delay'));
-  $('version').textContent = 'Stand ' + APP_VERSION;
+  $('version').textContent = 'Stand ' + APP_VERSION + (NATIVE ? ' · Android' : '');
 
   applyPreviewTransform();
   renderCamInfo(err);
@@ -823,7 +824,7 @@ function renderCamInfo(err) {
   if (unsupported || camState === 'lost' || err) {
     let text = 'Kamera wird neu verbunden';
     if (unsupported) text = 'Dieser Browser unterstützt die nötigen Funktionen nicht.';
-    else if (err && err.name === 'NoExternal') text = 'Keine USB-Kamera erkannt. Gefundene Kameras: ' + err.message;
+    else if (err && err.name === 'NoExternal') text = 'Keine USB-Kamera erkannt. ' + err.message;
     else if (err && err.name === 'NotAllowedError') text = 'Kamerazugriff wurde nicht erlaubt. Bitte in den Chrome-Einstellungen für diese Seite freigeben.';
     state.className = 'state bad';
     stateTxt.textContent = 'Getrennt';
@@ -1084,6 +1085,11 @@ setInterval(requestWakeLock, 5000);
 // Beim nächsten Start wird sie ohne Wartezeit übernommen, nie während des Betriebs.
 async function applyUpdateAtStart() {
   if (!('serviceWorker' in navigator)) return false;
+  // Die Android-App bringt ihre Dateien selbst mit und braucht keinen Offline-Speicher
+  if (NATIVE) {
+    for (const r of await navigator.serviceWorker.getRegistrations().catch(() => [])) r.unregister();
+    return false;
+  }
   try {
     const reg = await navigator.serviceWorker.register('sw.js');
     // reg.active fehlt bei der allerersten Installation, dann ist nichts zu übernehmen

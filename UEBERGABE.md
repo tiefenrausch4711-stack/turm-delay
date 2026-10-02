@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 11 unter `test/` hat zusätzlich die Kamerawahl „USB“. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu ist der Android-Machbarkeitstest „LagLab USB-Test“ im Ordner `android/`, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 12 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 12, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -26,6 +26,7 @@ LagLab ist eine Progressive Web App für das Training im Turmspringen. Ein Samsu
 - Testseite für die Fähigkeiten des Tablets: `https://tiefenrausch4711-stack.github.io/turm-delay/test.html`
 - Testseite für USB-Kameras in Chrome: `https://tiefenrausch4711-stack.github.io/turm-delay/usb.html`
 - Android-App „LagLab USB-Test“ zum Herunterladen: `https://tiefenrausch4711-stack.github.io/turm-delay/apk/laglab-usbtest.apk`
+- Android-Test-App „LagLab Test“ zum Herunterladen: `https://tiefenrausch4711-stack.github.io/turm-delay/apk/laglab-test.apk`
 
 ## Dateien
 
@@ -39,7 +40,8 @@ LagLab ist eine Progressive Web App für das Training im Turmspringen. Ein Samsu
 | `test/` | Test-App „LagLab Test“, vollständige Kopie der App mit eigenen Änderungen |
 | `test.html` | Testseite für die Fähigkeiten des Tablets |
 | `usb.html` | Testseite, listet alle Kameras, die Chrome sieht, und misst sie |
-| `android/` | Gradle-Projekt für Android-Apps, bisher nur das Modul `usbtest` |
+| `android/` | Gradle-Projekt für Android-Apps, Module `usbtest` und `laglab` |
+| `test/native.js` | Brücke zur Android-App, im Browser ohne Wirkung |
 | `apk/` | Fertige Android-Apps zum Herunterladen über GitHub Pages |
 | `PLAN.md` | Vollständige Planung und Testergebnisse |
 | `.claude/launch.json` | Lokaler Vorschau-Server mit `python -m http.server 8765` |
@@ -185,6 +187,19 @@ Machbarkeitstest `android/usbtest`, Paket `de.laglab.usbtest`, Java, Bibliothek 
 - Fassung 2 hat Schalter für 1080p und 720p und für die Belichtungspriorität der Kamera (UVC AE Priority, 0 hält die Bildrate). Dazu eine schnelle Zeilenkopie, wenn der Encoder NV12 erwartet. Ziel ist zu klären, ob Licht oder Rechenleistung die Bildrate begrenzt.
 - Ergebnis: Im hellen Licht liefert die C920 etwa 30 B/s in 1080p. Die 14 B/s kamen vom schwachen Licht im Wohnzimmer, nicht von der Rechenleistung. Der Machbarkeitstest gilt damit als bestanden. Nächster Schritt ist die Android-Test-App.
 
+### Android-App LagLab
+
+Modul `android/laglab`, Paket `de.laglab`, zwei Varianten. Die Namen dürfen nicht mit „test“ beginnen, daher `labtest` und `normal`.
+- `labtest`: Paket `de.laglab.test`, Name „LagLab Test“, Symbol und Farbe orange, Web-Dateien direkt aus `test/` als Assets. Bauen mit `./gradlew :laglab:assembleLabtestRelease`, dann `laglab/build/outputs/apk/labtest/release/laglab-labtest-release.apk` nach `apk/laglab-test.apk` kopieren.
+- `normal`: Paket `de.laglab.app`, Name „LagLab“, blaugrau, Web-Dateien aus `app/`. Wird erst nach einer Übernahme gebaut, nach `apk/laglab.apk`.
+- Versionsnummer liest Gradle aus `APP_VERSION` der jeweiligen `app.js`. In der Android-App zeigt die Web-App „Stand 12 · Android“.
+- Schlüssel: `C:\Users\Hilde\LagLab-Schluessel\laglab-release.jks`, Alias `laglab`, Passwort in `LIESMICH.txt` daneben und in `~/.gradle/gradle.properties` (`LAGLAB_KEYSTORE` und so fort). Liegt bewusst nicht im Repository. Der Nutzer soll den Ordner sichern.
+- `MainActivity`: WebView lädt `https://appassets.androidplatform.net/app/index.html` über `WebViewAssetLoader`. Vollbild ohne Systemleisten, Bildschirm bleibt an, Querformat. Kamera-Berechtigung beim Start, `onPermissionRequest` gibt getUserMedia frei. Zurück-Geste geht in der WebView zurück. Brücke `laglab` per `addWebMessageListener`.
+- `UsbCam`: wie im Machbarkeitstest, aber nur auf Anforderung der Web-App. Belichtungspriorität fest 0, also 30 B/s auch bei wenig Licht. 12 Mbit/s, weil die Web-App noch einmal kodiert. Eine 2x2-Pixel-SurfaceView hinter der WebView ist die Pflichtfläche der Bibliothek. Im Hintergrund ruht die Kamera und meldet „lost“.
+- Manifest mit `USB_DEVICE_ATTACHED` und Filter für Klasse 14. Android bietet beim Anstecken an, LagLab Test zu öffnen. Mit „Immer“ entfällt die Freigabe-Frage.
+- `test/native.js`: Ist `window.laglab` vorhanden, gilt `NATIVE`. `native.usbStream()` dekodiert die H.264-Stücke mit `VideoDecoder` und gibt sie über `MediaStreamTrackGenerator` als normale Kameraspur an die App. Ohne Zoom, Belichtung und Fokus. Zustände der App: none, denied, error, lost. `native.save(file)` schickt die Datei in 1-MB-Stücken, Android legt sie per MediaStore in Download ab. Kein Service Worker in der Android-App, `installedApp()` gilt als wahr.
+- In der Vorschau mit nachgestellter Brücke getestet: USB-Bild mit 30 B/s, Betrieb, Puffer, Abziehen und Wiederanstecken im Betrieb, Speichern und Herunterladen. Die echte Hülle ist nur auf dem Tablet prüfbar.
+
 ## Wichtige Erkenntnisse
 
 - Chrome bietet auf dem Tablet höchstens 30 Bilder pro Sekunde an. 60 sind nicht möglich.
@@ -198,7 +213,7 @@ Machbarkeitstest `android/usbtest`, Paket `de.laglab.usbtest`, Java, Bibliothek 
 ## Offen und als Nächstes
 
 - Test-App Stand 2 muss noch hochgeladen werden. Beide Apps auf dem Tablet prüfen. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
-- Machbarkeitstest bestanden. Als Nächstes die Android-Test-App „LagLab Test“ bauen, sobald der Nutzer zustimmt.
+- Android-Test-App „LagLab Test“ Stand 12 auf dem Tablet testen, vor allem USB-Kamera, eingebaute Kameras, Herunterladen, Zurück-Geste und Vollbild.
 - Früherer Stand vom 01.10.2026 zur externen Kamera: Besprochene Wege waren eine USB-Kamera, die auf Android 11 bei Samsung oft nicht erkannt wird und einen USB-C-Hub neben dem HDMI-Adapter bräuchte, ein zweites Handy als Funkkamera über WebRTC mit Kopplung per QR-Code, und eine allgemeine Kamerawahl über alle von `enumerateDevices` gemeldeten Kameras als ersten Schritt.
 - `navigator.storage.persist()` steht in `analysis.js` und gilt seit v1 für beide Apps.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?

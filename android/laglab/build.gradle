@@ -1,0 +1,68 @@
+plugins { id 'com.android.application' }
+
+// Die Versionsnummer kommt aus der Web-App, damit Android und Web dieselbe Zählung haben
+def webVersion(String dir) {
+    def m = (file("../../${dir}/app.js").getText('UTF-8') =~ /APP_VERSION = '(\d+)'/)
+    return m[0][1] as int
+}
+
+android {
+    namespace 'de.laglab'
+    compileSdk 36
+    defaultConfig {
+        minSdk 29
+        targetSdk 36
+        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }
+    }
+    flavorDimensions = ['variant']
+    productFlavors {
+        // Test-App aus dem Ordner test/
+        labtest {
+            dimension 'variant'
+            applicationId 'de.laglab.test'
+            versionCode webVersion('test')
+            versionName "Stand ${webVersion('test')}"
+            resValue 'string', 'app_name', 'LagLab Test'
+        }
+        // Normale App aus dem Ordner app/, wird erst nach einer Übernahme gebaut
+        normal {
+            dimension 'variant'
+            applicationId 'de.laglab.app'
+            versionCode webVersion('app')
+            versionName "v${webVersion('app')}"
+            resValue 'string', 'app_name', 'LagLab'
+        }
+    }
+    sourceSets {
+        labtest { assets.srcDirs = ['../../test'] }
+        normal { assets.srcDirs = ['../../app'] }
+    }
+    // Der Schlüssel liegt außerhalb des Projekts, die Angaben stehen in ~/.gradle/gradle.properties
+    signingConfigs {
+        release {
+            if (project.hasProperty('LAGLAB_KEYSTORE')) {
+                storeFile file(LAGLAB_KEYSTORE)
+                storePassword LAGLAB_STORE_PASSWORD
+                keyAlias LAGLAB_KEY_ALIAS
+                keyPassword LAGLAB_KEY_PASSWORD
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+    buildFeatures { resValues true }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.herohan:UVCAndroid:1.0.13'
+    implementation 'androidx.webkit:webkit:1.17.1'
+    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
+}

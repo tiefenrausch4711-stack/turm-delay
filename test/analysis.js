@@ -881,6 +881,12 @@ for (const [id, key] of [['pName', 'name'], ['pProp', 'prop']]) {
 }
 
 function download(file) {
+  // In der Android-App speichert Android die Datei im Download-Ordner
+  if (NATIVE) {
+    playerMsg('Wird gespeichert …', true);
+    native.save(file).then(ok => playerMsg(ok ? 'Im Download-Ordner gespeichert' : 'Speichern fehlgeschlagen'));
+    return;
+  }
   const u = URL.createObjectURL(file);
   const a = document.createElement('a');
   a.href = u;
