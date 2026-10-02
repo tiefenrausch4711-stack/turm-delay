@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 01.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10 unter `test/`, Git-Tags `v2` und `stand-10`. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 11 unter `test/` hat zusätzlich die Kamerawahl „USB“. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu ist der Android-Machbarkeitstest „LagLab USB-Test“ im Ordner `android/`, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -24,6 +24,8 @@ LagLab ist eine Progressive Web App für das Training im Turmspringen. Ein Samsu
 - App: `https://tiefenrausch4711-stack.github.io/turm-delay/app/`
 - Test-App: `https://tiefenrausch4711-stack.github.io/turm-delay/test/`
 - Testseite für die Fähigkeiten des Tablets: `https://tiefenrausch4711-stack.github.io/turm-delay/test.html`
+- Testseite für USB-Kameras in Chrome: `https://tiefenrausch4711-stack.github.io/turm-delay/usb.html`
+- Android-App „LagLab USB-Test“ zum Herunterladen: `https://tiefenrausch4711-stack.github.io/turm-delay/apk/laglab-usbtest.apk`
 
 ## Dateien
 
@@ -36,6 +38,9 @@ LagLab ist eine Progressive Web App für das Training im Turmspringen. Ein Samsu
 | `icon.py` | Erzeugt beide Symbole, Aufruf `python icon.py .` im Projektordner, braucht Pillow |
 | `test/` | Test-App „LagLab Test“, vollständige Kopie der App mit eigenen Änderungen |
 | `test.html` | Testseite für die Fähigkeiten des Tablets |
+| `usb.html` | Testseite, listet alle Kameras, die Chrome sieht, und misst sie |
+| `android/` | Gradle-Projekt für Android-Apps, bisher nur das Modul `usbtest` |
+| `apk/` | Fertige Android-Apps zum Herunterladen über GitHub Pages |
 | `PLAN.md` | Vollständige Planung und Testergebnisse |
 | `.claude/launch.json` | Lokaler Vorschau-Server mit `python -m http.server 8765` |
 
@@ -164,6 +169,19 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 - Technik: Kamerabilder werden über `MediaStreamTrackProcessor` gelesen und mit `VideoEncoder` in H.264 per Hardware kodiert. Etwa jede Sekunde gibt es einen Keyframe. Ein Ringpuffer hält die Daten, `VideoDecoder` zeichnet sie auf ein Canvas. Wake Lock hält den Bildschirm an.
 - Überwachung: Kommen länger als 2 Sekunden keine Bilder, gilt die Kamera als ausgefallen, und die App verbindet alle 3 Sekunden neu. Während eines Kamerastarts und bis 3 Sekunden nach jedem Kamerabefehl ruht die Überwachung. Jeder Kamerabefehl hat eine Zeitgrenze von 3 Sekunden.
 
+## Android
+
+Am 02.10.2026 ergab der Test mit einer Logitech C920 am USB-C-Hub, dass Chrome die Webcam nicht sieht. Android 11 auf dem Samsung-Tablet meldet USB-Kameras nicht als normale Kamera. WebUSB sperrt die Geräteklasse Video. Eine Android-App wie „USB Kamera“ aus dem Play Store kann die Webcam dagegen direkt über USB öffnen. Deshalb ist der Plan, LagLab in eine Android-App einzupacken.
+
+Vereinbarter Ablauf: Erst der Machbarkeitstest, dann eine Android-Test-App „LagLab Test“ aus dem Code in `test/`, dann nach Freigabe die normale Android-App „LagLab“ aus `app/`. Beide mit eigener Paketkennung, also nebeneinander installierbar mit getrennten Daten. Die Web-Versionen laufen weiter. Play Store ist für später angedacht.
+
+Machbarkeitstest `android/usbtest`, Paket `de.laglab.usbtest`, Java, Bibliothek `com.herohan:UVCAndroid:1.0.13` von Maven Central mit fertigen nativen Bibliotheken.
+- `MainActivity` öffnet die Webcam über `USBMonitor` und `UVCCamera` in einem eigenen `HandlerThread`. Bevorzugt MJPEG 1920x1080 mit 30 B/s. Die Bibliothek startet die Vorschau nur mit einer Fläche, daher liegt unten rechts ein kleines `SurfaceView` als Direktbild.
+- Die Bilder kommen als NV12 über `IFrameCallback`, werden in `MediaCodec` zu H.264 kodiert, jedes Schlüsselbild bekommt SPS und PPS vorangestellt.
+- Die H.264-Stücke gehen per `addWebMessageListener` als ArrayBuffer an `assets/index.html`, geladen über `WebViewAssetLoader` von `https://appassets.androidplatform.net`. Die Seite dekodiert mit `VideoDecoder` und misst Bildraten und Verzögerung.
+- Bauen auf dem PC mit Android Studio, JDK aus `C:\Program Files\Android\Android Studio\jbr`, Gradle 9.0 über den Wrapper, AGP 8.13.2: `JAVA_HOME=... ./gradlew :usbtest:assembleDebug` im Ordner `android`, danach die APK nach `apk/laglab-usbtest.apk` kopieren. Bisher mit dem Debug-Schlüssel signiert.
+- In der Vorschau getestet ist nur die Webseite mit nachgestelltem Kamerastrom. Auf dem PC gibt es kein Android-Abbild für den Emulator.
+
 ## Wichtige Erkenntnisse
 
 - Chrome bietet auf dem Tablet höchstens 30 Bilder pro Sekunde an. 60 sind nicht möglich.
@@ -177,7 +195,8 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 ## Offen und als Nächstes
 
 - Test-App Stand 2 muss noch hochgeladen werden. Beide Apps auf dem Tablet prüfen. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
-- Zurückgestellt am 01.10.2026 ist eine weitere, externe Kamera. Besprochene Wege waren eine USB-Kamera, die auf Android 11 bei Samsung oft nicht erkannt wird und einen USB-C-Hub neben dem HDMI-Adapter bräuchte, ein zweites Handy als Funkkamera über WebRTC mit Kopplung per QR-Code, und eine allgemeine Kamerawahl über alle von `enumerateDevices` gemeldeten Kameras als ersten Schritt.
+- Ergebnis des Machbarkeitstests „LagLab USB-Test“ auf dem Tablet abwarten, dann die Android-Test-App planen.
+- Früherer Stand vom 01.10.2026 zur externen Kamera: Besprochene Wege waren eine USB-Kamera, die auf Android 11 bei Samsung oft nicht erkannt wird und einen USB-C-Hub neben dem HDMI-Adapter bräuchte, ein zweites Handy als Funkkamera über WebRTC mit Kopplung per QR-Code, und eine allgemeine Kamerawahl über alle von `enumerateDevices` gemeldeten Kameras als ersten Schritt.
 - `navigator.storage.persist()` steht in `analysis.js` und gilt seit v1 für beide Apps.
 - Test in der Halle: Werden 30 Bilder pro Sekunde erreicht? Welche Belichtung passt? Gibt es Streifen durch das Hallenlicht?
 - Prüfen, ob die Vorschau im Einstellungsbildschirm auf dem Tablet flüssig läuft. Der Nutzer hatte ein Hängen gemeldet. Das betraf wahrscheinlich die Vorschau im Claude-Desktop. Die möglichen Ursachen auf dem Tablet wurden in Version 12 behoben.

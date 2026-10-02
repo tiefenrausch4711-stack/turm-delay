@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LagLab USB-Test</title>
+<style>
+  :root { --bg:#111; --fg:#eee; --ok:#4d4; --warn:#fc3; --bad:#f66; --mut:#999; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.35 system-ui, sans-serif; padding:16px; }
+  h1 { font-size:22px; margin:0 0 8px; }
+  h2 { font-size:17px; margin:12px 0 4px; padding-bottom:2px; border-bottom:1px solid #444; }
+  .wrap { display:flex; gap:20px; }
+  .left { flex:0 0 58%; }
+  .right { flex:1; min-width:0; }
+  canvas { width:100%; aspect-ratio:16/9; background:#000; display:block; }
+  #verdict { font-size:19px; font-weight:600; margin:8px 0; padding:10px 12px; border-radius:8px; background:#1d2328; }
+  .row { display:flex; gap:10px; padding:1px 0; border-bottom:1px solid #222; }
+  .k { flex:0 0 52%; color:#bbb; }
+  .v { flex:1; word-break:break-word; }
+  .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); } .mut { color:var(--mut); }
+  #log { font:13px/1.4 ui-monospace, monospace; color:#bbb; white-space:pre-wrap; max-height:30vh; overflow:auto; }
+  #sizes { font:12px/1.4 ui-monospace, monospace; color:#999; word-break:break-word; }
+  button { font-size:18px; padding:10px 18px; border-radius:8px; border:0; background:#345; color:#fff; margin-top:10px; }
+  /* Platz für das kleine Direktbild der Kamera, das Android unten rechts darüberlegt */
+  .slot { width:30vw; aspect-ratio:16/9; margin:16px -16px -16px auto; border:1px dashed #444;
+    display:flex; align-items:flex-end; justify-content:flex-start; color:#666; font-size:12px; padding:4px; }
+</style>
+</head>
+<body>
+<h1>LagLab USB-Test</h1>
+<div class="wrap">
+  <div class="left">
+    <canvas id="cv" width="1280" height="720"></canvas>
+    <div id="verdict">Webcam anschließen und die Fragen von Android mit „Zulassen“ und „OK“ beantworten.</div>
+    <h2>Ereignisse</h2>
+    <div id="log"></div>
+  </div>
+  <div class="right">
+    <h2>Messung je Sekunde</h2>
+    <div id="stats"></div>
+    <h2>Formate der Kamera</h2>
+    <div id="sizes">noch unbekannt</div>
+    <button id="copy">Ergebnis kopieren</button>
+    <div class="slot">Direktbild</div>
+  </div>
+</div>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const r1 = x => String(Math.round(x * 10) / 10).replace('.', ',');
+const time = () => new Date().toLocaleTimeString('de-DE');
+const logLines = [];
+function log(t) { logLines.unshift(`${time()}  ${t}`); $('log').textContent = logLines.join('\n'); }
+
+const info = {};          // feste Angaben wie Gerät und Encoder
+let nat = {};             // letzte Messung der App
+let clockOffset = null;   // Abstand zwischen der Uhr der App und performance.now in Mikrosekunden
+let decoder = null, codec = '', waitKey = true;
+let got = 0, gotBytes = 0, decoded = 0, latSum = 0, latN = 0;
+let size = '';
+const history = [];       // Messungen der letzten Sekunden für das Ergebnis
+
+function rows(list) {
+  $('stats').innerHTML = '';
+  for (const [k, v, cls] of list) {
+    const d = document.createElement('div');
+    d.className = 'row';
+    d.innerHTML = '<span class="k"></span><span class="v"></span>';
+    d.children[0].textContent = k;
+    d.children[1].textContent = v;
+    d.children[1].className = 'v ' + (cls || '');
+    $('stats').append(d);
+  }
+}
+
+const fpsCls = f => f >= 27 ? 'ok' : (f >= 15 ? 'warn' : 'bad');
+
+function render() {
+  const lat = latN ? latSum / latN / 1000 : 0;
+  history.push({ cam: nat.cam || 0, dec: decoded, lat });
+  if (history.length > 10) history.shift();
+  rows([
+    ['Gerät', info.model || '?'],
+    ['Android', info.android || '?'],
+    ['Encoder', info.encoder || 'noch keiner'],
+    ['Übertragung', info.binary === undefined ? '?' : (info.binary ? 'binär' : 'als Text, langsamer')],
+    ['Auflösung', size || '–'],
+    ['Bilder von der Kamera', (nat.cam ?? 0) + ' B/s', fpsCls(nat.cam || 0)],
+    ['Bilder verdichtet', (nat.encOut ?? 0) + ' B/s', fpsCls(nat.encOut || 0)],
+    ['Verworfen, Encoder voll', String(nat.dropped ?? 0), nat.dropped ? 'warn' : ''],
+    ['Umwandlung je Bild', r1(nat.convMs || 0) + ' ms', (nat.convMs || 0) < 20 ? '' : 'warn'],
+    ['Datenrate', r1((nat.kbps || 0) / 1000) + ' Mbit/s'],
+    ['In der Webseite angekommen', got + ' B/s', fpsCls(got)],
+    ['In der Webseite dekodiert', decoded + ' B/s', fpsCls(decoded)],
+    ['Verzögerung Kamera bis Bild', latN ? Math.round(lat) + ' ms' : '–', lat < 150 ? '' : 'warn'],
+  ]);
+  verdict();
+  got = 0; gotBytes = 0; decoded = 0; latSum = 0; latN = 0;
+}
+
+function verdict() {
+  const h = history.slice(-5);
+  if (h.length < 5 || !h.some(x => x.cam)) return;
+  const avg = k => h.reduce((s, x) => s + x[k], 0) / h.length;
+  const cam = avg('cam'), dec = avg('dec');
+  const v = $('verdict');
+  if (dec >= 27) { v.className = 'ok'; v.textContent = `Machbar. ${size} kommt mit ${r1(dec)} Bildern pro Sekunde in der Webseite an.`; }
+  else if (dec >= 15) { v.className = 'warn'; v.textContent = `Teilweise machbar. Kamera ${r1(cam)} B/s, in der Webseite ${r1(dec)} B/s.`; }
+  else { v.className = 'bad'; v.textContent = `Zu langsam. Kamera ${r1(cam)} B/s, in der Webseite ${r1(dec)} B/s.`; }
+}
+
+// Profil und Stufe aus dem SPS lesen, daraus entsteht die Codec-Bezeichnung für den Decoder
+function codecFrom(bytes) {
+  for (let i = 0; i + 4 < bytes.length; i++) {
+    if (bytes[i] === 0 && bytes[i + 1] === 0 && bytes[i + 2] === 1 && (bytes[i + 3] & 0x1f) === 7) {
+      const h = x => x.toString(16).padStart(2, '0');
+      return 'avc1.' + h(bytes[i + 4]) + h(bytes[i + 5]) + h(bytes[i + 6]);
+    }
+  }
+  return null;
+}
+
+function makeDecoder(c) {
+  if (decoder && codec === c) return;
+  if (decoder) try { decoder.close(); } catch (e) {}
+  codec = c;
+  waitKey = true;
+  decoder = new VideoDecoder({
+    output: f => {
+      decoded++;
+      if (clockOffset !== null) { latSum += performance.now() * 1000 + clockOffset - f.timestamp; latN++; }
+      size = `${f.displayWidth} × ${f.displayHeight}`;
+      const cv = $('cv');
+      cv.getContext('2d').drawImage(f, 0, 0, cv.width, cv.height);
+      f.close();
+    },
+    error: e => { log('Decoder-Fehler: ' + e.message); decoder = null; codec = ''; },
+  });
+  decoder.configure({ codec: c, optimizeForLatency: true });
+  log('Decoder gestartet: ' + c);
+}
+
+function onChunk(buf) {
+  const a = new Uint8Array(buf);
+  const type = a[0];
+  let ts = 0;
+  for (let i = 1; i < 9; i++) ts = ts * 256 + a[i];
+  const data = a.subarray(9);
+  got++; gotBytes += data.length;
+  if (type === 0 || type === 1) {
+    const c = codecFrom(data);
+    if (c) makeDecoder(c);
+  }
+  if (type === 0 || !decoder) return;
+  if (waitKey && type !== 1) return;
+  waitKey = false;
+  if (decoder.decodeQueueSize > 10) return;   // Rückstau, lieber Bilder auslassen
+  decoder.decode(new EncodedVideoChunk({ type: type === 1 ? 'key' : 'delta', timestamp: ts, data }));
+}
+
+function b64(s) {
+  const bin = atob(s);
+  const a = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+  return a.buffer;
+}
+
+if (!window.usbcam) log('Keine Verbindung zur App.');
+else {
+  usbcam.onmessage = e => {
+    const d = e.data;
+    if (d instanceof ArrayBuffer) return onChunk(d);
+    if (typeof d !== 'string') return;
+    if (d.startsWith('B:')) return onChunk(b64(d.slice(2)));
+    const m = JSON.parse(d);
+    if (m.t === 'hello') {
+      clockOffset = m.clock - performance.now() * 1000;
+      Object.assign(info, { model: m.model, android: m.android, binary: m.binary });
+    } else if (m.t === 'log') {
+      log(m.msg);
+      if (m.msg.startsWith('Encoder: ')) info.encoder = m.msg.slice(9);
+    } else if (m.t === 'stats') { nat = m; render(); }
+    else if (m.t === 'sizes') { $('sizes').textContent = m.list; }
+  };
+  usbcam.postMessage('hello');
+}
+if (!('VideoDecoder' in window)) log('WebCodecs fehlt in dieser WebView.');
+
+$('copy').onclick = () => {
+  const text = [$('verdict').textContent, '',
+    ...[...$('stats').children].map(r => r.children[0].textContent + ': ' + r.children[1].textContent),
+    '', 'Formate: ' + $('sizes').textContent, '', 'Ereignisse', ...logLines].join('\n');
+  if (window.usbcam) usbcam.postMessage('copy:' + text);
+  log('Ergebnis kopiert.');
+};
+</script>
+</body>
+</html>
