@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '34';   // Stand der Test-App
+const APP_VERSION = '35';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -859,6 +859,7 @@ function renderSettings(err) {
   $('delay').value = settings.delay;
   $('delayVal').textContent = settings.delay;
   fillRange($('delay'));
+  renderDelayButtons();
   $('version').textContent = 'Stand ' + APP_VERSION + (NATIVE ? ' · Android' : '');
 
   applyPreviewTransform();
@@ -976,7 +977,14 @@ function setDelay(d) {
   $('delay').value = settings.delay;
   $('delayVal').textContent = settings.delay;
   fillRange($('delay'));
+  renderDelayButtons();
   saveSettings();
+}
+
+// An den Grenzen sind „−“ und „+“ grau, weil sie dort nichts mehr bewirken
+function renderDelayButtons() {
+  $('delayMinus').disabled = settings.delay <= 1;
+  $('delayPlus').disabled = settings.delay >= maxDelay();
 }
 $('delay').addEventListener('input', e => setDelay(+e.target.value));
 $('delayMinus').addEventListener('click', () => setDelay(settings.delay - 1));
@@ -998,8 +1006,32 @@ function inkFor(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.179 ? '#0b0d0f' : '#ffffff';
 }
 
+// Helligkeit einer Farbe nach WCAG, 0 schwarz bis 1 weiß
+function lumOf(hex) {
+  const lin = c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = [1, 3, 5].map(i => lin(parseInt(hex.slice(i, i + 2), 16) / 255));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function mixHex(hex, to, t) {
+  const c = i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - t) + to * t).toString(16).padStart(2, '0');
+  return '#' + c(1) + c(3) + c(5);
+}
+
+// Eine Akzentfarbe nah am Hintergrund würde Knöpfe und Regler unsichtbar machen. Dann gilt eine
+// dunklere Abstufung im hellen Modus und eine hellere im dunklen. Die gewählte Farbe bleibt gespeichert.
+function readableAcc(hex, theme) {
+  let out = hex;
+  for (let t = 0.1; t <= 0.9; t += 0.1) {
+    if (theme === 'light' ? lumOf(out) <= 0.4 : lumOf(out) >= 0.08) break;
+    out = mixHex(hex, theme === 'light' ? 0 : 255, t);
+  }
+  return out;
+}
+
 function applyUi() {
-  const { acc, theme } = settings.ui;
+  const { theme } = settings.ui;
+  const acc = readableAcc(settings.ui.acc, theme);
   const root = document.documentElement;
   root.style.setProperty('--acc', acc);
   root.style.setProperty('--acc-ink', inkFor(acc));

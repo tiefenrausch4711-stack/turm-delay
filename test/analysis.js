@@ -881,7 +881,18 @@ document.addEventListener('click', e => {
 // Im Betrieb bleibt sie wirkungslos, damit ein versehentliches Wischen den Betrieb nicht beendet.
 window.addEventListener('popstate', () => {
   if (!$('tvCal').classList.contains('hidden')) { closeTvCal(); return; }   // zuerst das Prüfbild für den Fernseher
-  if (!$('uiDlg').classList.contains('hidden')) { closeUi(); return; }   // zuerst das Fenster Darstellung
+  if (!$('uiDlg').classList.contains('hidden')) {
+    // Aus Farbwähler und Löschen zuerst zurück in die Einstellungen, erst dann zu
+    if (!$('uiPick').classList.contains('hidden') || !$('uiDel').classList.contains('hidden')) {
+      closePicker();
+      $('uiDel').classList.add('hidden');
+      $('uiMain').classList.remove('hidden');
+      history.pushState({ v: 'dlg' }, '');
+      return;
+    }
+    closeUi();
+    return;
+  }   // zuerst das Fenster Darstellung
   if (mode === 'run') {
     if (reviewing) { leaveReview(); return; }   // von der Videoseite zurück in die Wiedergabe
     history.pushState({ v: 'run' }, '');
@@ -1029,10 +1040,21 @@ function currentFile() {
 }
 
 // Video lädt das Video, ein Bild nur das Bild mit seiner Zeichnung
+let downBusy = false;
 $('pDown').addEventListener('click', async () => {
   if (viewMode === 'image') {
-    const blob = await composeImage(pCanvas.width, pCanvas.height, 0.92);
-    download(new File([blob], imageFileName(pimg.clip, pimg.rec), { type: 'image/jpeg' }));
+    // Das Umwandeln dauert etwa eine Sekunde. Name und Bild werden sofort festgehalten,
+    // damit ein Wechsel oder Löschen in dieser Zeit nichts durcheinanderbringt.
+    if (downBusy || !pimg) return;
+    downBusy = true;
+    const name = imageFileName(pimg.clip, pimg.rec);
+    const snap = snapCanvas(pCanvas.width, pCanvas.height, true);
+    playerMsg('Bild wird vorbereitet …', true);
+    try {
+      const blob = await canvasBlob(snap, 0.92);
+      $('pMsg').classList.add('hidden');
+      download(new File([blob], name, { type: 'image/jpeg' }));
+    } finally { downBusy = false; }
     return;
   }
   if (!pc) return;

@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 34 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 34, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 35 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 35, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -261,6 +261,15 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 ## Test-App Stand 34
 
 - Zauberstab vollständig entfernt, siehe oben.
+
+## Test-App Stand 35, Review aus Anwendersicht
+
+Durchgang mit nachgestellter Kamera durch Start, Live, Einstellungen, Betrieb, Videoseite aus dem Betrieb, Übersicht, Videofenster, Bilder, Herunterladen, Löschen und hellen Modus. Gefunden und behoben:
+- „−“ und „+“ der Verzögerung waren bei 1 und 30 aktiv, ohne etwas zu bewirken. Jetzt grau (`renderDelayButtons`).
+- Die Zurück-Geste im Farbwähler und in der Rückfrage zum Löschen schloss das ganze Einstellungsfenster. Jetzt führt sie zurück in die Einstellungen.
+- Eine sehr helle Akzentfarbe machte im hellen Modus Start, Regler und gewählte Knöpfe unsichtbar, eine sehr dunkle im dunklen Modus ebenso. Das betraf auch die feste hellgraue Farbe. `readableAcc` nutzt dann eine dunklere oder hellere Abstufung, gespeichert bleibt die gewählte Farbe.
+- Ein Bild herunterzuladen dauert etwa eine Sekunde ohne Rückmeldung, und Löschen oder Wechseln in dieser Zeit führte zu einem Fehler. Jetzt „Bild wird vorbereitet …“, Name und Bild werden sofort festgehalten, doppeltes Tippen wird ignoriert.
+Ohne Befund: Countdown, Speichern zu früh, Zurück-Geste im Betrieb, Videoseite ohne zweites Video, Kameraausfall im Betrieb, Verlassen per Halten, Filter, Stern, Bildschritte, Tempo, Suchen, Schneiden, Bildfolge, Bildmodus, Löschen in zwei Schritten, Schreibweise von Namen, Dateinamen mit Umlauten, Rückfragen beim Löschen mit Zahl der Bilder, heller Modus auf allen Seiten.
 
 ## Neue Version veröffentlichen
 
