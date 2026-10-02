@@ -201,10 +201,13 @@
         <button data-v="light">Hell</button>
       </div>
       <div class="label"><span class="no">03</span>Größe</div>
-      <div class="seg" id="segSize">
-        <button data-v="0">Normal</button>
-        <button data-v="1">Groß</button>
-        <button data-v="2">Sehr groß</button>
+      <div class="sizeRow">
+        <span class="vidText">klein</span>
+        <div class="sizeScale">
+          <input type="range" id="uiSize" min="0" max="3" step="1" value="0" aria-label="Größe der Bedienung">
+          <div class="sizeTicks"><i></i><i></i><i></i><i></i></div>
+        </div>
+        <span class="vidText">groß</span>
       </div>
       <div class="label"><span class="no">04</span>Videos</div>
       <div class="vidGrid">

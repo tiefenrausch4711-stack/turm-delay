@@ -613,34 +613,34 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
    Drei Stufen aus den Einstellungen. Vergrößert werden nur Bedienteile, nicht Bild- und Zeichenflächen
    und nicht der Betrieb für den Fernseher. Spalten, die das Elternelement festlegt, wachsen mit. */
 :root { --z: 1; }
-html[data-size="1"] { --z: 1.125; }
-html[data-size="2"] { --z: 1.25; }
+html[data-size="1"] { --z: 1.1667; }
+html[data-size="2"] { --z: 1.3333; }
+html[data-size="3"] { --z: 1.5; }
 .bar, .filters, .delay, #panel, .dlg, #aGrid, #aEmpty, .pbar, .pctl, #pRange, #pTools,
 .clipNav, #pMsg, #pStill, #camMsg, .hud { zoom: var(--z); }
 #settings { grid-template-columns: minmax(0, 1fr) calc(clamp(360px, 32vw, 460px) * var(--z)); }
 /* Ab „Groß“ stehen Belichtung und Fokus nebeneinander, sonst reicht die Höhe nicht */
-html[data-size="1"] #panel, html[data-size="2"] #panel {
+html.big #panel {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; align-content: start;
 }
-html[data-size="1"] #panel > :not(#expGrp):not(#focusGrp),
-html[data-size="2"] #panel > :not(#expGrp):not(#focusGrp) { grid-column: 1 / -1; }
-html[data-size="1"] #panel .row, html[data-size="2"] #panel .row { gap: 10px; }
+html.big #panel > :not(#expGrp):not(#focusGrp) { grid-column: 1 / -1; }
+html.big #panel .row { gap: 10px; }
 /* Start bleibt immer sichtbar, auch wenn die Spalte rollen muss */
 #panel .actions { position: sticky; bottom: 0; z-index: 1; background: var(--bg); padding-top: 8px; }
 /* Farbkreise wachsen mit der Stufe nicht über ihre normale Größe hinaus, sonst wird das Fenster zu hoch */
 .swatches { grid-template-columns: repeat(6, minmax(0, calc(64px / var(--z)))); justify-content: space-between; }
 .dlg { max-height: calc((100vh - 16px) / var(--z)); overflow-y: auto; }
 /* Ab „Groß“: Name und Eigenschaft in einer zweiten Zeile rechts, unter Stern, Herunterladen und Löschen */
-html[data-size="1"] .pR, html[data-size="2"] .pR { flex-wrap: wrap; row-gap: 6px; }
-html[data-size="1"] .pR::after, html[data-size="2"] .pR::after { content: ""; flex-basis: 100%; order: 5; }
-html[data-size="1"] .pR #pName, html[data-size="2"] .pR #pName,
-html[data-size="1"] .pR #pProp, html[data-size="2"] .pR #pProp { order: 10; width: 150px; min-width: 0; }
+html.big .pR { flex-wrap: wrap; row-gap: 6px; }
+html.big .pR::after { content: ""; flex-basis: 100%; order: 5; }
+html.big .pR #pName,
+html.big .pR #pProp { order: 10; width: 150px; min-width: 0; }
 /* Ab „Groß“: Werkzeuge in zwei Spalten. Rückgängig und Speichern beginnen jeweils eine neue Reihe. */
-html[data-size="1"] #pTools, html[data-size="2"] #pTools {
+html.big #pTools {
   flex-basis: 178px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start;
 }
-html[data-size="1"] #dUndo, html[data-size="2"] #dUndo,
-html[data-size="1"] #dSave, html[data-size="2"] #dSave { grid-column-start: 1; }
+html.big #dUndo,
+html.big #dSave { grid-column-start: 1; }
 /* Beim Schneiden und bei der Bildfolge kommt unten eine Leiste dazu, dann werden die Werkzeuge flacher */
 #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 40px; }
 #pTools { scrollbar-width: none; }
@@ -659,3 +659,17 @@ html[data-size="1"] #dSave, html[data-size="2"] #dSave { grid-column-start: 1; }
   font: 16px var(--sans); color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 #pSuggest button:active { background: #e6e9ec; }
+
+/* Bei 150 % werden Werkzeuge und Abstände etwas flacher, sonst reicht die Höhe nicht */
+html[data-size="3"] .tl { min-height: 42px; }
+html[data-size="3"] #dUndo, html[data-size="3"] #dSave { margin-top: 8px; }
+html[data-size="3"] #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 34px; }
+html[data-size="3"] .sv { aspect-ratio: 16 / 8; }
+
+/* Regler für die Größe mit vier Rastpunkten */
+.sizeRow { display: flex; align-items: center; gap: 14px; }
+.sizeScale { flex: 1; position: relative; }
+.sizeTicks { position: absolute; left: 13px; right: 13px; top: 50%; height: 0; display: flex; justify-content: space-between; pointer-events: none; }
+.sizeTicks i { width: 6px; height: 6px; margin: 8px -3px 0; border-radius: 50%; background: var(--line-2); }
+html[data-size="3"] #panel { gap: 6px 16px; }
+html[data-size="3"] #panel .grp { padding-bottom: 6px; }
