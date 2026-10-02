@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 13 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 13, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 14 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 14, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -145,6 +145,15 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 - Zweiter großer Nutzertest Stand 8 am 02.10.2026. Ohne Befund: leere Zustände, Zoom, Belichtung und Fokus pro Kamera, Kameraausfall mit Speichern, Zusammenführen von Namen mit doppelten Leerzeichen, Bilder aus geschnittenen Videos, Bildfolge mit Zeichnung, automatisches Speichern, Stern-Filter für Bilder, Löschen von Bildern und Videos, Offline-Speicher mit allen neun Dateien. Behoben: „Wird gespeichert …“ erscheint sofort beim Tippen auf „Speichern“, `playerMsg` mit `keep`. Die Rückfrage beim Löschen lautet jetzt zum Beispiel „3 Videos ohne Stern mit 1 Bild wirklich löschen?“, bei einem einzigen Video ohne „alle“.
 - Seit Stand 7 fordert die App als installierte App keinen zusätzlichen Vollbildmodus mehr an, siehe `installedApp`. Vorher zeigte Chrome beim ersten Wechsel zur Analyse und zurück den Hinweis zum Herauswischen aus dem Vollbild.
 - Nutzertest Stand 6 am 02.10.2026, behoben: Name und Eigenschaft übernehmen eine vorhandene Schreibweise unabhängig von Groß- und Kleinschreibung. Änderungen an einem gespeicherten Bild werden beim Verlassen automatisch gespeichert, siehe `flushImageEdits`. „Speichern“ bleibt grau, solange sich seit dem letzten Speichern nichts geändert hat, siehe `saveSig`. Bild, Zeichnung und Nummer werden beim Tippen sofort erfasst, wer ein Bild öffnet, wartet auf ein laufendes Speichern. Videonummern eines Tages werden nie wieder vergeben, gemerkt in `settings.lastNr`. Bilder eines Videos stehen aufsteigend. Nach dem Löschen eines Bildes folgt das nächste Bild desselben Videos, ohne weitere Bilder das Video. Die Rückfrage beim Löschen in den Einstellungen nennt auch die Zahl der Bilder.
+
+## Test-App Stand 14, Videoseite direkt aus dem Betrieb
+
+- Die Meldung „Gespeichert · V7“ im Betrieb ist kleiner und dünner, `#toast` mit `400 3.2cqh`.
+- Nach dem Speichern bleibt der Speicher-Knopf grau (`#saveBtn.recent`), 5 Sekunden ab dem fertigen Speichern (`RECENT_MS`). Ein Tippen darauf öffnet sofort die Videoseite des eben gespeicherten Videos (`enterReview` in `analysis.js`).
+- Auf dieser Videoseite gibt es alle üblichen Funktionen, aber keine Pfeile (`#aPlayer.review .clipNav`). Der Knopf heißt „‹ Wiedergabe“. Er, die Zurück-Geste und das Löschen führen zurück in die verzögerte Wiedergabe (`leaveReview`).
+- Dabei bleibt `mode` gleich `run`, nur `reviewing` ist wahr. Die Kamera kodiert weiter in den Puffer. `tick` kürzt dann nur den Puffer und zeigt nichts. Beim Wechsel setzt `restartRunPlayback` den Decoder zurück, der Puffer bleibt, und die Wiedergabe setzt am passenden Keyframe wieder ein.
+- Fehler gefunden und behoben: `writeClip` gab das Video ohne `id` zurück. Jetzt setzt es `meta.id`.
+- Ergebnis Tablet mit Stand 13: Live-Bild nach Wechseln, Belichtung und Fokus bei USB funktionieren. Mit manueller Belichtung liefert die C920 29,3 B/s. Die Bildqualität der C920 ist sichtbar schlechter als die der Rückkamera.
 
 ## Neue Version veröffentlichen
 

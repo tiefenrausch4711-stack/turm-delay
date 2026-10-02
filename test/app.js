@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '13';   // Stand der Test-App
+const APP_VERSION = '14';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -100,6 +100,7 @@ let frameQueue = [];           // dekodierte Bilder, die auf ihre Anzeigezeit wa
 let opStart = null;             // Zeitpunkt des ersten Bildes im Betrieb, vorher null
 let lastShownTs = 0;
 let lastTrimAt = 0;
+let reviewing = false;         // Videoseite direkt aus dem Betrieb, die Aufnahme läuft im Hintergrund weiter
 
 const canvas = $('out');
 const ctx = canvas.getContext('2d', { alpha: false });
@@ -475,6 +476,18 @@ function resetPlayback() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
+// Wiedergabe neu ansetzen, der Puffer bleibt. Danach geht es ab dem passenden Keyframe weiter.
+function restartRunPlayback() {
+  feedSeq = null;
+  frameQueue.forEach(f => f.close());
+  frameQueue = [];
+  if (decoder && decoder.state !== 'closed') {
+    try { decoder.reset(); } catch (e) { decoder = null; }
+  }
+  decoderConfigRef = null;
+  lastShownTs = 0;
+}
+
 function baseSeq() { return buffer.length ? buffer[0].seq : nextSeq; }
 
 function feed(limit, T) {
@@ -549,6 +562,10 @@ function tick() {
   if (mode !== 'run') return;
   requestAnimationFrame(tick);
   const now = performance.now();
+  if (reviewing) {
+    if (now - lastTrimAt > 1000) { trim(now); lastTrimAt = now; }
+    return;
+  }
 
   const lost = camState === 'lost';
   if (!lost && camState !== 'ok') { setBadge(String(settings.delay), ''); return; }   // Kamera startet noch
@@ -616,6 +633,7 @@ function showLive() {
 function enterSettings() {
   mode = 'settings';
   cancelSavePress();
+  clearRecent();
   resetPlayback();
   $('run').classList.add('hidden');
   $('settings').classList.remove('hidden');
@@ -701,16 +719,33 @@ async function saveNow() {
   }
   const snap = snapshotBuffer();
   if (!snap) { showToast('Nichts zu speichern', true); return; }
-  saveBtn.classList.add('done');
+  const p = saveClip(snap);
+  setRecent(p);
   try {
-    const c = await saveClip(snap);
+    const c = await p;
     showToast('Gespeichert · V' + c.nr);
+    // Die 5 Sekunden zählen ab dem fertigen Speichern
+    if (recent && recent.p === p) recent.timer = setTimeout(clearRecent, RECENT_MS);
   } catch (e) {
     console.warn(e);
+    clearRecent();
     showToast('Speichern fehlgeschlagen', true);
-  } finally {
-    setTimeout(() => saveBtn.classList.remove('done'), 600);
   }
+}
+
+// Nach dem Speichern bleibt der Knopf kurz grau. Ein Tippen in dieser Zeit öffnet das Video.
+const RECENT_MS = 5000;
+let recent = null;   // { p: Speichervorgang, timer }
+function setRecent(p) {
+  clearRecent();
+  recent = { p, timer: 0 };
+  saveBtn.classList.add('recent');
+}
+function clearRecent() {
+  if (!recent) return;
+  clearTimeout(recent.timer);
+  recent = null;
+  saveBtn.classList.remove('recent');
 }
 
 // Eine Sekunde halten. Dabei füllt sich der Ring wie beim Zurückkehren.
@@ -726,6 +761,7 @@ function cancelSavePress() {
 
 saveBtn.addEventListener('pointerdown', e => {
   e.stopPropagation();   // löst nicht das Zurück in die Einstellungen aus
+  if (recent) { enterReview(recent.p); return; }
   if (savePress) { cancelSavePress(); return; }
   cancelPress();
   saveBtn.classList.remove('go');

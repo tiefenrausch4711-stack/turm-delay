@@ -316,9 +316,14 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   position: absolute; left: calc(1.5cqw + 14cqh); bottom: 5.5cqh;
   padding: 0.8cqh 1.8cqh; border-radius: 1.2cqh;
   background: rgba(0, 0, 0, 0.6); color: #fff;
-  font: 600 4.5cqh/1.2 var(--sans);
+  font: 400 3.2cqh/1.2 var(--sans);
 }
 #toast.bad { color: var(--warn); }
+/* Nach dem Speichern 5 Sekunden grau. Ein Tippen öffnet dann das Video. */
+#saveBtn.recent .track { fill: rgba(128, 128, 128, 0.55); stroke: rgba(200, 200, 200, 0.6); }
+#saveBtn.recent .prog { stroke: rgba(200, 200, 200, 0.6); stroke-dashoffset: 0; }
+/* Videoseite aus dem Betrieb ohne Pfeile zu anderen Videos */
+#aPlayer.review .clipNav { display: none; }
 
 /* ---------- Analyse ---------- */
 

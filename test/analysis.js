@@ -104,6 +104,7 @@ async function writeClip({ config, entries }) {
   const meta = { day, nr, created: now.getTime(), dur, w: config.codedWidth, h: config.codedHeight, star: false, name: '', prop: '', thumb: null };
   await inTx(['clips', 'data'], 'readwrite', async t => {
     const id = await reqP(t.objectStore('clips').add(meta));
+    meta.id = id;
     t.objectStore('data').add({ id, cfg, frames, data: new Blob(parts) });
   });
   return meta;
@@ -196,6 +197,43 @@ function enterAnalysis() {
   $('settings').classList.add('hidden');
   $('analysis').classList.remove('hidden');
   showList();
+}
+
+// ---------- Videoseite direkt aus dem Betrieb ----------
+// Die Kamera nimmt weiter in den Puffer auf. Zurück geht es in die verzögerte Wiedergabe.
+
+async function enterReview(p) {
+  if (reviewing || mode !== 'run') return;
+  const saved = await p.catch(() => null);
+  if (!saved || reviewing || mode !== 'run') return;
+  clearRecent();
+  cancelPress();
+  reviewing = true;
+  restartRunPlayback();
+  history.pushState({ v: 'review' }, '');
+  listClips = await allClips();
+  listImages = (await allImages()).filter(im => clipById(im.clipId));
+  $('pBack').textContent = '‹ Wiedergabe';
+  $('aPlayer').classList.add('review');
+  $('run').classList.add('hidden');
+  $('analysis').classList.remove('hidden');
+  try { await openClip(clipById(saved.id) || saved); }
+  catch (e) { console.warn(e); }
+  // Ohne Video zurück in die Wiedergabe
+  if (!pc && reviewing) history.back();
+}
+
+async function leaveReview() {
+  await flushImageEdits();
+  closePlayer();
+  closeRange();
+  $('aPlayer').classList.add('hidden');
+  $('aPlayer').classList.remove('review');
+  $('analysis').classList.add('hidden');
+  $('pBack').textContent = '‹ Übersicht';
+  restartRunPlayback();
+  reviewing = false;
+  $('run').classList.remove('hidden');
 }
 
 function leaveAnalysis() {
@@ -821,7 +859,11 @@ document.addEventListener('click', e => {
 // Im Betrieb bleibt sie wirkungslos, damit ein versehentliches Wischen den Betrieb nicht beendet.
 window.addEventListener('popstate', () => {
   if (!$('uiDlg').classList.contains('hidden')) { closeUi(); return; }   // zuerst das Fenster Darstellung
-  if (mode === 'run') { history.pushState({ v: 'run' }, ''); return; }
+  if (mode === 'run') {
+    if (reviewing) { leaveReview(); return; }   // von der Videoseite zurück in die Wiedergabe
+    history.pushState({ v: 'run' }, '');
+    return;
+  }
   if (mode !== 'analysis') return;
   if (!$('aPlayer').classList.contains('hidden')) showList();
   else leaveAnalysis();
