@@ -243,6 +243,7 @@ Modul `android/laglab`, Paket `de.laglab`, zwei Varianten. Die Namen dürfen nic
 - Am 29.09.2026 gelöster Update-Fehler: Der Service Worker speichert Dateien mit `cache: 'reload'`, sonst landen alte Dateien aus dem Browser-Zwischenspeicher im Offline-Speicher.
 
 ## Offen und als Nächstes
+- Entschieden am 02.10.2026: Es bleibt bei 30 B/s. Die C920 kann höchstens 30, Chrome bietet für die Rückkamera höchstens 30. Mehr wäre nur über eine eigene Camera2-Anbindung der Rückkamera in der Android-App denkbar, ob das Tablet 60 kann, ist ungeprüft. Der Nutzer will das nicht verfolgen.
 
 - Test-App Stand 2 muss noch hochgeladen werden. Beide Apps auf dem Tablet prüfen. Wichtig ist, ob das Speichern im Betrieb das laufende Bild stört und ob Herunterladen auf Android funktioniert.
 - Android-Test-App „LagLab Test“ Stand 12 auf dem Tablet testen, vor allem USB-Kamera, eingebaute Kameras, Herunterladen, Zurück-Geste und Vollbild.
