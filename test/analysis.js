@@ -177,7 +177,7 @@ function makeMp4(cfg, frames, bytes, skip = 0) {
 }
 
 // 2026-10-02-Teo_Kopfsprung_V3.mp4 und 2026-10-02-Teo_Kopfsprung_V3_B1.jpg.
-// Fehlen Name oder Eigenschaft, entfällt der jeweilige Teil.
+// Fehlen Name oder Stichwort, entfällt der jeweilige Teil.
 const cleanPart = v => (v || '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
 function clipBaseName(c) {
   const name = cleanPart(c.name), prop = cleanPart(c.prop);
@@ -274,7 +274,7 @@ let listClips = [];
 let listImages = [];
 const listFilter = { kind: 'videos', star: false, name: '', prop: '' };
 
-// Gilt für Videos und für Bilder, Bilder übernehmen Stern, Name und Eigenschaft von ihrem Video
+// Gilt für Videos und für Bilder, Bilder übernehmen Stern, Name und Stichwort von ihrem Video
 const passesFilter = c => (!listFilter.star || c.star) && (!listFilter.name || c.name === listFilter.name) && (!listFilter.prop || c.prop === listFilter.prop);
 const clipById = id => listClips.find(c => c.id === id);
 
@@ -290,7 +290,7 @@ async function showList() {
   if (gen !== listGen) return;
   listClips = clips;
   listImages = images.filter(im => clipById(im.clipId));
-  // Vorhandene Namen und Eigenschaften gelten als je eingetragen
+  // Vorhandene Namen und Stichwörter gelten als je eingetragen
   rememberTerms('name', clips.map(c => c.name));
   rememberTerms('prop', clips.map(c => c.prop));
   renderList(clips);
@@ -346,7 +346,7 @@ function renderFilter(clips) {
   if (listFilter.name && !names.includes(listFilter.name)) listFilter.name = '';
   if (listFilter.prop && !props.includes(listFilter.prop)) listFilter.prop = '';
   fillSelect($('fName'), 'Name', names, listFilter.name);
-  fillSelect($('fProp'), 'Eigenschaft', props, listFilter.prop);
+  fillSelect($('fProp'), 'Stichwort', props, listFilter.prop);
   $('fStar').classList.toggle('on', listFilter.star);
   $('fStar').disabled = !clips.length;
   for (const b of $('fKind').querySelectorAll('button')) b.classList.toggle('on', b.dataset.k === listFilter.kind);
@@ -738,7 +738,7 @@ async function openClip(c) {
   seek(pFirst);
 }
 
-// Stern, Name und Eigenschaft gehören zum Video, auch wenn ein Bild offen ist
+// Stern, Name und Stichwort gehören zum Video, auch wenn ein Bild offen ist
 const curClip = () => (viewMode === 'image' ? pimg && pimg.clip : pc && pc.meta);
 
 function fillClipFields(c) {
@@ -960,7 +960,7 @@ for (const [id, key] of [['pName', 'name'], ['pProp', 'prop']]) {
   $(id).addEventListener('blur', () => setTimeout(hideSuggest, 150));
 }
 
-// ---------- Vorschläge für Name und Eigenschaft ----------
+// ---------- Vorschläge für Name und Stichwort ----------
 // Erst ab dem ersten Buchstaben. Passend ist der Anfang des Begriffs, danach der Anfang eines Wortes darin.
 // Jeder je eingetragene Begriff bleibt in den Einstellungen gemerkt, auch wenn sein Video gelöscht ist.
 

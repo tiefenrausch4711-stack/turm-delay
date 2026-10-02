@@ -608,7 +608,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .pL, .pR { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .pR { justify-content: flex-end; }
 .pR #pName, .pR #pProp { width: 160px; min-width: 120px; flex: 0 1 auto; }
-/* Herunterladen als Symbol, damit Name und Eigenschaft Platz haben */
+/* Herunterladen als Symbol, damit Name und Stichwort Platz haben */
 .pR .tool.icon { width: 48px; padding: 0; display: grid; place-items: center; }
 .pR .tool.icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .pR .tool { padding: 0 11px; font-size: 14px; }
@@ -635,7 +635,7 @@ html.big #panel .row { gap: 10px; }
 /* Farbkreise wachsen mit der Stufe nicht über ihre normale Größe hinaus, sonst wird das Fenster zu hoch */
 .swatches { grid-template-columns: repeat(6, minmax(0, calc(64px / var(--z)))); justify-content: space-between; }
 .dlg { max-height: calc((100cqh - 16px) / var(--z)); overflow-y: auto; }
-/* Ab „Groß“: Name und Eigenschaft in einer zweiten Zeile rechts, unter Stern, Herunterladen und Löschen */
+/* Ab „Groß“: Name und Stichwort in einer zweiten Zeile rechts, unter Stern, Herunterladen und Löschen */
 html.big .pR { flex-wrap: wrap; row-gap: 6px; }
 html.big .pR::after { content: ""; flex-basis: 100%; order: 5; }
 html.big .pR #pName,
@@ -652,7 +652,7 @@ html.big #dSave { grid-column-start: 1; }
 /* Die Anzeigen im Kamerabild sind keine Bedienung und wachsen nur wenig mit, damit das Bild frei bleibt */
 .hud { zoom: min(var(--z), 1.15); }
 
-/* Vorschläge unter Name und Eigenschaft, hell wie eine übliche Auswahlliste */
+/* Vorschläge unter Name und Stichwort, hell wie eine übliche Auswahlliste */
 .pbar { position: relative; z-index: 4; }
 #pSuggest {
   position: absolute; max-width: 320px; max-height: 360px; overflow-y: auto; z-index: 5;
@@ -777,5 +777,5 @@ html.tvfit #out { object-fit: fill; }
 @container app (max-height: 760px) {
   html[data-size="3"] #aPlayer:has(#pRange:not(.hidden)) .tl span { display: none; }
 }
-/* Ab „Groß“ teilen sich Name und Eigenschaft die zweite Zeile, auch wenn der Platz knapp ist */
+/* Ab „Groß“ teilen sich Name und Stichwort die zweite Zeile, auch wenn der Platz knapp ist */
 html.big .pR #pName, html.big .pR #pProp { flex: 0 1 calc(50% - 4px); width: auto; max-width: 180px; }
