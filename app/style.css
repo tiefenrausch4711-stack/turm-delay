@@ -329,7 +329,31 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   min-height: 48px; padding: 0 16px; border-radius: var(--r);
   border: 1px solid var(--line-2); font-size: 15px; font-weight: 600; color: var(--fg);
 }
-.clipNav { display: flex; gap: 6px; margin-right: auto; }
+/* Pfeile liegen oben links auf dem Bild, unter „Übersicht“. Sie gehören nicht zum gespeicherten Bild. */
+.clipNav { position: absolute; left: 12px; top: 12px; z-index: 3; display: flex; gap: 8px; }
+.navArrow {
+  width: 60px; height: 60px; border-radius: 12px; font-size: 34px; line-height: 1; color: #fff;
+  background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.navArrow:active { background: rgba(0, 0, 0, 0.65); }
+.navArrow:disabled { opacity: 0.3; }
+#pMsg {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 3;
+  padding: 8px 16px; border-radius: 8px; background: rgba(0, 0, 0, 0.7); color: #fff;
+  font: 600 15px var(--sans); pointer-events: none;
+}
+#pProp { width: 170px; min-height: 44px; padding: 0 12px; border-radius: var(--r);
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--fg); font: 16px var(--sans); }
+#pProp:focus { outline: none; border-color: var(--acc); }
+/* Übersicht: Videos oder Bilder, dazu Kacheln für Bilder */
+#fKind button { min-width: 96px; min-height: 36px; }
+.card .imgs {
+  position: absolute; left: 6px; bottom: 6px; padding: 2px 6px; border-radius: 4px;
+  background: rgba(0, 0, 0, 0.6); font: 12px var(--mono); color: #fff;
+}
+.card .prop { color: var(--mut); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Bildfenster ohne Abspielleiste */
+#aPlayer.imgMode .pctl, #aPlayer.imgMode #pRange, #aPlayer.imgMode #dCut, #aPlayer.imgMode #dStrobe { display: none; }
 #pBack { min-height: 52px; padding: 0 22px; font-size: 17px; }
 .clipNav .nav { width: 48px; padding: 0; font-size: 26px; line-height: 1; }
 .nav:disabled { opacity: 0.3; }
@@ -379,9 +403,9 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 }
 .pbar { border-bottom: 1px solid var(--line); }
 .pctl { border-top: 1px solid var(--line); }
-#pTitle { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; font-weight: 600; }
+#pTitle { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; font-weight: 600; }
 #pName {
-  width: 200px; min-height: 44px; padding: 0 12px; border-radius: var(--r);
+  width: 170px; min-height: 44px; padding: 0 12px; border-radius: var(--r);
   border: 1px solid var(--line-2); background: var(--surface); color: var(--fg); font: 16px var(--sans);
 }
 #pName:focus { outline: none; border-color: var(--acc); }
@@ -407,8 +431,8 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .tl.on { background: var(--acc); color: var(--acc-ink); }
 .tl:active { filter: brightness(1.25); }
 .tl:disabled { opacity: 0.3; }
-/* Rückgängig und Leeren sitzen ganz unten, nah an der unteren Leiste */
-#dUndo { margin-top: auto; }
+/* Drei Gruppen: Werkzeuge, dann Rückgängig und Leeren, dann Speichern */
+#dUndo, #dSave { margin-top: 16px; }
 .tl .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--c, #ffd21f); border: 2px solid rgba(255, 255, 255, 0.35); }
 .seekWrap { flex: 1; min-width: 120px; position: relative; display: flex; align-items: center; }
 #pBand {
@@ -506,20 +530,20 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 
 /* Filter in der Liste */
 .filters { flex: 0 0 auto; display: flex; gap: 10px; align-items: center; padding: 12px 0 0; }
-.chip, #fName {
+.chip, #fName, #fProp {
   min-height: 44px; padding: 0 14px; border-radius: 22px;
   border: 1px solid var(--line-2); background: var(--surface); color: var(--fg);
   font: 600 15px var(--sans);
 }
 .chip.on { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
-#fName:disabled { opacity: 0.4; }
-#fName { max-width: 280px; text-overflow: ellipsis; }
+#fName:disabled, #fProp:disabled { opacity: 0.4; }
+#fName, #fProp { max-width: 240px; text-overflow: ellipsis; }
 #aEmpty { white-space: pre-line; }
 
 
 /* Bildfolge statt Videobild */
 #pStill {
-  position: absolute; left: 12px; top: 12px; padding: 6px 12px; border-radius: 8px;
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%); padding: 6px 12px; border-radius: 8px;
   background: rgba(0, 0, 0, 0.65); color: #fff; font: 600 14px var(--sans); pointer-events: none;
 }
 
@@ -558,5 +582,18 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   display: flex; align-items: center; justify-content: center;
   background: #455a6f; transition: opacity .45s ease;
 }
-#splash img { width: min(38vmin, 220px); height: auto; }
+/* Gleiche Größe wie der Startbildschirm von Chrome, damit das Symbol beim Übergang nicht springt */
+#splash img { width: 128px; height: 128px; }
 #splash.out { opacity: 0; pointer-events: none; }
+
+/* Umschaltung „Video | Bilder“ in der Kopfzeile des Fensters */
+#pKind button { min-width: 84px; min-height: 40px; padding: 0 14px; }
+#pKind button:disabled { opacity: 0.35; }
+#pName, #pProp { width: 150px; }
+/* Kopfzeile in drei Bereichen, „Video | Bilder“ steht genau in der Mitte */
+.pbar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.pL, .pR { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pR { justify-content: flex-end; }
+.pR #pName, .pR #pProp { width: 112px; min-width: 70px; flex: 0 1 auto; }
+.pR .tool { padding: 0 11px; font-size: 14px; }
+.tl { min-height: 46px; }

@@ -10,11 +10,14 @@ const THUMB_BEFORE_END_US = 2e6;   // Vorschaubild etwa 2 Sekunden vor dem Ende,
 let dbPromise = null;
 function db() {
   if (!dbPromise) dbPromise = new Promise((res, rej) => {
-    const r = indexedDB.open(DB_NAME, 1);
+    const r = indexedDB.open(DB_NAME, 2);
     r.onupgradeneeded = () => {
-      // clips enthält die kleinen Angaben für die Liste, data das eigentliche Video
-      r.result.createObjectStore('clips', { keyPath: 'id', autoIncrement: true });
-      r.result.createObjectStore('data', { keyPath: 'id' });
+      // clips enthält die kleinen Angaben für die Liste, data das eigentliche Video,
+      // images die gespeicherten Bilder, jedes einem Video zugeordnet
+      const d = r.result;
+      if (!d.objectStoreNames.contains('clips')) d.createObjectStore('clips', { keyPath: 'id', autoIncrement: true });
+      if (!d.objectStoreNames.contains('data')) d.createObjectStore('data', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('images')) d.createObjectStore('images', { keyPath: 'id', autoIncrement: true }).createIndex('clipId', 'clipId');
     };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
@@ -35,9 +38,16 @@ async function inTx(stores, txMode, fn) {
 const allClips = () => inTx(['clips'], 'readonly', t => reqP(t.objectStore('clips').getAll()));
 const getData = id => inTx(['data'], 'readonly', t => reqP(t.objectStore('data').get(id)));
 const putClip = c => inTx(['clips'], 'readwrite', t => reqP(t.objectStore('clips').put(c)));
-const deleteClip = id => inTx(['clips', 'data'], 'readwrite', t => {
+const allImages = () => inTx(['images'], 'readonly', t => reqP(t.objectStore('images').getAll()));
+const putImage = im => inTx(['images'], 'readwrite', t => reqP(t.objectStore('images').put(im)));
+const deleteImage = id => inTx(['images'], 'readwrite', t => { t.objectStore('images').delete(id); });
+
+// Mit dem Video verschwinden auch seine Bilder
+const deleteClip = id => inTx(['clips', 'data', 'images'], 'readwrite', async t => {
   t.objectStore('clips').delete(id);
   t.objectStore('data').delete(id);
+  const keys = await reqP(t.objectStore('images').index('clipId').getAllKeys(id));
+  for (const k of keys) t.objectStore('images').delete(k);
 });
 
 async function cleanupOld() {
@@ -80,12 +90,18 @@ async function writeClip({ config, entries }) {
   const dur = n > 1 ? frames[n - 1][0] / 1000 * n / (n - 1) : 33;
   const now = new Date();
   const day = dayKey(now);
-  const nr = (await allClips()).filter(c => c.day === day).reduce((m, c) => Math.max(m, c.nr), 0) + 1;
+  // Nummern eines Tages steigen nur. Auch nach dem Löschen wird keine Nummer wieder vergeben,
+  // damit heruntergeladene Dateien eindeutig bleiben.
+  const used = (await allClips()).filter(c => c.day === day).reduce((m, c) => Math.max(m, c.nr), 0);
+  const last = settings.lastNr && settings.lastNr.day === day ? settings.lastNr.nr : 0;
+  const nr = Math.max(used, last) + 1;
+  settings.lastNr = { day, nr };
+  saveSettings();
   const cfg = {
     codec: config.codec, codedWidth: config.codedWidth, codedHeight: config.codedHeight,
     description: config.description ? copyBuf(config.description) : undefined,
   };
-  const meta = { day, nr, created: now.getTime(), dur, w: config.codedWidth, h: config.codedHeight, star: false, name: '', thumb: null };
+  const meta = { day, nr, created: now.getTime(), dur, w: config.codedWidth, h: config.codedHeight, star: false, name: '', prop: '', thumb: null };
   await inTx(['clips', 'data'], 'readwrite', async t => {
     const id = await reqP(t.objectStore('clips').add(meta));
     t.objectStore('data').add({ id, cfg, frames, data: new Blob(parts) });
@@ -159,10 +175,17 @@ function makeMp4(cfg, frames, bytes, skip = 0) {
   return new Blob([ftyp, moov(ftyp.length + moovLen + 8), mdatHead, bytes], { type: 'video/mp4' });
 }
 
-function clipFileName(c) {
-  const clean = (c.name || '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
-  return `LagLab_${c.day}_${pad2(c.nr)}${clean ? '_' + clean : ''}.mp4`;
+// 2026-10-02-Teo_Kopfsprung_V3.mp4 und 2026-10-02-Teo_Kopfsprung_V3_B1.jpg.
+// Fehlen Name oder Eigenschaft, entfällt der jeweilige Teil.
+const cleanPart = v => (v || '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
+function clipBaseName(c) {
+  const name = cleanPart(c.name), prop = cleanPart(c.prop);
+  return `${c.day}${name ? '-' + name : ''}${prop ? '_' + prop : ''}_V${c.nr}`;
 }
+const clipFileName = c => clipBaseName(c) + '.mp4';
+const imageFileName = (c, im) => `${clipBaseName(c)}_B${im.n}.jpg`;
+const clipLabel = c => 'V' + c.nr;
+const imageLabel = (c, im) => `V${c.nr}_B${im.n}`;
 
 // ---------- Ein- und Ausstieg ----------
 
@@ -206,17 +229,25 @@ let listUrls = [];
 let listGen = 0;
 let listScroll = null;   // Position der Liste, bevor ein Video geöffnet wurde
 let listClips = [];
-const listFilter = { star: false, name: '' };
+let listImages = [];
+const listFilter = { kind: 'videos', star: false, name: '', prop: '' };
+
+// Gilt für Videos und für Bilder, Bilder übernehmen Stern, Name und Eigenschaft von ihrem Video
+const passesFilter = c => (!listFilter.star || c.star) && (!listFilter.name || c.name === listFilter.name) && (!listFilter.prop || c.prop === listFilter.prop);
+const clipById = id => listClips.find(c => c.id === id);
 
 async function showList() {
+  await flushImageEdits();
   closePlayer();
   $('aPlayer').classList.add('hidden');
   $('aList').classList.remove('hidden');
   const gen = ++listGen;
   try { await cleanupOld(); } catch (e) { console.warn(e); }
   const clips = await allClips();
+  const images = await allImages();
   if (gen !== listGen) return;
   listClips = clips;
+  listImages = images.filter(im => clipById(im.clipId));
   renderList(clips);
   if (listScroll !== null) { $('aGrid').scrollTop = listScroll; listScroll = null; }
   renderStorage();
@@ -224,39 +255,56 @@ async function showList() {
 }
 
 function renderList(clips) {
-  listUrls.forEach(u => URL.revokeObjectURL(u));
+  // Alte Vorschaubilder erst freigeben, wenn die neuen Kacheln stehen, sonst laden sie ins Leere
+  const old = listUrls;
+  setTimeout(() => old.forEach(u => URL.revokeObjectURL(u)), 3000);
   listUrls = [];
   const grid = $('aGrid');
   grid.textContent = '';
   renderFilter(clips);
-  const all = clips.length;
-  clips = clips.filter(c => (!listFilter.star || c.star) && (!listFilter.name || c.name === listFilter.name));
-  $('aEmpty').classList.toggle('hidden', clips.length > 0);
-  $('aEmpty').textContent = all ? 'Keine Videos für diese Auswahl.' : 'Noch keine Videos gespeichert.\nIm Betrieb den Kreis unten links 1 Sekunde halten.';
-  clips.sort((a, b) => b.created - a.created);
+  const images = listFilter.kind === 'images';
+  // Einträge sind Videos oder Bilder, nie gemischt
+  let items = images
+    ? listImages.map(im => ({ im, c: clipById(im.clipId) })).filter(x => passesFilter(x.c))
+    : clips.filter(passesFilter).map(c => ({ c }));
+  const all = images ? listImages.length : clips.length;
+  $('aEmpty').classList.toggle('hidden', items.length > 0);
+  $('aEmpty').textContent = images
+    ? (all ? 'Keine Bilder für diese Auswahl.' : 'Noch keine Bilder gespeichert.')
+    : (all ? 'Keine Videos für diese Auswahl.' : 'Noch keine Videos gespeichert.');
+  // Neueste Videos zuerst, die Bilder eines Videos in ihrer Reihenfolge B1, B2, B3
+  items.sort((a, b) => b.c.created - a.c.created || (a.im ? a.im.n - b.im.n : 0));
   let day = null, row = null;
-  for (const c of clips) {
-    if (c.day !== day) {
-      day = c.day;
+  for (const x of items) {
+    if (x.c.day !== day) {
+      day = x.c.day;
       grid.append(el('h3', 'day', dayLabel(day)));
       row = el('div', 'cards');
       grid.append(row);
     }
-    row.append(clipCard(c));
+    row.append(x.im ? imageCard(x.c, x.im) : clipCard(x.c));
   }
 }
 
-function renderFilter(clips) {
-  const names = [...new Set(clips.map(c => c.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
-  if (listFilter.name && !names.includes(listFilter.name)) listFilter.name = '';
-  const sel = $('fName');
+function fillSelect(sel, label, values, current) {
   sel.textContent = '';
-  sel.append(new Option('Filter', ''));
-  for (const nm of names) sel.append(new Option(nm, nm));
-  sel.value = listFilter.name;
-  sel.disabled = !names.length;
+  sel.append(new Option(label, ''));
+  for (const v of values) sel.append(new Option(v, v));
+  sel.value = current;
+  sel.disabled = !values.length;
+}
+
+const sortedValues = (clips, key) => [...new Set(clips.map(c => c[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+
+function renderFilter(clips) {
+  const names = sortedValues(clips, 'name'), props = sortedValues(clips, 'prop');
+  if (listFilter.name && !names.includes(listFilter.name)) listFilter.name = '';
+  if (listFilter.prop && !props.includes(listFilter.prop)) listFilter.prop = '';
+  fillSelect($('fName'), 'Name', names, listFilter.name);
+  fillSelect($('fProp'), 'Eigenschaft', props, listFilter.prop);
   $('fStar').classList.toggle('on', listFilter.star);
   $('fStar').disabled = !clips.length;
+  for (const b of $('fKind').querySelectorAll('button')) b.classList.toggle('on', b.dataset.k === listFilter.kind);
 }
 
 // Aufbewahrung der Videos ohne Stern, 1 bis 30 Tage oder nie, einstellbar unten in der Liste.
@@ -282,7 +330,7 @@ function stepKeep(delta) {
   renderKeep();
   // Erst kurz nach dem letzten Tippen aufräumen, eine kürzere Frist löscht dann sofort
   clearTimeout(keepTimer);
-  keepTimer = setTimeout(() => { if (mode === 'analysis' && !pc) showList(); }, 1500);
+  keepTimer = setTimeout(() => { if (mode === 'analysis' && !viewMode) showList(); }, 1500);
 }
 $('keepMinus').addEventListener('click', () => stepKeep(-1));
 $('keepPlus').addEventListener('click', () => stepKeep(1));
@@ -290,6 +338,14 @@ renderKeep();
 
 $('fStar').addEventListener('click', () => { listFilter.star = !listFilter.star; renderList(listClips); });
 $('fName').addEventListener('change', e => { listFilter.name = e.target.value; renderList(listClips); });
+$('fProp').addEventListener('change', e => { listFilter.prop = e.target.value; renderList(listClips); });
+$('fKind').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b || b.dataset.k === listFilter.kind) return;
+  listFilter.kind = b.dataset.k;
+  $('aGrid').scrollTop = 0;
+  renderList(listClips);
+});
 
 function setThumb(box, blob) {
   const u = URL.createObjectURL(blob);
@@ -318,9 +374,12 @@ function clipCard(c) {
     await putClip(c);
     if (listFilter.star) renderList(listClips);
   });
-  info.append(el('b', '', String(c.nr)), el('span', 'time', hhmm(c.created)));
-  if (c.name) info.append(el('span', 'nm', c.name));
+  info.append(el('b', '', clipLabel(c)), el('span', 'time', hhmm(c.created)));
+  const who = [c.name, c.prop].filter(Boolean).join(' · ');
+  if (who) info.append(el('span', 'nm', who));
   info.append(star);
+  const n = listImages.filter(im => im.clipId === c.id).length;
+  if (n) th.append(el('span', 'imgs', n === 1 ? '1 Bild' : n + ' Bilder'));
   card.append(th, info);
   card.addEventListener('click', () => {
     listScroll = $('aGrid').scrollTop;
@@ -330,11 +389,31 @@ function clipCard(c) {
   return card;
 }
 
+function imageCard(c, im) {
+  const card = el('div', 'card');
+  const th = el('div', 'th');
+  if (im.thumb) setThumb(th, im.thumb);
+  const info = el('div', 'info');
+  info.append(el('b', '', imageLabel(c, im)), el('span', 'time', hhmm(c.created)));
+  const who = [c.name, c.prop].filter(Boolean).join(' · ');
+  if (who) info.append(el('span', 'nm', who));
+  if (c.star) info.append(el('span', 'star on', '★'));
+  card.append(th, info);
+  card.addEventListener('click', () => {
+    listScroll = $('aGrid').scrollTop;
+    history.pushState({ v: 'player' }, '');
+    openImage(im);
+  });
+  return card;
+}
+
 // Zeigt nur den Platz der Videos, nicht den der Offline-Dateien
 async function renderStorage() {
   try {
     const recs = await inTx(['data'], 'readonly', t => reqP(t.objectStore('data').getAll()));
-    const mb = recs.reduce((s, r) => s + (r.data ? r.data.size : 0), 0) / 1048576;
+    const imgs = await allImages();
+    const mb = (recs.reduce((s, r) => s + (r.data ? r.data.size : 0), 0)
+      + imgs.reduce((s, im) => s + (im.base ? im.base.size : 0) + (im.thumb ? im.thumb.size : 0), 0)) / 1048576;
     $('uiStore').textContent = 'Belegter Speicher ' + (!mb ? '0' : mb < 10 ? mb.toFixed(1).replace('.', ',') : Math.round(mb)) + ' MB';
   } catch (e) { $('uiStore').textContent = ''; }
 }
@@ -419,11 +498,11 @@ let pPlaying = false, pSpeed = 1;
 let pQueue = [];           // dekodierte Bilder während der Wiedergabe
 let pFeed = 0, pStartIdx = 0, pClock = null;
 let seekDragging = false;
-let loopA = -1, loopB = -1;  // Schleife von Bild loopA bis loopB, -1 bedeutet nicht gesetzt
+let viewMode = null;        // video oder image, solange ein Fenster offen ist
+let pimg = null;            // geöffnetes Bild { rec, clip }
 let pFirst = 0;             // erstes sichtbares Bild, davor liegt nach dem Schneiden ein Vorlauf
 let pStill = false;         // eine Bildfolge ersetzt gerade das Videobild
 
-const loopOn = () => loopA >= 0 && loopB > loopA;
 
 const pCount = () => (pc ? pc.frames.length : 0);
 
@@ -456,7 +535,7 @@ function drawPlayer(f) {
   const w = f.displayWidth, h = f.displayHeight;
   if (pCanvas.width !== w || pCanvas.height !== h) { pCanvas.width = w; pCanvas.height = h; layoutView(); }
   pctx.drawImage(f, 0, 0, w, h);
-  if (pStill) { pStill = false; $('pStill').classList.add('hidden'); }
+  if (pStill) { pStill = false; $('pStill').classList.add('hidden'); renderSaveBtn(); }
   onPlayerFrameShown();
 }
 
@@ -492,8 +571,7 @@ function seek(i) {
   else done();
 }
 
-// Letztes Bild der Wiedergabe, bei aktiver Schleife deren Ende
-const playEnd = () => (loopOn() ? loopB : pCount() - 1);
+const playEnd = () => pCount() - 1;
 
 function startFeed(i) {
   resetDecoder();
@@ -504,8 +582,7 @@ function startFeed(i) {
 
 function play() {
   if (!pc || pPlaying) return;
-  if (loopOn() && (pPos < loopA || pPos >= loopB)) pPos = loopA;
-  else if (pPos >= pCount() - 1) pPos = pFirst;   // am Ende beginnt die Wiedergabe von vorn
+  if (pPos >= pCount() - 1) pPos = pFirst;   // am Ende beginnt die Wiedergabe von vorn
   pTarget = -1; pPending = -1;
   pPlaying = true;
   startFeed(pPos);
@@ -546,33 +623,8 @@ function playerTick(now) {
     show.frame.close();
     updatePlayerUi();
   }
-  if (pPos >= last) {
-    if (loopOn()) startFeed(loopA);
-    else pause();
-  }
+  if (pPos >= last) pause();
 }
-
-function renderLoop() {
-  const b = $('pLoop'), band = $('pBand');
-  const on = loopOn();
-  b.querySelector('b').textContent = loopA < 0 ? 'Anfang' : on ? 'Aus' : 'Ende';
-  b.classList.toggle('set', loopA >= 0);
-  const n = Math.max(1, pCount() - 1 - pFirst);
-  band.classList.toggle('hidden', loopA < 0);
-  band.style.setProperty('--a', (loopA < 0 ? 0 : loopA - pFirst) / n);
-  band.style.setProperty('--w', on ? (loopB - loopA) / n : 0);
-}
-
-// Erster Druck setzt den Anfang, zweiter das Ende, dritter hebt die Schleife auf
-$('pLoop').addEventListener('click', () => {
-  if (!pc) return;
-  if (loopA < 0) loopA = pPos;
-  else if (!loopOn()) {
-    if (pPos === loopA) return;
-    [loopA, loopB] = [Math.min(loopA, pPos), Math.max(loopA, pPos)];
-  } else { loopA = -1; loopB = -1; }
-  renderLoop();
-});
 
 function setSpeed(s) {
   if (pPlaying && pClock) pClock = { wall: performance.now(), ts: pc.frames[pPos][0] };
@@ -603,14 +655,14 @@ async function openClip(c) {
   pPos = pFirst; pTarget = -1; pPending = -1; pPlaying = false; pStill = false;
   $('pStill').classList.add('hidden');
   closeRange();
-  loopA = -1; loopB = -1;
+  viewMode = 'video';
+  savedSig = null;
+  $('aPlayer').classList.remove('imgMode');
   $('aList').classList.add('hidden');
   $('aPlayer').classList.remove('hidden');
   resetDrawing();
-  renderLoop();
-  $('pTitle').textContent = `${dayLabel(c.day)} · ${c.nr} · ${hhmm(c.created)}`;
-  $('pName').value = c.name || '';
-  renderStar();
+  $('pTitle').textContent = `${dayLabel(c.day)} · ${clipLabel(c)} · ${hhmm(c.created)}`;
+  fillClipFields(c);
   renderClipNav();
   resetDelete();
   $('pSeek').min = pFirst;
@@ -619,14 +671,28 @@ async function openClip(c) {
   pctx.fillRect(0, 0, pCanvas.width, pCanvas.height);
   updatePlayerUi();
   seek(pFirst);
-  // Bereits vergebene Namen als Vorschläge
-  const names = [...new Set((await allClips()).map(x => x.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
-  const dl = $('pNames');
-  dl.textContent = '';
-  for (const nm of names) { const o = document.createElement('option'); o.value = nm; dl.append(o); }
+}
+
+// Stern, Name und Eigenschaft gehören zum Video, auch wenn ein Bild offen ist
+const curClip = () => (viewMode === 'image' ? pimg && pimg.clip : pc && pc.meta);
+
+// Bereits vergebene Namen und Eigenschaften erscheinen beim Eintippen als Auswahl
+function fillClipFields(c) {
+  $('pName').value = c.name || '';
+  $('pProp').value = c.prop || '';
+  for (const [id, key] of [['pNames', 'name'], ['pProps', 'prop']]) {
+    const dl = $(id);
+    dl.textContent = '';
+    for (const v of sortedValues(listClips, key)) { const o = document.createElement('option'); o.value = v; dl.append(o); }
+  }
+  renderStar();
+  renderClipNav();
+  resetDelete();
 }
 
 function closePlayer() {
+  viewMode = null;
+  pimg = null;
   if (!pc) return;
   pause();
   pGen++;
@@ -636,12 +702,40 @@ function closePlayer() {
   pTarget = -1; pPending = -1;
 }
 
+// ---------- Bildfenster ----------
+
+async function openImage(im) {
+  await savePromise;
+  const c = clipById(im.clipId);
+  if (!c) return;
+  closePlayer();
+  closeRange();
+  viewMode = 'image';
+  pimg = { rec: im, clip: c };
+  pStill = false;
+  $('pStill').classList.add('hidden');
+  $('aPlayer').classList.add('imgMode');
+  $('aList').classList.add('hidden');
+  $('aPlayer').classList.remove('hidden');
+  const bmp = await createImageBitmap(im.base);
+  pCanvas.width = bmp.width;
+  pCanvas.height = bmp.height;
+  pctx.drawImage(bmp, 0, 0);
+  bmp.close();
+  resetDrawing();
+  setShapes(im.shapes);
+  savedSig = saveSig();   // frisch geöffnet gilt als gespeichert
+  renderSaveBtn();
+  $('pTitle').textContent = `${dayLabel(c.day)} · ${imageLabel(c, im)}`;
+  fillClipFields(c);
+}
+
 // Vorheriges und nächstes Video in zeitlicher Reihenfolge, innerhalb des Filters der Liste.
 // Das geöffnete Video zählt mit, auch wenn es durch eine Namensänderung nicht mehr zum Filter passt.
 function clipNeighbor(dir) {
   if (!pc) return null;
   const cur = pc.meta.created;
-  const pool = listClips.filter(c => c.id !== pc.meta.id && (!listFilter.star || c.star) && (!listFilter.name || c.name === listFilter.name));
+  const pool = listClips.filter(c => c.id !== pc.meta.id && passesFilter(c));
   let best = null;
   for (const c of pool) {
     if (dir > 0 ? c.created > cur && (!best || c.created < best.created) : c.created < cur && (!best || c.created > best.created)) best = c;
@@ -649,25 +743,58 @@ function clipNeighbor(dir) {
   return best;
 }
 
-function renderClipNav() {
-  $('pPrevClip').disabled = !clipNeighbor(-1);
-  $('pNextClip').disabled = !clipNeighbor(1);
+// Unter „Bilder“ blättern die Pfeile durch die Bilder dieses Videos
+const imagesOf = clipId => listImages.filter(im => im.clipId === clipId).sort((a, b) => a.n - b.n);
+function imageNeighbor(dir) {
+  if (!pimg) return null;
+  const list = imagesOf(pimg.clip.id);
+  const i = list.findIndex(im => im.id === pimg.rec.id);
+  return list[i + dir] || null;
 }
+const neighbor = dir => (viewMode === 'image' ? imageNeighbor(dir) : clipNeighbor(dir));
+
+function renderClipNav() {
+  $('pPrevClip').disabled = !neighbor(-1);
+  $('pNextClip').disabled = !neighbor(1);
+  // Umschaltung „Video | Bilder“, Bilder nur wählbar, wenn das Video welche hat
+  const c = curClip();
+  const n = c ? imagesOf(c.id).length : 0;
+  for (const b of $('pKind').querySelectorAll('button')) b.classList.toggle('on', (b.dataset.pk === 'images') === (viewMode === 'image'));
+  $('pKind').querySelector('[data-pk="images"]').disabled = !n;
+}
+
+$('pKind').addEventListener('click', async e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled || navBusy) return;
+  await savePromise;
+  const c = curClip();
+  if (!c) return;
+  navBusy = true;
+  try {
+    await flushImageEdits();
+    if (b.dataset.pk === 'images' && viewMode !== 'image') { const first = imagesOf(c.id)[0]; if (first) await openImage(first); }
+    else if (b.dataset.pk === 'video' && viewMode !== 'video') await openClip(c);
+  } finally { navBusy = false; }
+});
 
 // Wechsel ohne neuen Verlaufseintrag, die Zurück-Geste führt weiter direkt zur Liste.
 // Zeitlupe bleibt, Zoom, Zeichnung, Schleife und Schnittauswahl beginnen neu.
 let navBusy = false;   // schnelles Doppeltippen öffnet nicht zwei Videos gleichzeitig
 async function showNeighbor(dir) {
-  const c = clipNeighbor(dir);
-  if (!c || navBusy) return;
+  const x = neighbor(dir);
+  if (!x || navBusy) return;
   navBusy = true;
-  try { await openClip(c); } finally { navBusy = false; }
+  try {
+    await flushImageEdits();
+    await (viewMode === 'image' ? openImage(x) : openClip(x));
+  } finally { navBusy = false; }
 }
 $('pPrevClip').addEventListener('click', () => showNeighbor(-1));
 $('pNextClip').addEventListener('click', () => showNeighbor(1));
 
 function renderStar() {
-  const on = !!(pc && pc.meta.star);
+  const c = curClip();
+  const on = !!(c && c.star);
   $('pStar').textContent = starText(on);
   $('pStar').classList.toggle('on', on);
 }
@@ -729,20 +856,29 @@ pSeek.addEventListener('input', () => { fillRange(pSeek); seek(+pSeek.value); })
 pSeek.addEventListener('change', () => { seekDragging = false; });
 
 $('pStar').addEventListener('click', async () => {
-  if (!pc) return;
-  pc.meta.star = !pc.meta.star;
+  const c = curClip();
+  if (!c) return;
+  c.star = !c.star;
   renderStar();
   renderClipNav();
-  await putClip(pc.meta);
+  await putClip(c);
 });
 
-$('pName').addEventListener('change', async () => {
-  if (!pc) return;
-  pc.meta.name = $('pName').value.trim();
-  renderClipNav();
-  await putClip(pc.meta);
-});
-$('pName').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+for (const [id, key] of [['pName', 'name'], ['pProp', 'prop']]) {
+  $(id).addEventListener('change', async () => {
+    const c = curClip();
+    if (!c) return;
+    // Doppelte Leerzeichen entfernen und eine vorhandene Schreibweise übernehmen, damit „teo“ und „Teo“ ein Name bleiben
+    let v = $(id).value.replace(/\s+/g, ' ').trim();
+    const known = sortedValues(listClips.filter(x => x !== c), key).find(k => k.toLocaleLowerCase('de') === v.toLocaleLowerCase('de'));
+    if (known) v = known;
+    $(id).value = v;
+    c[key] = v;
+    renderClipNav();
+    await putClip(c);
+  });
+  $(id).addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+}
 
 function download(file) {
   const u = URL.createObjectURL(file);
@@ -760,14 +896,20 @@ function currentFile() {
   return new File([makeMp4(pc.cfg, pc.frames, pc.bytes, pFirst)], clipFileName(pc.meta), { type: 'video/mp4' });
 }
 
-$('pDown').addEventListener('click', () => {
+// Video lädt das Video, ein Bild nur das Bild mit seiner Zeichnung
+$('pDown').addEventListener('click', async () => {
+  if (viewMode === 'image') {
+    const blob = await composeImage(pCanvas.width, pCanvas.height, 0.92);
+    download(new File([blob], imageFileName(pimg.clip, pimg.rec), { type: 'image/jpeg' }));
+    return;
+  }
   if (!pc) return;
   pause();
   download(currentFile());
 });
 
 $('pDel').addEventListener('click', async () => {
-  if (!pc) return;
+  if (!viewMode) return;
   const b = $('pDel');
   if (!b.classList.contains('armed')) {
     b.classList.add('armed');
@@ -776,6 +918,17 @@ $('pDel').addEventListener('click', async () => {
     return;
   }
   resetDelete();
+  if (viewMode === 'image') {
+    // Danach das nächste Bild desselben Videos zeigen, ohne weitere Bilder das Video
+    const { rec, clip } = pimg;
+    const next = imageNeighbor(1) || imageNeighbor(-1);
+    savedSig = saveSig();   // gelöschtes Bild nicht mehr speichern
+    await deleteImage(rec.id);
+    listImages = listImages.filter(im => im.id !== rec.id);
+    if (next) await openImage(next);
+    else await openClip(clip);
+    return;
+  }
   const id = pc.meta.id;
   closePlayer();
   await deleteClip(id);
@@ -799,8 +952,7 @@ function openRange(kind) {
   rangeMode = kind;
   const n = pCount();
   let a, b;
-  if (loopOn()) { a = loopA; b = loopB; }
-  else if (kind === 'cut') { a = pFirst; b = n - 1; }
+  if (kind === 'cut') { a = pFirst; b = n - 1; }
   else { a = Math.max(pFirst, pPos - 30); b = Math.min(n - 1, pPos + 30); }
   if (b - a < MIN_RANGE) { a = pFirst; b = n - 1; }
   selA = a; selB = b;
@@ -999,6 +1151,112 @@ async function makeStrobe(a, b, count) {
   pStill = true;
   $('pStill').textContent = `Bildfolge · ${n} Bilder`;
   $('pStill').classList.remove('hidden');
+  renderSaveBtn();
+}
+
+// ---------- Bilder speichern ----------
+
+const canvasBlob = (cv, q) => new Promise(res => cv.toBlob(res, 'image/jpeg', q));
+
+// Bild mit oder ohne Zeichnung, ohne Griffe und ohne Zoom, in der gewünschten Größe.
+// Läuft ohne Warten, damit genau das Bild im Moment des Tippens erfasst wird.
+function snapCanvas(w, h, withDrawing) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  x.drawImage(pCanvas, 0, 0, w, h);
+  if (withDrawing) {
+    renderDrawing(false);
+    x.drawImage(dCanvas, 0, 0, w, h);
+    renderDrawing();
+  }
+  return c;
+}
+const composeImage = (w, h, q) => canvasBlob(snapCanvas(w, h, true), q);
+
+let playerMsgTimer = 0;
+// keep lässt die Meldung stehen, bis die nächste kommt
+function playerMsg(text, keep) {
+  $('pMsg').textContent = text;
+  $('pMsg').classList.remove('hidden');
+  clearTimeout(playerMsgTimer);
+  if (!keep) playerMsgTimer = setTimeout(() => $('pMsg').classList.add('hidden'), 2200);
+}
+
+// Im Videofenster nur sinnvoll, wenn gezeichnet wurde oder eine Bildfolge zu sehen ist
+// Fingerabdruck des aktuellen Standes. Ist er seit dem letzten Speichern unverändert, bleibt der Knopf grau,
+// damit kein doppeltes Bild entsteht.
+const saveSig = () => JSON.stringify([viewMode, viewMode === 'image' ? pimg && pimg.rec.id : pPos, pStill, shapes]);
+let savedSig = null;
+
+function renderSaveBtn() {
+  const b = $('dSave');
+  if (!b) return;
+  const possible = viewMode === 'video' ? (hasDrawing() || pStill) : viewMode === 'image';
+  b.disabled = !possible || saveSig() === savedSig;
+}
+
+let saveBusy = false;
+let savePromise = Promise.resolve();   // wer ein Bild öffnet, wartet, bis ein laufendes Speichern fertig ist
+$('dSave').addEventListener('click', () => {
+  if (saveBusy || !viewMode) return;
+  saveBusy = true;
+  savePromise = saveNowImage();
+});
+
+async function saveNowImage() {
+  try {
+    if (viewMode === 'video') pause();
+    // Zuerst alles im Moment des Tippens festhalten, danach in Ruhe umwandeln
+    const W = pCanvas.width, H = pCanvas.height;
+    const thumbCv = snapCanvas(384, 216, true);
+    const shapesNow = getShapes();
+    const sig = saveSig();
+    playerMsg('Wird gespeichert …', true);   // sofortige Rückmeldung, das Umwandeln dauert einen Moment
+    if (viewMode === 'image') {
+      // Änderungen gehen in dasselbe Bild, das Bild bleibt seinem Video zugeordnet
+      const rec = pimg.rec;
+      rec.shapes = shapesNow;
+      rec.thumb = await canvasBlob(thumbCv, 0.8);
+      await putImage(rec);
+      savedSig = sig;
+      playerMsg('Gespeichert');
+      return;
+    }
+    const c = pc.meta;
+    const baseCv = snapCanvas(W, H, false);
+    const still = pStill;
+    // Nummer sofort vergeben, damit zwei schnelle Speichervorgänge nie dieselbe bekommen
+    const n = imagesOf(c.id).reduce((m, im) => Math.max(m, im.n), 0) + 1;
+    const rec = { clipId: c.id, n, created: Date.now(), w: W, h: H, shapes: shapesNow, strobe: still };
+    listImages.push(rec);
+    try {
+      rec.base = await canvasBlob(baseCv, 0.92);
+      rec.thumb = await canvasBlob(thumbCv, 0.8);
+      rec.id = await putImage(rec);
+    } catch (e) {
+      listImages.splice(listImages.indexOf(rec), 1);
+      throw e;
+    }
+    savedSig = sig;
+    renderClipNav();
+    playerMsg('Gespeichert als ' + imageLabel(c, rec));
+  } catch (e) {
+    console.warn(e);
+    playerMsg('Speichern fehlgeschlagen');
+  } finally {
+    saveBusy = false;
+    renderSaveBtn();
+  }
+}
+
+// Änderungen an einem gespeicherten Bild gehen beim Verlassen nicht verloren
+async function flushImageEdits() {
+  await savePromise;
+  if (viewMode !== 'image' || saveSig() === savedSig) return;
+  saveBusy = true;
+  savePromise = saveNowImage();
+  await savePromise;
 }
 
 // ---------- Videos löschen in den Einstellungen ----------
@@ -1027,23 +1285,31 @@ function closeDelete() {
 async function askDelete(onlyNoStar) {
   delOnlyNoStar = onlyNoStar;
   const clips = await allClips();
-  const n = onlyNoStar ? clips.filter(c => !c.star).length : clips.length;
-  const what = n === 1 ? '1 Video' : n + ' Videos';
+  const hit = onlyNoStar ? clips.filter(c => !c.star) : clips;
+  const n = hit.length;
+  const ids = new Set(hit.map(c => c.id));
+  const nImg = (await allImages()).filter(im => ids.has(im.clipId)).length;
+  const vids = n === 1 ? '1 Video' : n + ' Videos';
+  const imgs = nImg ? ` mit ${nImg === 1 ? '1 Bild' : nImg + ' Bildern'}` : '';
   $('delQuestion').textContent = onlyNoStar
-    ? `${what} ohne Stern wirklich löschen? Das lässt sich nicht rückgängig machen.`
-    : `Wirklich alle ${what} löschen, auch die mit Stern? Das lässt sich nicht rückgängig machen.`;
+    ? `${vids} ohne Stern${imgs} wirklich löschen? Das lässt sich nicht rückgängig machen.`
+    : n === 1
+      ? `${vids}${imgs} wirklich löschen, auch mit Stern? Das lässt sich nicht rückgängig machen.`
+      : `Wirklich alle ${vids}${imgs} löschen, auch die mit Stern? Das lässt sich nicht rückgängig machen.`;
   $('delChoose').classList.add('hidden');
   $('delAsk').classList.remove('hidden');
 }
 
 async function deleteMany(onlyNoStar) {
-  const ids = (await allClips()).filter(c => !onlyNoStar || !c.star).map(c => c.id);
-  await inTx(['clips', 'data'], 'readwrite', t => {
+  const ids = new Set((await allClips()).filter(c => !onlyNoStar || !c.star).map(c => c.id));
+  const imgIds = (await allImages()).filter(im => ids.has(im.clipId)).map(im => im.id);
+  await inTx(['clips', 'data', 'images'], 'readwrite', t => {
     for (const id of ids) { t.objectStore('clips').delete(id); t.objectStore('data').delete(id); }
+    for (const id of imgIds) t.objectStore('images').delete(id);
   });
   closeDelete();
   renderStorage();
-  if (mode === 'analysis' && !pc) showList();
+  if (mode === 'analysis' && !viewMode) showList();
 }
 $('delNoStar').addEventListener('click', () => askDelete(true));
 $('delAll').addEventListener('click', () => askDelete(false));

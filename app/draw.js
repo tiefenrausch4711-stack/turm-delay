@@ -137,7 +137,19 @@ function renderDrawing(handles = true) {
   if (pending) drawShape(pending, k, handles);
   $('dUndo').disabled = !shapes.length && !pending;
   $('dClear').disabled = !shapes.length && !pending;
+  renderSaveBtn();
 }
+
+// Zeichnung als Kopie lesen und setzen, für gespeicherte Bilder
+function getShapes() { return JSON.parse(JSON.stringify(shapes)); }
+function setShapes(list) {
+  shapes = JSON.parse(JSON.stringify(list || []));
+  pending = null;
+  placing = false;
+  drag = null;
+  renderDrawing();
+}
+const hasDrawing = () => shapes.length > 0;
 
 function findHandle(p) {
   const r = HANDLE_PX * pxScale();
@@ -242,7 +254,7 @@ function movePinch() {
 }
 
 dStage.addEventListener('pointerdown', e => {
-  if (!pc) return;
+  if (!viewMode) return;
   try { dStage.setPointerCapture(e.pointerId); } catch (x) {}
   pointers.set(e.pointerId, stagePoint(e));
   if (pointers.size === 2) {
@@ -348,5 +360,5 @@ function resetDrawing() {
 }
 
 // Auch das Einblenden der Regler für Schneiden und Bildfolge ändert die Größe der Bühne
-new ResizeObserver(() => { if (pc) layoutView(); }).observe(dStage);
+new ResizeObserver(() => { if (viewMode) layoutView(); }).observe(dStage);
 renderColor();

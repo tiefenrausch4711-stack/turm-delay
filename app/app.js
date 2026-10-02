@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '1.5';
+const APP_VERSION = '2';
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -588,11 +588,14 @@ function enterSettings() {
   renderSettings();
 }
 
+// Als installierte App läuft LagLab schon im Vollbild. Ein zusätzlicher Vollbildwunsch würde nur
+// Chromes Hinweis zum Herauswischen auslösen, deshalb gibt es ihn nur im normalen Browser-Tab.
+const installedApp = () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
 async function goFullscreen() {
   try {
-    if (!document.fullscreenElement) await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
-    await screen.orientation.lock('landscape');
+    if (!installedApp() && !document.fullscreenElement) await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
   } catch (e) {}
+  try { await screen.orientation.lock('landscape'); } catch (e) {}
 }
 
 // ---------- Langes Drücken ----------
@@ -666,7 +669,7 @@ async function saveNow() {
   saveBtn.classList.add('done');
   try {
     const c = await saveClip(snap);
-    showToast('Gespeichert · ' + c.nr);
+    showToast('Gespeichert · V' + c.nr);
   } catch (e) {
     console.warn(e);
     showToast('Speichern fehlgeschlagen', true);
