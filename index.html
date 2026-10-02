@@ -25,6 +25,7 @@
   }
   a:active { transform: scale(0.98); }
   a img { width: 112px; height: 112px; border-radius: 24px; }
+  a.small { display: inline; width: auto; padding: 0; border: 0; background: none; color: var(--mut); font-size: 14px; font-weight: 400; text-decoration: underline; }
   p { margin: 0; max-width: 520px; text-align: center; color: var(--mut); font-size: 14px; }
 </style>
 </head>
@@ -35,6 +36,7 @@
     <a href="test/"><img src="test/icon-192.png" alt="">LagLab Test</a>
   </div>
   <p>App öffnen und im Chrome-Menü oben rechts „App installieren“ wählen.</p>
+  <p class="tools"><a class="small" href="usb.html">USB-Kameratest</a> · <a class="small" href="test.html">Gerätetest</a></p>
 <script>
   // Alten Service Worker der früher hier liegenden App abmelden. Die Worker unter app/ und test/ bleiben.
   if ('serviceWorker' in navigator) {
