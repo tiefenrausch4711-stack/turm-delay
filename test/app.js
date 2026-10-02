@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '32';   // Stand der Test-App
+const APP_VERSION = '33';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -1161,7 +1161,12 @@ function setTv(k, v) {
   applyTv();
 }
 
+// Stand beim Öffnen. Abbrechen und die Zurück-Geste stellen ihn wieder her, nur Fertig übernimmt die Änderungen.
+let tvBefore = null, tvKeep = false;
+
 function openTvCal() {
+  tvBefore = { ...settings.tv };
+  tvKeep = false;
   if (!settings.tv.h) Object.assign(settings.tv, tvDefaults());
   renderTvCal();
   const v = $('tvVideo');
@@ -1173,16 +1178,24 @@ function openTvCal() {
 function closeTvCal() {
   $('tvCal').classList.add('hidden');
   $('tvVideo').srcObject = null;
+  if (!tvKeep && tvBefore) {
+    settings.tv = { ...tvBefore };
+    saveSettings();
+    applyTv();
+  }
+  tvBefore = null;
 }
 
 $('tvOpen').addEventListener('click', openTvCal);
 $('tvDone').addEventListener('click', () => {
   settings.tv.on = true;
   settings.tv.set = true;
+  tvKeep = true;
   saveSettings();
   applyTv();
   history.back();
 });
+$('tvCancel').addEventListener('click', () => history.back());
 $('tvReset').addEventListener('click', () => {
   Object.assign(settings.tv, tvDefaults());
   saveSettings();

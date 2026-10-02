@@ -219,7 +219,15 @@
           </div>
         </div>
       </div>
-      <div class="label"><span class="no">04</span>Videos</div>
+      <div class="label"><span class="no">04</span>Bildschirm</div>
+      <div class="tvRow">
+        <div class="seg" id="segTv">
+          <button data-v="0">Normal</button>
+          <button data-v="1">Angepasst</button>
+        </div>
+        <button id="tvOpen" class="tool">Anpassen …</button>
+      </div>
+      <div class="label"><span class="no">05</span>Videos</div>
       <div class="vidGrid">
         <span id="keepLabel" class="vidText">Videos ohne Stern löschen nach</span>
         <div class="keepCtl">
@@ -229,14 +237,6 @@
         </div>
         <span id="uiStore" class="vidText"></span>
         <button id="delOpen" class="tool danger">Videos löschen …</button>
-      </div>
-      <div class="label"><span class="no">05</span>Fernseher</div>
-      <div class="tvRow">
-        <div class="seg" id="segTv">
-          <button data-v="0">Normal</button>
-          <button data-v="1">Angepasst</button>
-        </div>
-        <button id="tvOpen" class="tool">Anpassen …</button>
       </div>
     </div>
     <div id="uiDel" class="hidden">
@@ -272,7 +272,7 @@
     <i class="tvc tl"></i><i class="tvc tr"></i><i class="tvc bl"></i><i class="tvc br"></i><i class="tvCross"></i>
   </div>
   <div id="tvCtl">
-    <h2>Fernseher anpassen</h2>
+    <h2>Bildschirm anpassen</h2>
     <p class="vidText">Am Fernseher den Zoom einstellen. Dann den Rahmen verkleinern, bis auf dem Fernseher alle vier Ecken ganz zu sehen sind.</p>
       <div class="tvCtlRow" data-k="w">
         <span class="vidText">Breite</span>
@@ -304,6 +304,7 @@
       </div>
       <div class="tvBtns">
         <button id="tvReset" class="tool">Zurücksetzen</button>
+        <button id="tvCancel" class="tool">Abbrechen</button>
         <button id="tvDone" class="tool ok">Fertig</button>
       </div>
   </div>

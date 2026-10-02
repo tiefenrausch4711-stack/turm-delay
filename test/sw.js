@@ -1,7 +1,7 @@
 // Bei jeder neuen Version VERSION erhöhen. Die neue Version wird beim nächsten App-Start übernommen.
 // Test-App. Nur eigene Speicher werden gelöscht, damit die normale App unberührt bleibt.
 const PREFIX = 'lagcam-test-';
-const VERSION = PREFIX + 's32';   // Zählung seit Stand 1 vom 01.10.2026, weiter mit s2, s3 und so fort
+const VERSION = PREFIX + 's33';   // Zählung seit Stand 1 vom 01.10.2026, weiter mit s2, s3 und so fort
 // Die Bilderkennung für den Zauberstab ist groß und ändert sich selten. Sie liegt in einem eigenen
 // Speicher, den neue Versionen nicht löschen, und wird erst beim ersten Gebrauch geladen.
 const MP_CACHE = 'laglab-mp-1.0.1';

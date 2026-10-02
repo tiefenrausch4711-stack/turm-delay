@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 32 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 32, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 33 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 33, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -257,6 +257,11 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 ## Test-App Stand 32
 
 - Speicher-Knopf im Betrieb halb so groß, `5.25cqh` mit Innenabstand `0.9cqh`, sichtbarer Kreis etwa 25 px auf dem Tablet. Beim Drücken (`.go`) wächst er mit `scale(4.2)` auf etwa 104 px, die Größe des Kreises beim Verlassen, und schrumpft beim Loslassen. Er sitzt bei `6cqh` von links und unten, damit der große Kreis ganz im Bild bleibt. Eine unsichtbare Fläche `::before` macht die Tippfläche größer. Die Meldung „Gespeichert“ sitzt daneben bei `13cqh`.
+
+## Test-App Stand 33
+
+- Im Einstellungsfenster heißt der Abschnitt jetzt „04 Bildschirm“ und steht unter „03 Größe“, „Videos“ ist „05“. Das Prüfbild heißt „Bildschirm anpassen“.
+- Im Prüfbild gibt es „Abbrechen“ zwischen „Zurücksetzen“ und „Fertig“. `openTvCal` merkt sich den Stand beim Öffnen (`tvBefore`). Abbrechen und die Zurück-Geste stellen ihn wieder her, nur Fertig übernimmt (`tvKeep`).
 
 ## Neue Version veröffentlichen
 
