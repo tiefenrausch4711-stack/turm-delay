@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 01.10.2026. Normale App v1.4 unter `app/`, inhaltlich gleich mit Test-App Stand 4 unter `test/`, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 01.10.2026. Normale App v1.4 unter `app/`. Test-App Stand 5 unter `test/`, noch nicht übernommen, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -123,6 +123,18 @@ Gearbeitet wird nur an der Test-App. Übertragen in die normale App wird erst, w
 - Das Schild „TEST“ bleibt in der Test-App.
 - In die normale App übernommen mit v1.4 am 01.10.2026, Git-Tag `v1.4`. Der Startbildschirm ist dort blaugrau `#455a6f`.
 - Seit Stand 4 ein eigener Startbildschirm `#splash` in der Symbolfarbe mit dem Symbol in der Mitte. Er steht ab dem Öffnen mindestens `SPLASH_MS` 1,3 Sekunden und blendet dann in 0,45 Sekunden aus, mit Sicherheitsabschaltung nach 6 Sekunden. Das Manifest hat dafür `background_color` in der Symbolfarbe, damit der Startbildschirm von Android ohne Farbsprung übergeht. Wirkt bei Android erst nach Aktualisierung oder Neuinstallation der App.
+
+## Test-App Stand 5, Bilder, Eigenschaft und neue Dateinamen
+
+Abgestimmt am 02.10.2026, noch nicht in der normalen App.
+
+- Jedes Video hat neben Name eine Eigenschaft `prop`, zum Beispiel „Kopfsprung“. Bereits vergebene Namen und Eigenschaften erscheinen beim Eintippen als Auswahl.
+- Übersicht. Ganz links „Videos | Bilder“, entweder oder, nie gemischt. Daneben ★, „Name“ und „Eigenschaft“ als Filter, sie wirken zusammen und auch auf Bilder. Videokacheln zeigen die Zahl ihrer Bilder. Der leere Hinweis lautet nur „Noch keine Videos gespeichert.“
+- Bilder. Neuer Speicher `images` in IndexedDB, Datenbankversion 2, Index `clipId`. Ein Bild hat `clipId`, Nummer `n`, Grundbild `base` als JPG ohne Zeichnung, die Zeichnung `shapes` getrennt, damit sie später bearbeitbar bleibt, und ein Vorschaubild `thumb`. Bilder gehören zu ihrem Video und werden mit ihm gelöscht.
+- Werkzeugleiste in drei Gruppen ohne Linie, also Werkzeuge, dann „Rückgängig“ und „Leeren“, dann „Speichern“. „Speichern“ ist im Video nur aktiv, wenn gezeichnet wurde oder eine Bildfolge zu sehen ist. Bild, Zeichnung und Nummer werden im Moment des Tippens festgehalten.
+- Fenster. Kopfzeile in drei Bereichen, links „‹ Übersicht“ und Titel, Mitte „Video | Bilder“, rechts ★, Name, Eigenschaft, „Herunterladen“, „Löschen“. Die Pfeile liegen oben links auf dem Bild. Unter „Video“ blättern sie durch die Videos der Übersicht mit Filter, unter „Bilder“ durch die Bilder dieses Videos. Ein Bild aus der Übersicht öffnet das Fenster direkt unter „Bilder“. Unter „Bilder“ gibt es keine Abspielleiste, kein Schneiden und keine Bildfolge. „Herunterladen“ lädt dort nur das Bild mit Zeichnung, „Löschen“ löscht nur das Bild.
+- Dateinamen ohne „LagTime“, mit Eigenschaft, also `2026-10-02-Teo_Kopfsprung_V3.mp4` und `2026-10-02-Teo_Kopfsprung_V3_B1.jpg`. Fehlende Teile entfallen. In der Übersicht steht „V3“ und „V3_B1“, die Meldung im Betrieb lautet „Gespeichert · V3“.
+- Die Schleife ist entfallen. „Ansehen“ heißt „Zoom“, „‹ Liste“ heißt „‹ Übersicht“.
 
 ## Neue Version veröffentlichen
 

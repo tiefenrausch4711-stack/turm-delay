@@ -112,8 +112,10 @@
       <div class="barR"><button class="gear" data-ui aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8.4" stroke-width="3.6" stroke-dasharray="3.2 3.4"/><circle cx="12" cy="12" r="6" stroke-width="3"/></svg></button></div>
     </header>
     <div class="filters">
+      <nav class="tabs" id="fKind"><button data-k="videos" class="on">Videos</button><button data-k="images">Bilder</button></nav>
       <button id="fStar" class="chip" aria-label="Nur mit Stern">★</button>
       <select id="fName" aria-label="Name"></select>
+      <select id="fProp" aria-label="Eigenschaft"></select>
     </div>
     <div id="aGrid"></div>
     <p id="aEmpty" class="hidden"></p>
@@ -121,22 +123,30 @@
 
   <section id="aPlayer" class="hidden">
     <header class="pbar">
-      <button id="pBack" class="nav">‹ Liste</button>
-      <div id="pTitle"></div>
-      <div class="clipNav">
-        <button id="pPrevClip" class="nav" aria-label="Vorheriges Video">‹</button>
-        <button id="pNextClip" class="nav" aria-label="Nächstes Video">›</button>
+      <div class="pL">
+        <button id="pBack" class="nav">‹ Übersicht</button>
+        <div id="pTitle"></div>
       </div>
-      <input id="pName" list="pNames" placeholder="Name" autocomplete="off" enterkeyhint="done">
-      <datalist id="pNames"></datalist>
-      <button id="pStar" class="star" aria-label="Stern">☆</button>
-      <button id="pDown" class="tool">Herunterladen</button>
-      <button id="pDel" class="tool danger">Löschen</button>
+      <nav class="tabs" id="pKind"><button data-pk="video" class="on">Video</button><button data-pk="images">Bilder</button></nav>
+      <div class="pR">
+        <button id="pStar" class="star" aria-label="Stern">☆</button>
+        <input id="pName" list="pNames" placeholder="Name" autocomplete="off" enterkeyhint="done">
+        <input id="pProp" list="pProps" placeholder="Eigenschaft" autocomplete="off" enterkeyhint="done">
+        <datalist id="pNames"></datalist>
+        <datalist id="pProps"></datalist>
+        <button id="pDown" class="tool">Herunterladen</button>
+        <button id="pDel" class="tool danger">Löschen</button>
+      </div>
     </header>
     <div id="pMain">
-      <div id="pStage"><div id="pView"><canvas id="pOut"></canvas><canvas id="pDraw"></canvas></div><div id="pStill" class="hidden"></div></div>
+      <div id="pStage"><div id="pView"><canvas id="pOut"></canvas><canvas id="pDraw"></canvas></div><div id="pStill" class="hidden"></div><div id="pMsg" class="hidden"></div>
+        <div class="clipNav">
+          <button id="pPrevClip" class="navArrow" aria-label="Zurück">‹</button>
+          <button id="pNextClip" class="navArrow" aria-label="Weiter">›</button>
+        </div>
+      </div>
       <nav id="pTools">
-        <button class="tl on" data-tool="view"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5M10.5 8v5"/></svg><span>Ansehen</span></button>
+        <button class="tl on" data-tool="view"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5M10.5 8v5"/></svg><span>Zoom</span></button>
         <button class="tl" id="dZoom"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span>1:1</span></button>
         <button class="tl" data-tool="free"><svg viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg><span>Stift</span></button>
         <button class="tl" data-tool="line"><svg viewBox="0 0 24 24"><path d="M5 19L19 5"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="5" r="1.8"/></svg><span>Linie</span></button>
@@ -147,6 +157,7 @@
         <button class="tl" id="dStrobe"><svg viewBox="0 0 24 24"><circle cx="5.5" cy="17" r="2.3" opacity=".45"/><circle cx="11" cy="11" r="2.3" opacity=".7"/><circle cx="17.5" cy="6.5" r="2.3"/></svg><span>Bildfolge</span></button>
         <button class="tl" id="dUndo"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg><span>Rückgängig</span></button>
         <button class="tl" id="dClear"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Leeren</span></button>
+        <button class="tl" id="dSave"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg><span>Speichern</span></button>
       </nav>
     </div>
     <div id="pRange" class="hidden">
@@ -163,8 +174,7 @@
       <button id="pPrev" class="ico" aria-label="Ein Bild zurück"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM19 5v14L9.5 12z"/></svg></button>
       <button id="pPlay" class="ico big" aria-label="Abspielen"><svg class="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15L19.5 12z"/></svg><svg class="i-pause" viewBox="0 0 24 24"><path d="M6 4.5h4.2v15H6zM13.8 4.5H18v15h-4.2z"/></svg></button>
       <button id="pNext" class="ico" aria-label="Ein Bild vor"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM5 5v14l9.5-7z"/></svg></button>
-      <div class="seekWrap"><div id="pBand" class="hidden"></div><div id="pSel" class="hidden"></div><i id="hA" class="hd a hidden"></i><i id="hB" class="hd b hidden"></i><input type="range" id="pSeek" min="0" max="0" step="1" value="0" aria-label="Position"></div>
-      <button id="pLoop" class="tool loop"><small>Schleife</small><b>Anfang</b></button>
+      <div class="seekWrap"><div id="pSel" class="hidden"></div><i id="hA" class="hd a hidden"></i><i id="hB" class="hd b hidden"></i><input type="range" id="pSeek" min="0" max="0" step="1" value="0" aria-label="Position"></div>
       <span id="pTime"></span>
       <div class="seg" id="pSpeed">
         <button data-v="1">1×</button>
