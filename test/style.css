@@ -285,7 +285,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #badge {
   position: absolute; top: 3cqh; right: 2.5cqw;
   color: #fff;
-  font: 700 6cqh/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+  font: 400 4.5cqh/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
   /* kein Hintergrund, nur ein weicher Schatten für helle Bildstellen */
   text-shadow: 0 0 0.6cqh rgba(0, 0, 0, 0.8), 0 0.2cqh 0.4cqh rgba(0, 0, 0, 0.6);
 }
