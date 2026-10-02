@@ -613,8 +613,8 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
    Drei Stufen aus den Einstellungen. Vergrößert werden nur Bedienteile, nicht Bild- und Zeichenflächen
    und nicht der Betrieb für den Fernseher. Spalten, die das Elternelement festlegt, wachsen mit. */
 :root { --z: 1; }
-html[data-size="1"] { --z: 1.25; }
-html[data-size="2"] { --z: 1.5; }
+html[data-size="1"] { --z: 1.125; }
+html[data-size="2"] { --z: 1.25; }
 .bar, .filters, .delay, #panel, .dlg, #aGrid, #aEmpty, .pbar, .pctl, #pRange, #pTools,
 .clipNav, #pMsg, #pStill, #camMsg, .hud { zoom: var(--z); }
 #settings { grid-template-columns: minmax(0, 1fr) calc(clamp(360px, 32vw, 460px) * var(--z)); }
@@ -630,7 +630,6 @@ html[data-size="1"] #panel .row, html[data-size="2"] #panel .row { gap: 10px; }
 /* Farbkreise wachsen mit der Stufe nicht über ihre normale Größe hinaus, sonst wird das Fenster zu hoch */
 .swatches { grid-template-columns: repeat(6, minmax(0, calc(64px / var(--z)))); justify-content: space-between; }
 .dlg { max-height: calc((100vh - 16px) / var(--z)); overflow-y: auto; }
-html[data-size="2"] .sv { aspect-ratio: 16 / 8; }
 /* Ab „Groß“: Name und Eigenschaft in einer zweiten Zeile rechts, unter Stern, Herunterladen und Löschen */
 html[data-size="1"] .pR, html[data-size="2"] .pR { flex-wrap: wrap; row-gap: 6px; }
 html[data-size="1"] .pR::after, html[data-size="2"] .pR::after { content: ""; flex-basis: 100%; order: 5; }
@@ -642,11 +641,8 @@ html[data-size="1"] #pTools, html[data-size="2"] #pTools {
 }
 html[data-size="1"] #dUndo, html[data-size="2"] #dUndo,
 html[data-size="1"] #dSave, html[data-size="2"] #dSave { grid-column-start: 1; }
-html[data-size="2"] .tl { min-height: 42px; }
-html[data-size="2"] #dUndo, html[data-size="2"] #dSave { margin-top: 8px; }
 /* Beim Schneiden und bei der Bildfolge kommt unten eine Leiste dazu, dann werden die Werkzeuge flacher */
 #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 40px; }
-html[data-size="2"] #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 34px; }
 #pTools { scrollbar-width: none; }
 /* Die Anzeigen im Kamerabild sind keine Bedienung und wachsen nur wenig mit, damit das Bild frei bleibt */
 .hud { zoom: min(var(--z), 1.15); }

@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 22 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 22, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 23 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 23, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -194,6 +194,11 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 - Anpassungen ab „Groß“: Belichtung und Fokus nebeneinander in der rechten Spalte. Im Videofenster rücken Name und Eigenschaft in eine zweite Zeile rechts (`.pR::after` als Zeilenumbruch). Die Werkzeugleiste ist zweispaltig, Rückgängig und Speichern beginnen eine neue Reihe. Bei „Sehr groß“ sind Werkzeuge und Gruppenabstände etwas flacher und das Farbfeld im Farbwähler flacher.
 - Für alle Stufen: Start bleibt unten sichtbar (`position: sticky`). Einträge der Infozeile im Kamerabild brechen nicht in sich um. Farbkreise höchstens 64 px. Das Einstellungsfenster rollt notfalls. Beim Schneiden und bei der Bildfolge sind die Werkzeugknöpfe flacher, das behebt auch ein Überlaufen bei „Normal“.
 - Geprüft in 1280 × 800 mit einem Skript, das herausragende, abgeschnittene und überlappende Teile meldet: Live mit manueller Belichtung und manuellem Fokus, Einstellungsfenster mit Farbwähler und Löschen, Übersicht mit Videos und Bildern, Videofenster mit Video, Bild, Schneiden, Bildfolge und „‹ Wiedergabe“. Alle drei Stufen ohne Befund. Der Farbwähler trifft auch mit Zoom die richtige Stelle.
+
+## Test-App Stand 23
+
+- Nach dem Tablet-Test reicht 125 %. Die Stufen sind jetzt „Normal“ 100 %, „Groß“ 112,5 %, „Sehr groß“ 125 %. Die Sonderregeln, die nur für 150 % nötig waren, sind entfernt: flachere Werkzeuge, kleinere Gruppenabstände und flacheres Farbfeld. Alles andere aus Stand 22 gilt weiter, also ab „Groß“ zweite Zeile für Name und Eigenschaft, zwei Werkzeugspalten und Belichtung neben Fokus.
+- Erneut mit dem Prüfskript in 1280 × 800 geprüft, alle Seiten und alle drei Stufen ohne Befund.
 
 ## Neue Version veröffentlichen
 
