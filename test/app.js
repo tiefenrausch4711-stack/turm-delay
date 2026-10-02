@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '9';   // Stand der Test-App
+const APP_VERSION = '10';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -590,7 +590,7 @@ function enterSettings() {
   renderSettings();
 }
 
-// Als installierte App läuft LagTime schon im Vollbild. Ein zusätzlicher Vollbildwunsch würde nur
+// Als installierte App läuft LagLab schon im Vollbild. Ein zusätzlicher Vollbildwunsch würde nur
 // Chromes Hinweis zum Herauswischen auslösen, deshalb gibt es ihn nur im normalen Browser-Tab.
 const installedApp = () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
 async function goFullscreen() {

@@ -91,7 +91,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .tabs button.on { background: color-mix(in srgb, var(--fg) 14%, transparent); color: var(--fg); }
 .mark { display: flex; align-items: center; gap: 10px; font-size: 15px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mut); }
-.mark b { color: var(--fg); font-weight: 600; }
+.mark b { color: var(--fg); font-weight: 600; margin-left: 0.35em; }   /* LAG LAB mit Leerzeichen */
 .tag { margin-left: 6px; padding: 2px 8px; border-radius: 4px; background: #c2570c; color: #fff; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; }
 .glyph { width: 14px; height: 14px; border: 2px solid var(--acc-text); border-radius: 50%; position: relative; }
 .glyph::after { content: ""; position: absolute; left: 50%; top: 1px; width: 2px; height: 5px; background: var(--acc); transform: translateX(-50%); }

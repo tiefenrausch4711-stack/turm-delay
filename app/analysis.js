@@ -161,7 +161,7 @@ function makeMp4(cfg, frames, bytes, skip = 0) {
 
 function clipFileName(c) {
   const clean = (c.name || '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
-  return `LagTime_${c.day}_${pad2(c.nr)}${clean ? '_' + clean : ''}.mp4`;
+  return `LagLab_${c.day}_${pad2(c.nr)}${clean ? '_' + clean : ''}.mp4`;
 }
 
 // ---------- Ein- und Ausstieg ----------

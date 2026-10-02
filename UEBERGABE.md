@@ -1,12 +1,12 @@
-# Übergabe LagTime
+# Übergabe LagLab
 
-Stand 01.10.2026. Normale App v1.4 unter `app/`. Test-App Stand 9 unter `test/`, noch nicht übernommen, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 01.10.2026. Normale App v1.5 unter `app/`. Test-App Stand 10 unter `test/`, noch nicht übernommen. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
 ## Kurzfassung
 
-LagTime ist eine Progressive Web App für das Training im Turmspringen. Ein Samsung Galaxy Tab Active Pro (SM-T545, Android 11, Chrome 154) filmt den Sprung. Die App zeigt das Bild mit einstellbarer Verzögerung. Die Ausgabe geht per USB-C auf HDMI an einen 22-Zoll-Fernseher. Der Springer sieht seinen Sprung, nachdem er aus dem Becken gestiegen ist.
+LagLab ist eine Progressive Web App für das Training im Turmspringen. Ein Samsung Galaxy Tab Active Pro (SM-T545, Android 11, Chrome 154) filmt den Sprung. Die App zeigt das Bild mit einstellbarer Verzögerung. Die Ausgabe geht per USB-C auf HDMI an einen 22-Zoll-Fernseher. Der Springer sieht seinen Sprung, nachdem er aus dem Becken gestiegen ist.
 
 ## Zusammenarbeit
 
@@ -34,7 +34,7 @@ LagTime ist eine Progressive Web App für das Training im Turmspringen. Ein Sams
 | `app/` | Normale App mit `index.html`, `app.js`, `analysis.js`, `draw.js`, `style.css`, `sw.js`, `manifest.webmanifest` und Symbolen |
 | `icon-192.png`, `icon-512.png` | Symbol, seit Version 24 und Stand 36 weiß gefüllte Kamera mit runden Ecken und weichen Übergängen am Aufsatz, verkleinert und mittig. Die Uhr als Objektiv ist innen in der Hintergrundfarbe mit weißem Ring und weißen Zeigern. Seit v1.3 und Stand 3 ist das Objektiv größer, ohne weißen Ring und ohne Blitzpunkt, nur mit weißen Zeigern. Normale App blaugrau `#455a6f`, Test-App orange `#c2570c`, das Objektiv jeweils in der Hintergrundfarbe. Erzeugt mit `python icon.py app 455a6f` und `python icon.py test c2570c` |
 | `icon.py` | Erzeugt beide Symbole, Aufruf `python icon.py .` im Projektordner, braucht Pillow |
-| `test/` | Test-App „LagTime Test“, vollständige Kopie der App mit eigenen Änderungen |
+| `test/` | Test-App „LagLab Test“, vollständige Kopie der App mit eigenen Änderungen |
 | `test.html` | Testseite für die Fähigkeiten des Tablets |
 | `PLAN.md` | Vollständige Planung und Testergebnisse |
 | `.claude/launch.json` | Lokaler Vorschau-Server mit `python -m http.server 8765` |
@@ -43,9 +43,9 @@ LagTime ist eine Progressive Web App für das Training im Turmspringen. Ein Sams
 
 Seit dem 30.09.2026 gibt es zwei Apps nebeneinander.
 
-- Die normale App „LagTime“ liegt seit v1.2 im Ordner `app/`, vorher im Hauptordner. Am 01.10.2026 wurde der Inhalt der Test-App Stand 1 übernommen und als `v1` veröffentlicht, Git-Tag `v1`. Der alte Stand ist unter `v0` gesichert. Sie wird im Training genutzt und nur bei Fehlern oder bei einer neuen Übernahme aus der Test-App geändert.
+- Die normale App „LagLab“ liegt seit v1.2 im Ordner `app/`, vorher im Hauptordner. Am 01.10.2026 wurde der Inhalt der Test-App Stand 1 übernommen und als `v1` veröffentlicht, Git-Tag `v1`. Der alte Stand ist unter `v0` gesichert. Sie wird im Training genutzt und nur bei Fehlern oder bei einer neuen Übernahme aus der Test-App geändert.
 - Unterschiede der normalen App zur Test-App: Titel und Logo ohne „Test“, Anzeige `v` + `APP_VERSION`, `STORE_KEY` `turmdelay.settings.v1` ohne Übernahme anderer Einstellungen, IndexedDB `lagtime` statt `lagcam-test`, Offline-Speicher `turm-delay-r1` mit Zählung `r1`, `r2` und so fort, blaues Symbol, Manifest mit Bereich `./index.html`.
-- Die Test-App „LagTime Test“ liegt im Ordner `test/`. Neue Funktionen kommen nur dorthin. Sie hat ein oranges Symbol und in der App ein oranges Schild „Test“. Oben rechts steht „Stand“ mit ihrer Nummer.
+- Die Test-App „LagLab Test“ liegt im Ordner `test/`. Neue Funktionen kommen nur dorthin. Sie hat ein oranges Symbol und in der App ein oranges Schild „Test“. Oben rechts steht „Stand“ mit ihrer Nummer.
 - Beide teilen sich die Adresse von GitHub Pages, sind aber getrennt installiert. Die Test-App speichert ihre Einstellungen unter `lagcam.test.settings` und übernimmt beim ersten Start die Einstellungen der normalen App. Ihr Offline-Speicher heißt `lagcam-test-vN`, der der normalen App `turm-delay-vN`. Jeder Service Worker löscht nur Speicher mit dem eigenen Präfix.
 - Bei Änderungen an der Test-App `APP_VERSION` in `test/app.js` und `VERSION` in `test/sw.js` erhöhen. Am 01.10.2026 wurde die Zählung nach Stand 36 auf „Stand 1“ zurückgesetzt und mit dem Git-Tag `stand-1` gesichert. Der Offline-Speicher heißt seitdem `lagcam-test-s1`, weiter mit `s2`, `s3` und so fort, damit keine Verwechslung mit den alten Namen `v1` bis `v36` entsteht.
 - Hat sich die Test-App bewährt, werden ihre Änderungen nach `app/` übernommen. Dabei `STORE_KEY`, `MAIN_STORE_KEY`, Präfix, Namen, Schild und Symbol der normalen App beibehalten. Danach den neuen Stand mit einem Tag wie `v1` sichern.
@@ -108,7 +108,7 @@ Technik in `test/analysis.js`
 - Gespeichert wird ohne neu zu kodieren. Beginn ist der Keyframe vor dem gezeigten Bild.
 - Vorschaubilder entstehen erst in der Liste, etwa 2 Sekunden vor dem Ende.
 - Die Wiedergabe dekodiert mit `VideoDecoder`. Ein Sprung auf ein Bild dekodiert ab dem Keyframe davor und endet mit `flush()`.
-- Der Export verpackt die Daten mit einem eigenen kleinen MP4-Muxer. Dateiname `LagTime_<Datum>_<Nr>_<Name>.mp4`.
+- Der Export verpackt die Daten mit einem eigenen kleinen MP4-Muxer. Dateiname `LagLab_<Datum>_<Nr>_<Name>.mp4`.
 - `navigator.storage.persist()` wird beim Start angefordert.
 - Zeichnen, Winkel und Zoom stehen in `test/draw.js`. Formen liegen in Bildpunkten des Videos. Die Zeichenfläche `pDraw` liegt deckungsgleich über `pOut` in `pView`, das per CSS-Transform gezoomt wird. Zwei Finger zoomen und verschieben in jedem Werkzeug. Im Werkzeug „Ansehen“ verschiebt ein Finger, Doppeltippen setzt den Zoom zurück. Punkte von Linien und Winkeln lassen sich nachträglich verschieben. `onPlayerFrameShown()` löscht die Zeichnung bei jedem neuen Bild. Der Zoom bleibt.
 - Die Schleife setzt mit dem ersten Druck den Anfang, mit dem zweiten das Ende, mit dem dritten wird sie aufgehoben. Bei aktiver Schleife springt die Wiedergabe am Ende über `startFeed(loopA)` zurück.
@@ -133,7 +133,7 @@ Abgestimmt am 02.10.2026, noch nicht in der normalen App.
 - Bilder. Neuer Speicher `images` in IndexedDB, Datenbankversion 2, Index `clipId`. Ein Bild hat `clipId`, Nummer `n`, Grundbild `base` als JPG ohne Zeichnung, die Zeichnung `shapes` getrennt, damit sie später bearbeitbar bleibt, und ein Vorschaubild `thumb`. Bilder gehören zu ihrem Video und werden mit ihm gelöscht.
 - Werkzeugleiste in drei Gruppen ohne Linie, also Werkzeuge, dann „Rückgängig“ und „Leeren“, dann „Speichern“. „Speichern“ ist im Video nur aktiv, wenn gezeichnet wurde oder eine Bildfolge zu sehen ist. Bild, Zeichnung und Nummer werden im Moment des Tippens festgehalten.
 - Fenster. Kopfzeile in drei Bereichen, links „‹ Übersicht“ und Titel, Mitte „Video | Bilder“, rechts ★, Name, Eigenschaft, „Herunterladen“, „Löschen“. Die Pfeile liegen oben links auf dem Bild. Unter „Video“ blättern sie durch die Videos der Übersicht mit Filter, unter „Bilder“ durch die Bilder dieses Videos. Ein Bild aus der Übersicht öffnet das Fenster direkt unter „Bilder“. Unter „Bilder“ gibt es keine Abspielleiste, kein Schneiden und keine Bildfolge. „Herunterladen“ lädt dort nur das Bild mit Zeichnung, „Löschen“ löscht nur das Bild.
-- Dateinamen ohne „LagTime“, mit Eigenschaft, also `2026-10-02-Teo_Kopfsprung_V3.mp4` und `2026-10-02-Teo_Kopfsprung_V3_B1.jpg`. Fehlende Teile entfallen. In der Übersicht steht „V3“ und „V3_B1“, die Meldung im Betrieb lautet „Gespeichert · V3“.
+- Dateinamen ohne „LagLab“, mit Eigenschaft, also `2026-10-02-Teo_Kopfsprung_V3.mp4` und `2026-10-02-Teo_Kopfsprung_V3_B1.jpg`. Fehlende Teile entfallen. In der Übersicht steht „V3“ und „V3_B1“, die Meldung im Betrieb lautet „Gespeichert · V3“.
 - Die Schleife ist entfallen. „Ansehen“ heißt „Zoom“, „‹ Liste“ heißt „‹ Übersicht“.
 - Zweiter großer Nutzertest Stand 8 am 02.10.2026. Ohne Befund: leere Zustände, Zoom, Belichtung und Fokus pro Kamera, Kameraausfall mit Speichern, Zusammenführen von Namen mit doppelten Leerzeichen, Bilder aus geschnittenen Videos, Bildfolge mit Zeichnung, automatisches Speichern, Stern-Filter für Bilder, Löschen von Bildern und Videos, Offline-Speicher mit allen neun Dateien. Behoben: „Wird gespeichert …“ erscheint sofort beim Tippen auf „Speichern“, `playerMsg` mit `keep`. Die Rückfrage beim Löschen lautet jetzt zum Beispiel „3 Videos ohne Stern mit 1 Bild wirklich löschen?“, bei einem einzigen Video ohne „alle“.
 - Seit Stand 7 fordert die App als installierte App keinen zusätzlichen Vollbildmodus mehr an, siehe `installedApp`. Vorher zeigte Chrome beim ersten Wechsel zur Analyse und zurück den Hinweis zum Herauswischen aus dem Vollbild.
@@ -148,7 +148,7 @@ Abgestimmt am 02.10.2026, noch nicht in der normalen App.
 
 ## Aktueller Funktionsumfang
 
-- Der Name ist „LagTime“ ohne Leerzeichen. In der App steht er in Großbuchstaben als LAGTIME.
+- Der Name ist „LagLab“ ohne Leerzeichen, für die Test-App „LagLab Test“. In der App steht oben links in Großbuchstaben LAG LAB mit Leerzeichen, „LAG“ grau und „LAB“ weiß und fett.
 
 - Beim Öffnen erscheint immer der Einstellungsbildschirm.
 - Die Vorschau ist gestaltet wie ein Kamerasucher, mit Eckmarken und Drittellinien. Unten stehen Auflösung, Belichtung, Fokus und die gemessene neben der eingestellten Bildrate.
@@ -183,4 +183,4 @@ Abgestimmt am 02.10.2026, noch nicht in der normalen App.
 - Prüfen, ob die Vorschau im Einstellungsbildschirm auf dem Tablet flüssig läuft. Der Nutzer hatte ein Hängen gemeldet. Das betraf wahrscheinlich die Vorschau im Claude-Desktop. Die möglichen Ursachen auf dem Tablet wurden in Version 12 behoben.
 - Test über 3 Stunden, mit Blick auf Wärme und Stabilität. Falls das Tablet überhitzt, wieder 720p als Rückfall einbauen.
 - Die Checkliste für das Tablet aus `PLAN.md` an den Nutzer übergeben. Sie betrifft „Nicht stören“, die Akkuoptimierung, die Helligkeit, das Ladekabel und die Wärme.
-- Alte Symbole wie „Cam Delay“, „Turm Delay“, „Cam Time“, „Lag Time“ oder „LagCam“ auf dem Tablet entfernen und die App neu als „LagTime“ installieren.
+- Alte Symbole wie „Cam Delay“, „Turm Delay“, „Cam Time“, „Lag Time“, „LagCam“ oder „LagTime“ auf dem Tablet entfernen und die App neu als „LagLab“ installieren.
