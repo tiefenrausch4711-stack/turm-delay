@@ -1175,11 +1175,12 @@ function snapCanvas(w, h, withDrawing) {
 const composeImage = (w, h, q) => canvasBlob(snapCanvas(w, h, true), q);
 
 let playerMsgTimer = 0;
-function playerMsg(text) {
+// keep lässt die Meldung stehen, bis die nächste kommt
+function playerMsg(text, keep) {
   $('pMsg').textContent = text;
   $('pMsg').classList.remove('hidden');
   clearTimeout(playerMsgTimer);
-  playerMsgTimer = setTimeout(() => $('pMsg').classList.add('hidden'), 2200);
+  if (!keep) playerMsgTimer = setTimeout(() => $('pMsg').classList.add('hidden'), 2200);
 }
 
 // Im Videofenster nur sinnvoll, wenn gezeichnet wurde oder eine Bildfolge zu sehen ist
@@ -1211,6 +1212,7 @@ async function saveNowImage() {
     const thumbCv = snapCanvas(384, 216, true);
     const shapesNow = getShapes();
     const sig = saveSig();
+    playerMsg('Wird gespeichert …', true);   // sofortige Rückmeldung, das Umwandeln dauert einen Moment
     if (viewMode === 'image') {
       // Änderungen gehen in dasselbe Bild, das Bild bleibt seinem Video zugeordnet
       const rec = pimg.rec;
@@ -1287,10 +1289,13 @@ async function askDelete(onlyNoStar) {
   const n = hit.length;
   const ids = new Set(hit.map(c => c.id));
   const nImg = (await allImages()).filter(im => ids.has(im.clipId)).length;
-  const what = (n === 1 ? '1 Video' : n + ' Videos') + (nImg ? ` und ${nImg === 1 ? '1 Bild' : nImg + ' Bilder'}` : '');
+  const vids = n === 1 ? '1 Video' : n + ' Videos';
+  const imgs = nImg ? ` mit ${nImg === 1 ? '1 Bild' : nImg + ' Bildern'}` : '';
   $('delQuestion').textContent = onlyNoStar
-    ? `${what} ohne Stern wirklich löschen? Das lässt sich nicht rückgängig machen.`
-    : `Wirklich alle ${what} löschen, auch die mit Stern? Das lässt sich nicht rückgängig machen.`;
+    ? `${vids} ohne Stern${imgs} wirklich löschen? Das lässt sich nicht rückgängig machen.`
+    : n === 1
+      ? `${vids}${imgs} wirklich löschen, auch mit Stern? Das lässt sich nicht rückgängig machen.`
+      : `Wirklich alle ${vids}${imgs} löschen, auch die mit Stern? Das lässt sich nicht rückgängig machen.`;
   $('delChoose').classList.add('hidden');
   $('delAsk').classList.remove('hidden');
 }
