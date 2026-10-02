@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '20';   // Stand der Test-App
+const APP_VERSION = '21';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -486,6 +486,14 @@ function restartRunPlayback() {
   }
   decoderConfigRef = null;
   lastShownTs = 0;
+}
+
+// Auf der Videoseite aus dem Betrieb braucht die Wiedergabe keinen Decoder. Er wird ganz freigegeben,
+// weil das Tablet nur wenige Hardware-Decoder hat und das Video sonst schwarz bleibt.
+function releaseRunDecoder() {
+  restartRunPlayback();
+  if (decoder && decoder.state !== 'closed') { try { decoder.close(); } catch (e) {} }
+  decoder = null;
 }
 
 function baseSeq() { return buffer.length ? buffer[0].seq : nextSeq; }

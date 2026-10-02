@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 20 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 20, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 21 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 21, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -180,6 +180,12 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 ## Test-App Stand 20
 
 - Die Sekundenanzeige oben rechts im Betrieb ist kleiner und dünn, `#badge` mit `400 4.5cqh` statt `700 6cqh`.
+
+## Test-App Stand 21
+
+- Fehler vom Tablet: Die Videoseite direkt aus dem Betrieb blieb schwarz. Vermutete Ursache: zu wenige Hardware-Decoder, weil Aufnahme-Encoder und der ruhende Decoder der Wiedergabe belegt sind. In der Vorschau nicht nachstellbar.
+- Abhilfe 1: `releaseRunDecoder` schließt beim Öffnen der Videoseite den Decoder der Wiedergabe ganz. `tick` legt beim Zurückkehren einen neuen an.
+- Abhilfe 2: Der Decoder des Videofensters weicht auf Software aus (`pSoft`, `hardwareAcceleration: 'prefer-software'`), wenn er einen Fehler meldet oder nach 1,5 s kein Bild liefert. Jedes neu geöffnete Video versucht es zuerst wieder mit der Hardware. In der Vorschau mit nachgestelltem Fehler und nachgestelltem Hängen geprüft.
 
 ## Neue Version veröffentlichen
 

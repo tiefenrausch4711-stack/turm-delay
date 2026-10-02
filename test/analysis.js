@@ -213,7 +213,7 @@ async function enterReview(p) {
   clearRecent();
   cancelPress();
   reviewing = true;
-  restartRunPlayback();
+  releaseRunDecoder();
   history.pushState({ v: 'review' }, '');
   listClips = await allClips();
   listImages = (await allImages()).filter(im => clipById(im.clipId));
@@ -558,6 +558,8 @@ function chunkAt(i) {
   return new EncodedVideoChunk({ type: key ? 'key' : 'delta', timestamp: ts, data: pc.bytes.subarray(off, off + len) });
 }
 
+// Scheitert der Hardware-Decoder, etwa weil alle belegt sind, dekodiert die App das Video in Software
+let pSoft = false;
 function resetDecoder() {
   pGen++;
   pQueue.forEach(q => q.frame.close());
@@ -565,12 +567,19 @@ function resetDecoder() {
   if (!pdec || pdec.state === 'closed') {
     pdec = new VideoDecoder({
       output: onPlayerFrame,
-      error: e => { console.warn(e); pdec = null; },
+      error: e => {
+        console.warn(e);
+        pdec = null;
+        if (pSoft || !pc) return;
+        pSoft = true;
+        const i = pTarget >= 0 ? pTarget : pPos;
+        setTimeout(() => { if (!pc) return; pTarget = -1; pPending = -1; seek(i); }, 0);
+      },
     });
   } else {
     pdec.reset();
   }
-  pdec.configure(pc.cfg);
+  pdec.configure(pSoft ? { ...pc.cfg, hardwareAcceleration: 'prefer-software' } : pc.cfg);
 }
 
 function drawPlayer(f) {
@@ -600,6 +609,15 @@ function seek(i) {
     for (let k = keyBefore(i); k <= i; k++) pdec.decode(chunkAt(k));
   } catch (e) { console.warn(e); pdec = null; }
   const gen = pGen;
+  // Kommt nach 1,5 s kein Bild, hängt der Hardware-Decoder. Dann in Software noch einmal.
+  setTimeout(() => {
+    if (gen !== pGen || pTarget !== i || pSoft || !pc) return;
+    pSoft = true;
+    if (pdec) { try { pdec.close(); } catch (e) {} }
+    pdec = null;
+    pTarget = -1; pPending = -1;
+    seek(i);
+  }, 1500);
   const done = () => {
     if (gen !== pGen) return;
     pTarget = -1;
@@ -696,6 +714,7 @@ async function openClip(c) {
   pIndex = new Map(pc.frames.map((f, i) => [f[0], i]));
   pFirst = clamp(d.skip || 0, 0, pc.frames.length - 1);
   pPos = pFirst; pTarget = -1; pPending = -1; pPlaying = false; pStill = false;
+  pSoft = false;   // jedes Video versucht es zuerst mit der Hardware
   $('pStill').classList.add('hidden');
   closeRange();
   viewMode = 'video';
