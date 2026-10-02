@@ -626,7 +626,7 @@ html.big #panel {
 html.big #panel > :not(#expGrp):not(#focusGrp) { grid-column: 1 / -1; }
 html.big #panel .row { gap: 10px; }
 /* Start bleibt immer sichtbar, auch wenn die Spalte rollen muss */
-#panel .actions { position: sticky; bottom: 0; z-index: 1; background: var(--bg); padding-top: 8px; }
+#panel .actions { position: sticky; bottom: 0; z-index: 1; background: var(--bg); }
 /* Farbkreise wachsen mit der Stufe nicht über ihre normale Größe hinaus, sonst wird das Fenster zu hoch */
 .swatches { grid-template-columns: repeat(6, minmax(0, calc(64px / var(--z)))); justify-content: space-between; }
 .dlg { max-height: calc((100vh - 16px) / var(--z)); overflow-y: auto; }
@@ -673,3 +673,6 @@ html[data-size="3"] .sv { aspect-ratio: 16 / 8; }
 .sizeTicks i { width: 6px; height: 6px; margin: 8px -3px 0; border-radius: 50%; background: var(--line-2); }
 html[data-size="3"] #panel { gap: 6px 16px; }
 html[data-size="3"] #panel .grp { padding-bottom: 6px; }
+/* Start sitzt in jeder Größe ganz unten in der Spalte */
+html.big #panel { grid-template-rows: auto auto auto 1fr; align-content: stretch; }
+html.big #panel .actions { align-self: end; }
