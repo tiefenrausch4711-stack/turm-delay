@@ -880,6 +880,7 @@ document.addEventListener('click', e => {
 // Zurück-Taste und Zurück-Geste von Android. Wiedergabe führt zur Liste, Liste zu Live.
 // Im Betrieb bleibt sie wirkungslos, damit ein versehentliches Wischen den Betrieb nicht beendet.
 window.addEventListener('popstate', () => {
+  if (!$('tvCal').classList.contains('hidden')) { closeTvCal(); return; }   // zuerst das Prüfbild für den Fernseher
   if (!$('uiDlg').classList.contains('hidden')) { closeUi(); return; }   // zuerst das Fenster Darstellung
   if (mode === 'run') {
     if (reviewing) { leaveReview(); return; }   // von der Videoseite zurück in die Wiedergabe

@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 27 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 27, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 28 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 28, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -222,6 +222,15 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 
 - Start sitzt auf der Live-Seite in jeder Größe ganz unten. Ab Stufe 1 hat das Raster der rechten Spalte vier Zeilen, die letzte füllt den Rest, Start steht darin unten (`align-self: end`). Der Innenabstand oben an `.actions` aus Stand 22 ist entfernt.
 - Hinweis für Prüfungen in der Vorschau: Die Einblend-Bewegung `rise` der Live-Seite bleibt im gedrosselten Vorschaufenster am Anfang stehen. Das verschiebt die Gruppen um 8 px und täuscht ein Überlaufen vor. Vor dem Messen mit `getAnimations().forEach(a => a.finish())` beenden.
+
+## Test-App Stand 28, Fernseher anpassen
+
+- Grund: Tablet 16:10, Video und Fernseher 16:9. Im Betrieb entstehen dadurch oben und unten Balken auf dem Tablet, die HDMI mitspiegelt. Mit Zoom am Fernseher verschwinden sie, aber der Fernseher schneidet zu viel ab.
+- Neuer Abschnitt „05 Fernseher“ im Einstellungsfenster: Umschalter „Normal | Angepasst“ und Knopf „Anpassen …“. „Angepasst“ ohne frühere Einstellung öffnet gleich das Prüfbild.
+- Prüfbild `#tvCal`: Rahmen `#tvFrame` mit Gitter, farbigen Eckwinkeln, Kreuz und halbdurchsichtigem Live-Bild. Regler mit „−“ und „+“ für Breite und Höhe (40 bis 100 % des Bildschirms) und für die Lage der Mitte waagerecht und senkrecht (−30 bis +30 %), Schritt 0,5. „Zurücksetzen“ stellt 16:9 über die volle Breite her, „Fertig“ schaltet auf „Angepasst“. Zurück-Geste schließt das Prüfbild.
+- Werte in `settings.tv` = `{ on, set, w, h, x, y }`. `applyTv` setzt bei „Angepasst“ `#stage` auf diese Fläche, das Canvas füllt sie mit `object-fit: fill`. Sekundenanzeige und Speicher-Knopf sitzen in `#stage` und rücken mit.
+- Damit das Fenster bei den Stufen 2 und 3 nicht rollt, stehen dort „Modus“ und „Größe“ nebeneinander (`.dlgPair`).
+- Geprüft in 1280 × 800: Prüfbild, Werte, Fertig, Fläche im Betrieb genau gleich dem Rahmen, Fenster und Prüfbild in allen vier Größen ohne Befund.
 
 ## Neue Version veröffentlichen
 

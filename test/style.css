@@ -676,3 +676,43 @@ html[data-size="3"] #panel .grp { padding-bottom: 6px; }
 /* Start sitzt in jeder Größe ganz unten in der Spalte */
 html.big #panel { grid-template-rows: auto auto auto 1fr; align-content: stretch; }
 html.big #panel .actions { align-self: end; }
+
+/* ---------- Fernseher anpassen ---------- */
+.tvRow { display: flex; gap: 10px; align-items: center; }
+.tvRow .seg { flex: 1; }
+.tvRow .tool { min-height: 56px; }
+#tvCal { position: fixed; inset: 0; z-index: 30; background: #000; color: #e9edf0; touch-action: none; }
+#tvFrame {
+  position: absolute; transform: translate(-50%, -50%); overflow: hidden;
+  outline: 3px solid #fff; outline-offset: -3px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px) 0 0 / 10% 10%,
+    linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px) 0 0 / 10% 10%, #1b2026;
+}
+#tvVideo { display: block; width: 100%; height: 100%; object-fit: fill; opacity: 0.6; }
+.tvc { position: absolute; width: 9vh; height: 9vh; border: 1.4vh solid var(--acc); }
+.tvc.tl { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+.tvc.tr { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.tvc.bl { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+.tvc.br { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+.tvCross {
+  position: absolute; left: 50%; top: 50%; width: 8vh; height: 8vh; transform: translate(-50%, -50%);
+  background: linear-gradient(#fff, #fff) center / 3px 100% no-repeat, linear-gradient(#fff, #fff) center / 100% 3px no-repeat;
+}
+#tvCtl {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); zoom: var(--z);
+  width: 500px; max-width: 92vw; padding: 18px 20px; border-radius: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  background: rgba(20, 24, 28, 0.9); border: 1px solid #2f363e;
+}
+#tvCtl h2 { margin: 0; font-size: 18px; font-weight: 650; }
+#tvCtl p { margin: 0 0 4px; line-height: 1.4; }
+.tvCtlRow { display: grid; grid-template-columns: 112px 40px minmax(0, 1fr) 40px 64px; align-items: center; gap: 8px; }
+.tvVal { font: 15px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.tvBtns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+.tvBtns .tool { min-width: 130px; min-height: 48px; }
+
+/* Modus und Größe stehen normal untereinander, ab Stufe 2 nebeneinander, damit das Fenster nicht rollen muss */
+.dlgPair, .dlgPair > div { display: contents; }
+html[data-size="2"] .dlgPair, html[data-size="3"] .dlgPair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+html[data-size="2"] .dlgPair > div, html[data-size="3"] .dlgPair > div { display: flex; flex-direction: column; gap: 14px; }

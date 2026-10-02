@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '27';   // Stand der Test-App
+const APP_VERSION = '28';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -29,6 +29,7 @@ const DEFAULTS = {
   delay: 20,
   cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM }, external: { ...DEFAULT_CAM } },
   ui: { acc: '#4fbfb3', theme: 'dark', custom: '', size: 0 },   // size 0 bis 3 für 100, 117, 133 und 150 Prozent
+  tv: { on: false, set: false, w: 100, h: 0, x: 0, y: 0 },   // Fläche für den Betrieb in Prozent des Bildschirms, h 0 heißt noch nicht angepasst
   keepDays: 7,           // Videos ohne Stern werden nach so vielen Tagen gelöscht, 1 bis 30, 0 bedeutet nie
 };
 
@@ -46,6 +47,7 @@ function loadSettings() {
       external: { ...DEFAULT_CAM, ...(s.cams && s.cams.external) },
     },
     ui: { ...DEFAULTS.ui, ...s.ui },
+    tv: { ...DEFAULTS.tv, ...s.tv },
   };
 }
 
@@ -997,6 +999,7 @@ function applyUi() {
   setSeg('segTheme', theme);
   $('uiSize').value = size;
   fillRange($('uiSize'));
+  applyTv();
 }
 
 function setUi(part) {
@@ -1090,6 +1093,98 @@ function dragArea(el, onPos) {
 dragArea($('pickSv'), (x, y) => { hsv[1] = x; hsv[2] = 1 - y; });
 dragArea($('pickHue'), x => { hsv[0] = Math.min(x * 360, 359.9); });
 $('pickDone').addEventListener('click', closePicker);
+// ---------- Fernseher anpassen ----------
+// Mit Zoom am Fernseher schneidet dieser die Ränder ab. Im Betrieb erscheint das Video dann in einer
+// eingestellten Fläche, Breite und Höhe in Prozent des Bildschirms, die Mitte um x und y verschoben.
+
+const TV_RANGE = { w: [40, 100], h: [40, 100], x: [-30, 30], y: [-30, 30] };
+const TV_STEP = 0.5;
+
+// Ausgangswert: das Video über die volle Breite in 16:9, wie in der normalen Anzeige
+function tvDefaults() {
+  const h = Math.min(100, Math.round(innerWidth * 9 / 16 / innerHeight * 100 / TV_STEP) * TV_STEP);
+  return { w: 100, h, x: 0, y: 0 };
+}
+
+function placeBox(el, t) {
+  Object.assign(el.style, { width: t.w + 'vw', height: t.h + 'vh', left: (50 + t.x) + '%', top: (50 + t.y) + '%', aspectRatio: 'auto' });
+}
+
+function applyTv() {
+  const t = settings.tv, stage = $('stage');
+  if (t.on && t.h) placeBox(stage, t);
+  else stage.removeAttribute('style');
+  $('out').style.objectFit = t.on && t.h ? 'fill' : '';
+  setSeg('segTv', t.on ? 1 : 0);
+}
+
+const fmtTv = (k, v) => (k === 'x' || k === 'y')
+  ? (v > 0 ? '+' : v < 0 ? '−' : '') + String(Math.abs(v)).replace('.', ',') + ' %'
+  : String(v).replace('.', ',') + ' %';
+
+function renderTvCal() {
+  const t = settings.tv;
+  placeBox($('tvFrame'), t);
+  for (const row of document.querySelectorAll('#tvCtl [data-k]')) {
+    const k = row.dataset.k, r = row.querySelector('input');
+    [r.min, r.max] = TV_RANGE[k];
+    r.step = TV_STEP;
+    r.value = t[k];
+    fillRange(r);
+    row.querySelector('.tvVal').textContent = fmtTv(k, t[k]);
+  }
+}
+
+function setTv(k, v) {
+  settings.tv[k] = clamp(Math.round(v / TV_STEP) * TV_STEP, ...TV_RANGE[k]);
+  saveSettings();
+  renderTvCal();
+  applyTv();
+}
+
+function openTvCal() {
+  if (!settings.tv.h) Object.assign(settings.tv, tvDefaults());
+  renderTvCal();
+  const v = $('tvVideo');
+  if (stream) { v.srcObject = stream; v.play().catch(() => {}); }
+  $('tvCal').classList.remove('hidden');
+  history.pushState({ v: 'tv' }, '');
+}
+
+function closeTvCal() {
+  $('tvCal').classList.add('hidden');
+  $('tvVideo').srcObject = null;
+}
+
+$('tvOpen').addEventListener('click', openTvCal);
+$('tvDone').addEventListener('click', () => {
+  settings.tv.on = true;
+  settings.tv.set = true;
+  saveSettings();
+  applyTv();
+  history.back();
+});
+$('tvReset').addEventListener('click', () => {
+  Object.assign(settings.tv, tvDefaults());
+  saveSettings();
+  renderTvCal();
+  applyTv();
+});
+for (const row of document.querySelectorAll('#tvCtl [data-k]')) {
+  const k = row.dataset.k;
+  row.querySelector('input').addEventListener('input', e => setTv(k, +e.target.value));
+  for (const b of row.querySelectorAll('[data-d]')) b.addEventListener('click', () => setTv(k, settings.tv[k] + TV_STEP * b.dataset.d));
+}
+// Angepasst ohne bisherige Einstellung öffnet gleich das Prüfbild
+$('segTv').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.v === '1' && !settings.tv.set) { openTvCal(); return; }
+  settings.tv.on = b.dataset.v === '1';
+  saveSettings();
+  applyTv();
+});
+
 // Die Größe wechselt erst beim Loslassen, sonst wüchse der Regler unter dem Finger mit
 $('uiSize').addEventListener('input', () => fillRange($('uiSize')));
 $('uiSize').addEventListener('change', () => setUi({ size: +$('uiSize').value }));
