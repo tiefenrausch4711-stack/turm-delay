@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '12';   // Stand der Test-App
+const APP_VERSION = '13';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -194,7 +194,7 @@ async function startCamera() {
   await applyZoom();
   await applyExposure();
   await applyFocus();
-  if (mode === 'settings') video.srcObject = stream;
+  if (mode === 'settings') showLive();
   lastFrameAt = performance.now();
   quietWatchdog(2000);   // Anlaufzeit bis zum ersten Bild
   fpsCount = 0; fpsWindowStart = performance.now(); measuredFps = 0;
@@ -607,13 +607,19 @@ function enterRun() {
   requestAnimationFrame(tick);
 }
 
+// Live-Bild zeigen. Die Android-WebView startet es nach einem Wechsel nicht von selbst.
+function showLive() {
+  video.srcObject = stream;
+  video.play().catch(() => {});
+}
+
 function enterSettings() {
   mode = 'settings';
   cancelSavePress();
   resetPlayback();
   $('run').classList.add('hidden');
   $('settings').classList.remove('hidden');
-  if (stream) video.srcObject = stream;
+  if (stream) showLive();
   renderSettings();
 }
 

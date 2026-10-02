@@ -15,7 +15,10 @@ import com.serenegiant.usb.IFrameCallback;
 import com.serenegiant.usb.Size;
 import com.serenegiant.usb.USBMonitor;
 import com.serenegiant.usb.UVCCamera;
+import com.serenegiant.usb.UVCControl;
 import com.serenegiant.usb.UVCParam;
+
+import org.json.JSONObject;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -33,6 +36,8 @@ class UsbCam {
         void onState(String state, String msg);
         /** Art 0 Kopf, 1 Schlüsselbild, 2 Folgebild, Zeit in Mikrosekunden */
         void onChunk(int type, long ts, byte[] data);
+        /** Bereiche für Belichtung, Verstärkung und Fokus */
+        void onCaps(JSONObject caps);
     }
 
     private final Listener listener;
@@ -106,6 +111,52 @@ class UsbCam {
         });
     }
 
+    /** Belichtung und Fokus aus der Web-App */
+    void control(JSONObject m) {
+        cam.post(() -> {
+            if (camera == null) return;
+            try {
+                UVCControl c = camera.getControl();
+                String exp = m.optString("exp", "");
+                if (exp.equals("auto")) c.setExposureTimeAuto(true);
+                else if (exp.equals("manual")) {
+                    c.setExposureTimeAuto(false);
+                    c.setExposureTimeAbsolute(m.getInt("time"));
+                    if (m.has("gain")) c.setGain(m.getInt("gain"));
+                }
+                String focus = m.optString("focus", "");
+                if (focus.equals("auto")) c.setFocusAuto(true);
+                else if (focus.equals("manual")) {
+                    c.setFocusAuto(false);
+                    c.setFocusAbsolute(m.getInt("value"));
+                }
+            } catch (Exception e) {
+                Log.w(TAG, e);
+            }
+        });
+    }
+
+    private JSONObject caps() {
+        JSONObject o = new JSONObject();
+        try {
+            UVCControl c = camera.getControl();
+            o.put("t", "caps");
+            if (c.isExposureTimeAbsoluteEnable()) o.put("exp", range(c.updateExposureTimeAbsoluteLimit()));
+            if (c.isGainEnable()) o.put("gain", range(c.updateGainLimit()));
+            if (c.isFocusAbsoluteEnable() && c.isFocusAutoEnable()) o.put("focus", range(c.updateFocusAbsoluteLimit()));
+        } catch (Exception e) {
+            Log.w(TAG, e);
+        }
+        return o;
+    }
+
+    private static JSONObject range(int[] r) throws Exception {
+        JSONObject o = new JSONObject();
+        o.put("min", r[0]);
+        o.put("max", r[1]);
+        return o;
+    }
+
     void release() {
         cam.post(() -> {
             close(false);
@@ -176,6 +227,7 @@ class UsbCam {
             height = pick.height;
             src = new byte[width * height * 3 / 2];
             layout = 0;
+            listener.onCaps(caps());
             startEncoder();
             camera.setPreviewDisplay(surface);
             camera.setFrameCallback(frameCallback, UVCCamera.PIXEL_FORMAT_NV12);

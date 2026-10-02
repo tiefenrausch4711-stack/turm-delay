@@ -77,6 +77,7 @@ public class MainActivity extends Activity {
         usb = new UsbCam(this, new UsbCam.Listener() {
             @Override public void onState(String s, String msg) { sendState(s, msg); }
             @Override public void onChunk(int type, long ts, byte[] data) { sendChunk(type, ts, data); }
+            @Override public void onCaps(JSONObject caps) { post(caps.toString()); }
         });
         sv.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override public void surfaceCreated(SurfaceHolder h) { usb.setSurface(h.getSurface()); }
@@ -193,6 +194,9 @@ public class MainActivity extends Activity {
         try {
             JSONObject m = new JSONObject(data);
             switch (m.optString("t")) {
+                case "ctl":
+                    usb.control(m);
+                    break;
                 case "cam":
                     if (m.optBoolean("on")) usb.on(); else usb.off();
                     break;

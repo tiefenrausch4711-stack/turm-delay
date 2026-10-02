@@ -93,7 +93,7 @@ const native = (() => {
   function usbStream() {
     if (usb) stopUsb(usb);
     return new Promise((resolve, reject) => {
-      const u = { codec: '', waitKey: true, reject, w: 0, h: 0 };
+      const u = { codec: '', waitKey: true, reject, w: 0, h: 0, ctl: {}, set: {} };
       u.dec = new VideoDecoder({
         output: f => {
           u.w = f.displayWidth; u.h = f.displayHeight;
@@ -109,9 +109,10 @@ const native = (() => {
       });
       u.track = makeTrack(u);
       u.resolve = resolve;
-      // Die Spur verhält sich für die App wie eine Kamera ohne Zoom, Belichtung und Fokus
-      u.track.getSettings = () => ({ width: u.w, height: u.h, frameRate: 30 });
-      u.track.getCapabilities = () => ({});
+      // Die Spur verhält sich für die App wie eine Kamera. Belichtung und Fokus gehen an die Webcam.
+      u.track.getSettings = () => ({ width: u.w, height: u.h, frameRate: 30, ...u.set });
+      u.track.getCapabilities = () => trackCaps(u.ctl);
+      u.track.applyConstraints = async c => applyUsb(u, (c && c.advanced && c.advanced[0]) || c || {});
       const stop = u.track.stop.bind(u.track);
       u.track.stop = () => { stopUsb(u); stop(); };
       usb = u;
@@ -119,6 +120,44 @@ const native = (() => {
       u.timer = setTimeout(() => fail(u, 'Die USB-Kamera antwortet nicht.'), 20000);
       send({ t: 'cam', on: true });
     });
+  }
+
+  // Bereiche der Webcam in die Sprache der App übersetzen.
+  // Längere Belichtungen als 1/30 s passen nicht zu 30 Bildern pro Sekunde.
+  // Die Verstärkung erscheint als ISO 100 bis 800. Fokus erscheint als ungefähre Entfernung von 0,1 bis 3 m.
+  const ISO_MIN = 100, ISO_MAX = 800, F_NEAR = 0.1, F_FAR = 3;
+  function trackCaps(n) {
+    const c = {};
+    if (n.exp) {
+      c.exposureMode = ['continuous', 'manual'];
+      c.exposureTime = { min: n.exp.min, max: Math.max(n.exp.min + 1, Math.min(n.exp.max, 330)) };
+      if (n.gain) c.iso = { min: ISO_MIN, max: ISO_MAX };
+    }
+    if (n.focus) {
+      c.focusMode = ['continuous', 'manual'];
+      c.focusDistance = { min: F_NEAR, max: F_FAR };
+    }
+    return c;
+  }
+
+  function applyUsb(u, k) {
+    const n = u.ctl, m = { t: 'ctl' };
+    const lim = (x, a, b) => Math.min(b, Math.max(a, x));
+    if (k.exposureMode === 'continuous') m.exp = 'auto';
+    else if (k.exposureMode === 'manual' && n.exp) {
+      m.exp = 'manual';
+      m.time = Math.round(lim(k.exposureTime || n.exp.min, n.exp.min, n.exp.max));
+      if (k.iso && n.gain) m.gain = Math.round(n.gain.min + (lim(k.iso, ISO_MIN, ISO_MAX) - ISO_MIN) / (ISO_MAX - ISO_MIN) * (n.gain.max - n.gain.min));
+    }
+    if (k.focusMode === 'continuous') m.focus = 'auto';
+    else if (k.focusMode === 'manual' && n.focus) {
+      // Bei der Webcam bedeutet ein großer Wert nah, bei der App eine große Entfernung
+      const d = (lim(k.focusDistance || F_FAR, F_NEAR, F_FAR) - F_NEAR) / (F_FAR - F_NEAR);
+      m.focus = 'manual';
+      m.value = Math.round(n.focus.max - d * (n.focus.max - n.focus.min));
+    }
+    Object.assign(u.set, k);
+    if (m.exp || m.focus) send(m);
   }
 
   function onState(m) {
@@ -150,6 +189,7 @@ const native = (() => {
     if (d.startsWith('B:')) return onChunk(Uint8Array.from(atob(d.slice(2)), c => c.charCodeAt(0)).buffer);
     const m = JSON.parse(d);
     if (m.t === 'cam') onState(m);
+    else if (m.t === 'caps' && usb) usb.ctl = m;
     else if (m.t === 'saved' && saveDone) { saveDone(m.ok); saveDone = null; }
   };
   send({ t: 'hello' });
