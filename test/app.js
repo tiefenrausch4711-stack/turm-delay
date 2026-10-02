@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '10';   // Stand der Test-App
+const APP_VERSION = '11';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -27,7 +27,7 @@ const DEFAULTS = {
   height: 1080,
   fps: 30,
   delay: 20,
-  cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM } },
+  cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM }, external: { ...DEFAULT_CAM } },
   ui: { acc: '#4fbfb3', theme: 'dark', custom: '' },
   keepDays: 7,           // Videos ohne Stern werden nach so vielen Tagen gelöscht, 1 bis 30, 0 bedeutet nie
 };
@@ -43,6 +43,7 @@ function loadSettings() {
     cams: {
       environment: { ...DEFAULT_CAM, ...(s.cams && s.cams.environment) },
       user: { ...DEFAULT_CAM, ...(s.cams && s.cams.user) },
+      external: { ...DEFAULT_CAM, ...(s.cams && s.cams.external) },
     },
     ui: { ...DEFAULTS.ui, ...s.ui },
   };
@@ -55,7 +56,7 @@ function saveSettings() {
 const settings = loadSettings();
 
 // Alte Stufen wie 1/250 aus früheren Versionen werden zu Manuell
-for (const f of ['environment', 'user']) {
+for (const f of ['environment', 'user', 'external']) {
   const c = settings.cams[f];
   if (c.exp !== 'auto' && c.exp !== 'manual') c.exp = 'manual';
 }
@@ -133,12 +134,37 @@ function camOp(fn) {
   return camQueue;
 }
 
+// Eine Kamera am USB-Anschluss, etwa eine Webcam über einen Hub. Chrome nennt die eingebauten
+// Kameras "camera2 0, facing back" oder "facing front", alles andere gilt als USB-Kamera.
+const BUILTIN_RE = /facing (back|front)/i;
+async function externalCam() {
+  const list = async () => (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+  let all = await list();
+  // Namen gibt es erst nach einer Kamerafreigabe, dafür kurz irgendeine Kamera öffnen
+  if (all.length && !all[0].label) {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+    s.getTracks().forEach(t => t.stop());
+    all = await list();
+  }
+  const ext = all.find(d => d.label && !BUILTIN_RE.test(d.label));
+  if (ext) return ext;
+  const e = new Error(all.map(d => d.label || 'ohne Namen').join(' · ') || 'keine');
+  e.name = 'NoExternal';
+  throw e;
+}
+
 async function getStream() {
   const base = {
     width: { ideal: reqWidth() },
     height: { ideal: settings.height },
     frameRate: { ideal: settings.fps, max: settings.fps },
   };
+  if (settings.facing === 'external') {
+    const d = await externalCam();
+    const id = { deviceId: { exact: d.deviceId } };
+    try { return await navigator.mediaDevices.getUserMedia({ audio: false, video: { ...base, ...id, zoom: true } }); }
+    catch (e) { return await navigator.mediaDevices.getUserMedia({ audio: false, video: { ...base, ...id } }); }
+  }
   const tries = [
     { ...base, facingMode: { exact: settings.facing }, zoom: true },
     { ...base, facingMode: { exact: settings.facing } },
@@ -711,7 +737,7 @@ for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
 
 const fmtNum = x => String(r1(x)).replace('.', ',');
 const fmtZoom = z => (Number.isInteger(r1(z)) ? r1(z) + ',0' : fmtNum(z)) + '×';
-const CAM_LABEL = { environment: 'Rückseite', user: 'Vorderseite' };
+const CAM_LABEL = { environment: 'Rückseite', user: 'Vorderseite', external: 'USB' };
 
 function setSeg(id, value) {
   for (const b of $(id).querySelectorAll('button')) b.classList.toggle('on', b.dataset.v === String(value));
@@ -797,6 +823,7 @@ function renderCamInfo(err) {
   if (unsupported || camState === 'lost' || err) {
     let text = 'Kamera wird neu verbunden';
     if (unsupported) text = 'Dieser Browser unterstützt die nötigen Funktionen nicht.';
+    else if (err && err.name === 'NoExternal') text = 'Keine USB-Kamera erkannt. Gefundene Kameras: ' + err.message;
     else if (err && err.name === 'NotAllowedError') text = 'Kamerazugriff wurde nicht erlaubt. Bitte in den Chrome-Einstellungen für diese Seite freigeben.';
     state.className = 'state bad';
     stateTxt.textContent = 'Getrennt';
