@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '16';   // Stand der Test-App
+const APP_VERSION = '17';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -1000,7 +1000,7 @@ for (const c of ACCENTS) {
   b.style.setProperty('--c', c);
   b.setAttribute('aria-label', 'Farbe ' + c);
   if (c === '#e9edf0') b.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.25)';
-  $('swatches').insertBefore(b, $('accSaved'));
+  $('swatches').append(b);   // feste Farben nach Farbwähler und eigener Farbe
 }
 $('swatches').addEventListener('click', e => {
   const b = e.target.closest('button.sw');
