@@ -73,6 +73,7 @@ public class MainActivity extends Activity {
     private Thread outThread;
     private volatile boolean running;
     private int width, height;
+    private int layout;   // 0 unbekannt, 1 Encoder erwartet NV12, 2 andere Anordnung
     private byte[] src;
     private byte[] config;
 
@@ -164,6 +165,13 @@ public class MainActivity extends Activity {
             } catch (Exception e) { }
             for (String s : backlog) reply.postMessage(s);
             backlog.clear();
+        } else if (data.startsWith("size:")) {
+            String[] wh = data.substring(5).split("x");
+            int w = Integer.parseInt(wh[0]), h = Integer.parseInt(wh[1]);
+            camHandler.post(() -> restart(w, h));
+        } else if (data.startsWith("aepri:")) {
+            int v = Integer.parseInt(data.substring(6));
+            camHandler.post(() -> setAePriority(v));
         } else if (data.startsWith("copy:")) {
             ClipboardManager cm = getSystemService(ClipboardManager.class);
             cm.setPrimaryClip(ClipData.newPlainText("LagLab USB-Test", data.substring(5)));
@@ -288,25 +296,63 @@ public class MainActivity extends Activity {
             o.put("list", sb.toString());
             sendJson(o);
 
-            Size pick = pick(sizes, 1920, 1080);
-            if (pick == null) pick = pick(sizes, 1280, 720);
-            if (pick == null) pick = sizes.get(0);
-            if (pick.fpsList != null && pick.fpsList.contains(30)) pick.fps = 30;
-            c.setPreviewSize(pick);
-            width = pick.width;
-            height = pick.height;
-            src = new byte[width * height * 3 / 2];
-            log("Gewählt: " + (pick.type == UVCCamera.UVC_VS_FRAME_MJPEG ? "MJPEG " : "YUV ") + width + "x" + height + " mit " + pick.fps + " B/s");
-
-            startEncoder();
-            if (previewSurface != null) c.setPreviewDisplay(previewSurface);
-            else log("Keine Fläche für das Direktbild vorhanden.");
-            c.setFrameCallback(frameCallback, UVCCamera.PIXEL_FORMAT_NV12);
-            c.startPreview();
             synchronized (lock) { camera = c; }
-            log("Kamera läuft.");
+            setAePriority(0);
+            run(c, 1920, 1080);
         } catch (Exception e) {
             log("Fehler beim Öffnen: " + e);
+        }
+    }
+
+    // Startet die Vorschau in der gewünschten Größe, mit frischem Encoder
+    private void run(UVCCamera c, int w, int h) throws Exception {
+        List<Size> sizes = c.getSupportedSizeList();
+        Size pick = pick(sizes, w, h);
+        if (pick == null) pick = pick(sizes, 1280, 720);
+        if (pick == null) pick = sizes.get(0);
+        if (pick.fpsList != null && pick.fpsList.contains(30)) pick.fps = 30;
+        c.setPreviewSize(pick);
+        width = pick.width;
+        height = pick.height;
+        src = new byte[width * height * 3 / 2];
+        layout = 0;
+        log("Gewählt: " + (pick.type == UVCCamera.UVC_VS_FRAME_MJPEG ? "MJPEG " : "YUV ") + width + "x" + height + " mit " + pick.fps + " B/s");
+        startEncoder();
+        if (previewSurface != null) c.setPreviewDisplay(previewSurface);
+        else log("Keine Fläche für das Direktbild vorhanden.");
+        c.setFrameCallback(frameCallback, UVCCamera.PIXEL_FORMAT_NV12);
+        c.startPreview();
+        log("Kamera läuft.");
+    }
+
+    private void restart(int w, int h) {
+        UVCCamera c;
+        synchronized (lock) { c = camera; }
+        if (c == null) return;
+        try {
+            c.stopPreview();
+            stopEncoder();
+            run(c, w, h);
+        } catch (Exception e) {
+            log("Fehler beim Umschalten: " + e);
+        }
+    }
+
+    // 0 hält die Bildrate fest, 1 erlaubt der Kamera, bei wenig Licht langsamer zu werden
+    private void setAePriority(int v) {
+        UVCCamera c;
+        synchronized (lock) { c = camera; }
+        if (c == null) return;
+        try {
+            c.getControl().setAutoExposurePriority(v);
+            int now = c.getControl().getAutoExposurePriority();
+            log("Bildrate bei wenig Licht: " + (now == 0 ? "wird gehalten" : "darf sinken") + " (Wert " + now + ")");
+            JSONObject o = new JSONObject();
+            o.put("t", "aepri");
+            o.put("v", now);
+            sendJson(o);
+        } catch (Exception e) {
+            log("Belichtung ließ sich nicht umstellen: " + e);
         }
     }
 
@@ -361,11 +407,32 @@ public class MainActivity extends Activity {
         int w = width, h = height;
         ByteBuffer y = p[0].getBuffer();
         int ys = p[0].getRowStride();
-        for (int r = 0; r < h; r++) { y.position(r * ys); y.put(src, r * w, w); }
+        if (ys == w) { y.position(0); y.put(src, 0, w * h); }
+        else for (int r = 0; r < h; r++) { y.position(r * ys); y.put(src, r * w, w); }
         ByteBuffer u = p[1].getBuffer(), v = p[2].getBuffer();
         int us = p[1].getRowStride(), up = p[1].getPixelStride();
         int vs = p[2].getRowStride(), vp = p[2].getPixelStride();
         int base = w * h;
+        // Einmal prüfen, ob V direkt hinter U liegt. Dann ist es NV12 wie die Quelle, und ganze Zeilen lassen sich kopieren.
+        if (layout == 0) {
+            layout = 2;
+            if (up == 2 && vp == 2 && us == vs) {
+                byte old = u.get(1), mark = (byte) (old ^ 0x5a);
+                u.put(1, mark);
+                if (v.get(0) == mark) layout = 1;
+                u.put(1, old);
+            }
+            log("Eingabe des Encoders: " + (layout == 1 ? "NV12, schnelle Kopie" : "andere Anordnung, langsame Kopie"));
+        }
+        if (layout == 1) {
+            for (int r = 0; r < h / 2; r++) {
+                int s = base + r * w;
+                u.position(r * us);
+                u.put(src, s, w - 1);
+                v.put(r * vs + w - 2, src[s + w - 1]);
+            }
+            return;
+        }
         for (int r = 0; r < h / 2; r++) {
             int s = base + r * w;
             for (int c = 0; c < w / 2; c++) {

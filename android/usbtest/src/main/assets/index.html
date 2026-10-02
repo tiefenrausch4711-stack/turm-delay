@@ -21,6 +21,8 @@
   .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); } .mut { color:var(--mut); }
   #log { font:13px/1.4 ui-monospace, monospace; color:#bbb; white-space:pre-wrap; max-height:30vh; overflow:auto; }
   #sizes { font:12px/1.4 ui-monospace, monospace; color:#999; word-break:break-word; }
+  .btns button { margin:0 6px 4px 0; }
+  .btns button.on { background:#2a7; }
   button { font-size:18px; padding:10px 18px; border-radius:8px; border:0; background:#345; color:#fff; margin-top:10px; }
   /* Platz für das kleine Direktbild der Kamera, das Android unten rechts darüberlegt */
   .slot { width:30vw; aspect-ratio:16/9; margin:16px -16px -16px auto; border:1px dashed #444;
@@ -28,7 +30,7 @@
 </style>
 </head>
 <body>
-<h1>LagLab USB-Test</h1>
+<h1>LagLab USB-Test <small style="color:#999;font-weight:400">Fassung 2</small></h1>
 <div class="wrap">
   <div class="left">
     <canvas id="cv" width="1280" height="720"></canvas>
@@ -37,6 +39,12 @@
     <div id="log"></div>
   </div>
   <div class="right">
+    <h2>Umschalten</h2>
+    <div class="btns">
+      <button data-cmd="size:1920x1080" class="on">1080p</button>
+      <button data-cmd="size:1280x720">720p</button>
+      <button id="ae" data-cmd="aepri">Bildrate halten</button>
+    </div>
     <h2>Messung je Sekunde</h2>
     <div id="stats"></div>
     <h2>Formate der Kamera</h2>
@@ -86,6 +94,7 @@ function render() {
     ['Encoder', info.encoder || 'noch keiner'],
     ['Übertragung', info.binary === undefined ? '?' : (info.binary ? 'binär' : 'als Text, langsamer')],
     ['Auflösung', size || '–'],
+    ['Bildrate bei wenig Licht', aePri === null ? '?' : (aePri === 0 ? 'wird gehalten' : 'darf sinken')],
     ['Bilder von der Kamera', (nat.cam ?? 0) + ' B/s', fpsCls(nat.cam || 0)],
     ['Bilder verdichtet', (nat.encOut ?? 0) + ' B/s', fpsCls(nat.encOut || 0)],
     ['Verworfen, Encoder voll', String(nat.dropped ?? 0), nat.dropped ? 'warn' : ''],
@@ -182,10 +191,22 @@ else {
       if (m.msg.startsWith('Encoder: ')) info.encoder = m.msg.slice(9);
     } else if (m.t === 'stats') { nat = m; render(); }
     else if (m.t === 'sizes') { $('sizes').textContent = m.list; }
+    else if (m.t === 'aepri') { aePri = m.v; $('ae').classList.toggle('on', m.v === 0); $('ae').textContent = m.v === 0 ? 'Bildrate halten: an' : 'Bildrate halten: aus'; }
   };
   usbcam.postMessage('hello');
 }
 if (!('VideoDecoder' in window)) log('WebCodecs fehlt in dieser WebView.');
+
+let aePri = null;
+for (const b of document.querySelectorAll('.btns button')) b.onclick = () => {
+  if (!window.usbcam) return;
+  history.length = 0;
+  $('verdict').className = '';
+  $('verdict').textContent = 'Wird umgestellt, die Messung beginnt neu.';
+  if (b.dataset.cmd === 'aepri') { usbcam.postMessage('aepri:' + (aePri === 0 ? 1 : 0)); return; }
+  for (const x of document.querySelectorAll('[data-cmd^=size]')) x.classList.toggle('on', x === b);
+  usbcam.postMessage(b.dataset.cmd);
+};
 
 $('copy').onclick = () => {
   const text = [$('verdict').textContent, '',

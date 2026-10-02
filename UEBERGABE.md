@@ -181,6 +181,8 @@ Machbarkeitstest `android/usbtest`, Paket `de.laglab.usbtest`, Java, Bibliothek 
 - Die H.264-Stücke gehen per `addWebMessageListener` als ArrayBuffer an `assets/index.html`, geladen über `WebViewAssetLoader` von `https://appassets.androidplatform.net`. Die Seite dekodiert mit `VideoDecoder` und misst Bildraten und Verzögerung.
 - Bauen auf dem PC mit Android Studio, JDK aus `C:\Program Files\Android\Android Studio\jbr`, Gradle 9.0 über den Wrapper, AGP 8.13.2: `JAVA_HOME=... ./gradlew :usbtest:assembleDebug` im Ordner `android`, danach die APK nach `apk/laglab-usbtest.apk` kopieren. Bisher mit dem Debug-Schlüssel signiert.
 - In der Vorschau getestet ist nur die Webseite mit nachgestelltem Kamerastrom. Auf dem PC gibt es kein Android-Abbild für den Emulator.
+- Ergebnis Fassung 1 am 02.10.2026 auf dem Tablet: Webcam öffnet über USB, MJPEG 1920x1080 kommt als H.264 in der Webseite an, Verzögerung 21 ms. Aber nur 14 B/s schon von der Kamera, Umwandlung 26 ms je Bild. Encoder `OMX.qcom.video.encoder.avc`. Die C920 meldet sich als 046d:08e5 und bietet kein H.264, nur YUV und MJPEG.
+- Fassung 2 hat Schalter für 1080p und 720p und für die Belichtungspriorität der Kamera (UVC AE Priority, 0 hält die Bildrate). Dazu eine schnelle Zeilenkopie, wenn der Encoder NV12 erwartet. Ziel ist zu klären, ob Licht oder Rechenleistung die Bildrate begrenzt.
 
 ## Wichtige Erkenntnisse
 
