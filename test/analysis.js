@@ -681,6 +681,7 @@ function updatePlayerUi() {
   for (const b of $('pSpeed').querySelectorAll('button')) b.classList.toggle('on', +b.dataset.v === pSpeed);
   $('pPrev').disabled = pPos <= pFirst;
   $('pNext').disabled = pPos >= n - 1;
+  renderSaveBtn();   // ein anderes Bild lässt sich wieder speichern
 }
 
 async function openClip(c) {
@@ -1223,15 +1224,14 @@ function snapCanvas(w, h, withDrawing) {
 const composeImage = (w, h, q) => canvasBlob(snapCanvas(w, h, true), q);
 
 let playerMsgTimer = 0;
-// keep lässt die Meldung stehen, bis die nächste kommt
-function playerMsg(text, keep) {
+// keep lässt die Meldung stehen, bis die nächste kommt. ms bestimmt sonst die Dauer.
+function playerMsg(text, keep, ms = 2200) {
   $('pMsg').textContent = text;
   $('pMsg').classList.remove('hidden');
   clearTimeout(playerMsgTimer);
-  if (!keep) playerMsgTimer = setTimeout(() => $('pMsg').classList.add('hidden'), 2200);
+  if (!keep) playerMsgTimer = setTimeout(() => $('pMsg').classList.add('hidden'), ms);
 }
 
-// Im Videofenster nur sinnvoll, wenn gezeichnet wurde oder eine Bildfolge zu sehen ist
 // Fingerabdruck des aktuellen Standes. Ist er seit dem letzten Speichern unverändert, bleibt der Knopf grau,
 // damit kein doppeltes Bild entsteht.
 const saveSig = () => JSON.stringify([viewMode, viewMode === 'image' ? pimg && pimg.rec.id : pPos, pStill, shapes]);
@@ -1240,8 +1240,8 @@ let savedSig = null;
 function renderSaveBtn() {
   const b = $('dSave');
   if (!b) return;
-  const possible = viewMode === 'video' ? (hasDrawing() || pStill) : viewMode === 'image';
-  b.disabled = !possible || saveSig() === savedSig;
+  // Jedes Bild lässt sich speichern, auch ohne Zeichnung. Nur dasselbe Bild nicht zweimal.
+  b.disabled = !viewMode || saveSig() === savedSig;
 }
 
 let saveBusy = false;
@@ -1253,6 +1253,7 @@ $('dSave').addEventListener('click', () => {
 });
 
 async function saveNowImage() {
+  let slow = 0;
   try {
     if (viewMode === 'video') pause();
     // Zuerst alles im Moment des Tippens festhalten, danach in Ruhe umwandeln
@@ -1260,7 +1261,8 @@ async function saveNowImage() {
     const thumbCv = snapCanvas(384, 216, true);
     const shapesNow = getShapes();
     const sig = saveSig();
-    playerMsg('Wird gespeichert …', true);   // sofortige Rückmeldung, das Umwandeln dauert einen Moment
+    // Der Hinweis erscheint nur, wenn das Umwandeln merklich dauert
+    slow = setTimeout(() => playerMsg('Wird gespeichert …', true), 400);
     if (viewMode === 'image') {
       // Änderungen gehen in dasselbe Bild, das Bild bleibt seinem Video zugeordnet
       const rec = pimg.rec;
@@ -1268,7 +1270,8 @@ async function saveNowImage() {
       rec.thumb = await canvasBlob(thumbCv, 0.8);
       await putImage(rec);
       savedSig = sig;
-      playerMsg('Gespeichert');
+      clearTimeout(slow);
+      playerMsg('Gespeichert', false, 1200);
       return;
     }
     const c = pc.meta;
@@ -1279,8 +1282,7 @@ async function saveNowImage() {
     const rec = { clipId: c.id, n, created: Date.now(), w: W, h: H, shapes: shapesNow, strobe: still };
     listImages.push(rec);
     try {
-      rec.base = await canvasBlob(baseCv, 0.92);
-      rec.thumb = await canvasBlob(thumbCv, 0.8);
+      [rec.base, rec.thumb] = await Promise.all([canvasBlob(baseCv, 0.92), canvasBlob(thumbCv, 0.8)]);
       rec.id = await putImage(rec);
     } catch (e) {
       listImages.splice(listImages.indexOf(rec), 1);
@@ -1288,9 +1290,11 @@ async function saveNowImage() {
     }
     savedSig = sig;
     renderClipNav();
-    playerMsg('Gespeichert als ' + imageLabel(c, rec));
+    clearTimeout(slow);
+    playerMsg('Gespeichert als ' + imageLabel(c, rec), false, 1200);
   } catch (e) {
     console.warn(e);
+    clearTimeout(slow);
     playerMsg('Speichern fehlgeschlagen');
   } finally {
     saveBusy = false;
