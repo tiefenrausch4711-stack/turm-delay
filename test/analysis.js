@@ -90,7 +90,13 @@ async function writeClip({ config, entries }) {
   const dur = n > 1 ? frames[n - 1][0] / 1000 * n / (n - 1) : 33;
   const now = new Date();
   const day = dayKey(now);
-  const nr = (await allClips()).filter(c => c.day === day).reduce((m, c) => Math.max(m, c.nr), 0) + 1;
+  // Nummern eines Tages steigen nur. Auch nach dem Löschen wird keine Nummer wieder vergeben,
+  // damit heruntergeladene Dateien eindeutig bleiben.
+  const used = (await allClips()).filter(c => c.day === day).reduce((m, c) => Math.max(m, c.nr), 0);
+  const last = settings.lastNr && settings.lastNr.day === day ? settings.lastNr.nr : 0;
+  const nr = Math.max(used, last) + 1;
+  settings.lastNr = { day, nr };
+  saveSettings();
   const cfg = {
     codec: config.codec, codedWidth: config.codedWidth, codedHeight: config.codedHeight,
     description: config.description ? copyBuf(config.description) : undefined,
@@ -231,6 +237,7 @@ const passesFilter = c => (!listFilter.star || c.star) && (!listFilter.name || c
 const clipById = id => listClips.find(c => c.id === id);
 
 async function showList() {
+  await flushImageEdits();
   closePlayer();
   $('aPlayer').classList.add('hidden');
   $('aList').classList.remove('hidden');
@@ -248,7 +255,9 @@ async function showList() {
 }
 
 function renderList(clips) {
-  listUrls.forEach(u => URL.revokeObjectURL(u));
+  // Alte Vorschaubilder erst freigeben, wenn die neuen Kacheln stehen, sonst laden sie ins Leere
+  const old = listUrls;
+  setTimeout(() => old.forEach(u => URL.revokeObjectURL(u)), 3000);
   listUrls = [];
   const grid = $('aGrid');
   grid.textContent = '';
@@ -263,7 +272,8 @@ function renderList(clips) {
   $('aEmpty').textContent = images
     ? (all ? 'Keine Bilder für diese Auswahl.' : 'Noch keine Bilder gespeichert.')
     : (all ? 'Keine Videos für diese Auswahl.' : 'Noch keine Videos gespeichert.');
-  items.sort((a, b) => b.c.created - a.c.created || (b.im ? b.im.n - a.im.n : 0));
+  // Neueste Videos zuerst, die Bilder eines Videos in ihrer Reihenfolge B1, B2, B3
+  items.sort((a, b) => b.c.created - a.c.created || (a.im ? a.im.n - b.im.n : 0));
   let day = null, row = null;
   for (const x of items) {
     if (x.c.day !== day) {
@@ -646,6 +656,7 @@ async function openClip(c) {
   $('pStill').classList.add('hidden');
   closeRange();
   viewMode = 'video';
+  savedSig = null;
   $('aPlayer').classList.remove('imgMode');
   $('aList').classList.add('hidden');
   $('aPlayer').classList.remove('hidden');
@@ -694,6 +705,7 @@ function closePlayer() {
 // ---------- Bildfenster ----------
 
 async function openImage(im) {
+  await savePromise;
   const c = clipById(im.clipId);
   if (!c) return;
   closePlayer();
@@ -712,6 +724,8 @@ async function openImage(im) {
   bmp.close();
   resetDrawing();
   setShapes(im.shapes);
+  savedSig = saveSig();   // frisch geöffnet gilt als gespeichert
+  renderSaveBtn();
   $('pTitle').textContent = `${dayLabel(c.day)} · ${imageLabel(c, im)}`;
   fillClipFields(c);
 }
@@ -752,10 +766,12 @@ function renderClipNav() {
 $('pKind').addEventListener('click', async e => {
   const b = e.target.closest('button');
   if (!b || b.disabled || navBusy) return;
+  await savePromise;
   const c = curClip();
   if (!c) return;
   navBusy = true;
   try {
+    await flushImageEdits();
     if (b.dataset.pk === 'images' && viewMode !== 'image') { const first = imagesOf(c.id)[0]; if (first) await openImage(first); }
     else if (b.dataset.pk === 'video' && viewMode !== 'video') await openClip(c);
   } finally { navBusy = false; }
@@ -768,7 +784,10 @@ async function showNeighbor(dir) {
   const x = neighbor(dir);
   if (!x || navBusy) return;
   navBusy = true;
-  try { await (viewMode === 'image' ? openImage(x) : openClip(x)); } finally { navBusy = false; }
+  try {
+    await flushImageEdits();
+    await (viewMode === 'image' ? openImage(x) : openClip(x));
+  } finally { navBusy = false; }
 }
 $('pPrevClip').addEventListener('click', () => showNeighbor(-1));
 $('pNextClip').addEventListener('click', () => showNeighbor(1));
@@ -849,7 +868,12 @@ for (const [id, key] of [['pName', 'name'], ['pProp', 'prop']]) {
   $(id).addEventListener('change', async () => {
     const c = curClip();
     if (!c) return;
-    c[key] = $(id).value.trim();
+    // Doppelte Leerzeichen entfernen und eine vorhandene Schreibweise übernehmen, damit „teo“ und „Teo“ ein Name bleiben
+    let v = $(id).value.replace(/\s+/g, ' ').trim();
+    const known = sortedValues(listClips.filter(x => x !== c), key).find(k => k.toLocaleLowerCase('de') === v.toLocaleLowerCase('de'));
+    if (known) v = known;
+    $(id).value = v;
+    c[key] = v;
     renderClipNav();
     await putClip(c);
   });
@@ -895,10 +919,14 @@ $('pDel').addEventListener('click', async () => {
   }
   resetDelete();
   if (viewMode === 'image') {
-    const id = pimg.rec.id;
-    closePlayer();
-    await deleteImage(id);
-    history.back();
+    // Danach das nächste Bild desselben Videos zeigen, ohne weitere Bilder das Video
+    const { rec, clip } = pimg;
+    const next = imageNeighbor(1) || imageNeighbor(-1);
+    savedSig = saveSig();   // gelöschtes Bild nicht mehr speichern
+    await deleteImage(rec.id);
+    listImages = listImages.filter(im => im.id !== rec.id);
+    if (next) await openImage(next);
+    else await openClip(clip);
     return;
   }
   const id = pc.meta.id;
@@ -1155,28 +1183,41 @@ function playerMsg(text) {
 }
 
 // Im Videofenster nur sinnvoll, wenn gezeichnet wurde oder eine Bildfolge zu sehen ist
+// Fingerabdruck des aktuellen Standes. Ist er seit dem letzten Speichern unverändert, bleibt der Knopf grau,
+// damit kein doppeltes Bild entsteht.
+const saveSig = () => JSON.stringify([viewMode, viewMode === 'image' ? pimg && pimg.rec.id : pPos, pStill, shapes]);
+let savedSig = null;
+
 function renderSaveBtn() {
   const b = $('dSave');
   if (!b) return;
-  b.disabled = viewMode === 'video' ? !(hasDrawing() || pStill) : viewMode !== 'image';
+  const possible = viewMode === 'video' ? (hasDrawing() || pStill) : viewMode === 'image';
+  b.disabled = !possible || saveSig() === savedSig;
 }
 
 let saveBusy = false;
-$('dSave').addEventListener('click', async () => {
+let savePromise = Promise.resolve();   // wer ein Bild öffnet, wartet, bis ein laufendes Speichern fertig ist
+$('dSave').addEventListener('click', () => {
   if (saveBusy || !viewMode) return;
   saveBusy = true;
+  savePromise = saveNowImage();
+});
+
+async function saveNowImage() {
   try {
     if (viewMode === 'video') pause();
     // Zuerst alles im Moment des Tippens festhalten, danach in Ruhe umwandeln
     const W = pCanvas.width, H = pCanvas.height;
     const thumbCv = snapCanvas(384, 216, true);
     const shapesNow = getShapes();
+    const sig = saveSig();
     if (viewMode === 'image') {
       // Änderungen gehen in dasselbe Bild, das Bild bleibt seinem Video zugeordnet
       const rec = pimg.rec;
       rec.shapes = shapesNow;
       rec.thumb = await canvasBlob(thumbCv, 0.8);
       await putImage(rec);
+      savedSig = sig;
       playerMsg('Gespeichert');
       return;
     }
@@ -1187,16 +1228,34 @@ $('dSave').addEventListener('click', async () => {
     const n = imagesOf(c.id).reduce((m, im) => Math.max(m, im.n), 0) + 1;
     const rec = { clipId: c.id, n, created: Date.now(), w: W, h: H, shapes: shapesNow, strobe: still };
     listImages.push(rec);
-    rec.base = await canvasBlob(baseCv, 0.92);
-    rec.thumb = await canvasBlob(thumbCv, 0.8);
-    rec.id = await putImage(rec);
+    try {
+      rec.base = await canvasBlob(baseCv, 0.92);
+      rec.thumb = await canvasBlob(thumbCv, 0.8);
+      rec.id = await putImage(rec);
+    } catch (e) {
+      listImages.splice(listImages.indexOf(rec), 1);
+      throw e;
+    }
+    savedSig = sig;
     renderClipNav();
     playerMsg('Gespeichert als ' + imageLabel(c, rec));
   } catch (e) {
     console.warn(e);
     playerMsg('Speichern fehlgeschlagen');
-  } finally { saveBusy = false; }
-});
+  } finally {
+    saveBusy = false;
+    renderSaveBtn();
+  }
+}
+
+// Änderungen an einem gespeicherten Bild gehen beim Verlassen nicht verloren
+async function flushImageEdits() {
+  await savePromise;
+  if (viewMode !== 'image' || saveSig() === savedSig) return;
+  saveBusy = true;
+  savePromise = saveNowImage();
+  await savePromise;
+}
 
 // ---------- Videos löschen in den Einstellungen ----------
 
@@ -1224,8 +1283,11 @@ function closeDelete() {
 async function askDelete(onlyNoStar) {
   delOnlyNoStar = onlyNoStar;
   const clips = await allClips();
-  const n = onlyNoStar ? clips.filter(c => !c.star).length : clips.length;
-  const what = n === 1 ? '1 Video' : n + ' Videos';
+  const hit = onlyNoStar ? clips.filter(c => !c.star) : clips;
+  const n = hit.length;
+  const ids = new Set(hit.map(c => c.id));
+  const nImg = (await allImages()).filter(im => ids.has(im.clipId)).length;
+  const what = (n === 1 ? '1 Video' : n + ' Videos') + (nImg ? ` und ${nImg === 1 ? '1 Bild' : nImg + ' Bilder'}` : '');
   $('delQuestion').textContent = onlyNoStar
     ? `${what} ohne Stern wirklich löschen? Das lässt sich nicht rückgängig machen.`
     : `Wirklich alle ${what} löschen, auch die mit Stern? Das lässt sich nicht rückgängig machen.`;
