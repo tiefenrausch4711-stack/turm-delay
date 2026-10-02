@@ -140,6 +140,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .hud.top { top: 14px; }
 .hud.bottom { bottom: 14px; }
 .hud > span { background: rgba(5, 6, 7, 0.62); padding: 4px 8px; border-radius: 4px; }
+/* Einträge brechen nie in sich um. Reicht die Breite nicht, rutscht ein ganzer Eintrag in die nächste Zeile. */
+.hud > span { white-space: nowrap; }
+.hud.bottom { flex-wrap: wrap; gap: 6px; }
 .state { display: inline-flex; align-items: center; gap: 8px; text-transform: uppercase; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
 .state.ok .dot { background: var(--acc); box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 22%, transparent); animation: pulse 2s ease-in-out infinite; }
@@ -605,3 +608,45 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .pR .tool.icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .pR .tool { padding: 0 11px; font-size: 14px; }
 .tl { min-height: 46px; }
+
+/* ---------- Größe der Bedienung ----------
+   Drei Stufen aus den Einstellungen. Vergrößert werden nur Bedienteile, nicht Bild- und Zeichenflächen
+   und nicht der Betrieb für den Fernseher. Spalten, die das Elternelement festlegt, wachsen mit. */
+:root { --z: 1; }
+html[data-size="1"] { --z: 1.25; }
+html[data-size="2"] { --z: 1.5; }
+.bar, .filters, .delay, #panel, .dlg, #aGrid, #aEmpty, .pbar, .pctl, #pRange, #pTools,
+.clipNav, #pMsg, #pStill, #camMsg, .hud { zoom: var(--z); }
+#settings { grid-template-columns: minmax(0, 1fr) calc(clamp(360px, 32vw, 460px) * var(--z)); }
+/* Ab „Groß“ stehen Belichtung und Fokus nebeneinander, sonst reicht die Höhe nicht */
+html[data-size="1"] #panel, html[data-size="2"] #panel {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; align-content: start;
+}
+html[data-size="1"] #panel > :not(#expGrp):not(#focusGrp),
+html[data-size="2"] #panel > :not(#expGrp):not(#focusGrp) { grid-column: 1 / -1; }
+html[data-size="1"] #panel .row, html[data-size="2"] #panel .row { gap: 10px; }
+/* Start bleibt immer sichtbar, auch wenn die Spalte rollen muss */
+#panel .actions { position: sticky; bottom: 0; z-index: 1; background: var(--bg); padding-top: 8px; }
+/* Farbkreise wachsen mit der Stufe nicht über ihre normale Größe hinaus, sonst wird das Fenster zu hoch */
+.swatches { grid-template-columns: repeat(6, minmax(0, calc(64px / var(--z)))); justify-content: space-between; }
+.dlg { max-height: calc((100vh - 16px) / var(--z)); overflow-y: auto; }
+html[data-size="2"] .sv { aspect-ratio: 16 / 8; }
+/* Ab „Groß“: Name und Eigenschaft in einer zweiten Zeile rechts, unter Stern, Herunterladen und Löschen */
+html[data-size="1"] .pR, html[data-size="2"] .pR { flex-wrap: wrap; row-gap: 6px; }
+html[data-size="1"] .pR::after, html[data-size="2"] .pR::after { content: ""; flex-basis: 100%; order: 5; }
+html[data-size="1"] .pR #pName, html[data-size="2"] .pR #pName,
+html[data-size="1"] .pR #pProp, html[data-size="2"] .pR #pProp { order: 10; width: 150px; min-width: 0; }
+/* Ab „Groß“: Werkzeuge in zwei Spalten. Rückgängig und Speichern beginnen jeweils eine neue Reihe. */
+html[data-size="1"] #pTools, html[data-size="2"] #pTools {
+  flex-basis: 178px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start;
+}
+html[data-size="1"] #dUndo, html[data-size="2"] #dUndo,
+html[data-size="1"] #dSave, html[data-size="2"] #dSave { grid-column-start: 1; }
+html[data-size="2"] .tl { min-height: 42px; }
+html[data-size="2"] #dUndo, html[data-size="2"] #dSave { margin-top: 8px; }
+/* Beim Schneiden und bei der Bildfolge kommt unten eine Leiste dazu, dann werden die Werkzeuge flacher */
+#aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 40px; }
+html[data-size="2"] #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 34px; }
+#pTools { scrollbar-width: none; }
+/* Die Anzeigen im Kamerabild sind keine Bedienung und wachsen nur wenig mit, damit das Bild frei bleibt */
+.hud { zoom: min(var(--z), 1.15); }

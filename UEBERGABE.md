@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 21 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 21, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 22 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 22, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -186,6 +186,14 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 - Fehler vom Tablet: Die Videoseite direkt aus dem Betrieb blieb schwarz. Vermutete Ursache: zu wenige Hardware-Decoder, weil Aufnahme-Encoder und der ruhende Decoder der Wiedergabe belegt sind. In der Vorschau nicht nachstellbar.
 - Abhilfe 1: `releaseRunDecoder` schließt beim Öffnen der Videoseite den Decoder der Wiedergabe ganz. `tick` legt beim Zurückkehren einen neuen an.
 - Abhilfe 2: Der Decoder des Videofensters weicht auf Software aus (`pSoft`, `hardwareAcceleration: 'prefer-software'`), wenn er einen Fehler meldet oder nach 1,5 s kein Bild liefert. Jedes neu geöffnete Video versucht es zuerst wieder mit der Hardware. In der Vorschau mit nachgestelltem Fehler und nachgestelltem Hängen geprüft.
+
+## Test-App Stand 22, Größe der Bedienung
+
+- Neue Einstellung „03 Größe“ mit „Normal | Groß | Sehr groß“ (`settings.ui.size` 0, 1, 2), „Videos“ ist jetzt „04“. `applyUi` setzt `html[data-size]`, CSS-Variable `--z` ist 1, 1,25 oder 1,5.
+- Umsetzung mit CSS `zoom: var(--z)` auf den Bedienteilen: `.bar`, `.filters`, `.delay`, `#panel`, `.dlg`, `#aGrid`, `#aEmpty`, `.pbar`, `.pctl`, `#pRange`, `#pTools`, `.clipNav`, `#pMsg`, `#pStill`, `#camMsg`. `.hud` wächst höchstens auf 1,15. Nicht vergrößert werden Bild- und Zeichenflächen und der Betrieb. Die rechte Spalte der Live-Seite wächst über `grid-template-columns` mit.
+- Anpassungen ab „Groß“: Belichtung und Fokus nebeneinander in der rechten Spalte. Im Videofenster rücken Name und Eigenschaft in eine zweite Zeile rechts (`.pR::after` als Zeilenumbruch). Die Werkzeugleiste ist zweispaltig, Rückgängig und Speichern beginnen eine neue Reihe. Bei „Sehr groß“ sind Werkzeuge und Gruppenabstände etwas flacher und das Farbfeld im Farbwähler flacher.
+- Für alle Stufen: Start bleibt unten sichtbar (`position: sticky`). Einträge der Infozeile im Kamerabild brechen nicht in sich um. Farbkreise höchstens 64 px. Das Einstellungsfenster rollt notfalls. Beim Schneiden und bei der Bildfolge sind die Werkzeugknöpfe flacher, das behebt auch ein Überlaufen bei „Normal“.
+- Geprüft in 1280 × 800 mit einem Skript, das herausragende, abgeschnittene und überlappende Teile meldet: Live mit manueller Belichtung und manuellem Fokus, Einstellungsfenster mit Farbwähler und Löschen, Übersicht mit Videos und Bildern, Videofenster mit Video, Bild, Schneiden, Bildfolge und „‹ Wiedergabe“. Alle drei Stufen ohne Befund. Der Farbwähler trifft auch mit Zoom die richtige Stelle.
 
 ## Neue Version veröffentlichen
 

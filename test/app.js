@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '21';   // Stand der Test-App
+const APP_VERSION = '22';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -28,7 +28,7 @@ const DEFAULTS = {
   fps: 30,
   delay: 20,
   cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM }, external: { ...DEFAULT_CAM } },
-  ui: { acc: '#4fbfb3', theme: 'dark', custom: '' },
+  ui: { acc: '#4fbfb3', theme: 'dark', custom: '', size: 0 },   // size 0 normal, 1 groß, 2 sehr groß
   keepDays: 7,           // Videos ohne Stern werden nach so vielen Tagen gelöscht, 1 bis 30, 0 bedeutet nie
 };
 
@@ -984,6 +984,7 @@ function applyUi() {
   root.style.setProperty('--acc', acc);
   root.style.setProperty('--acc-ink', inkFor(acc));
   root.dataset.theme = theme;
+  root.dataset.size = String(settings.ui.size || 0);
   document.querySelector('meta[name=theme-color]').content = theme === 'light' ? '#f2f4f6' : '#0b0d0f';
   for (const sw of $('swatches').querySelectorAll('.sw[data-c]')) sw.classList.toggle('on', sw.dataset.c === acc);
   // Sechster Kreis mit der eigenen Farbe, leer bis zur ersten freien Wahl
@@ -992,6 +993,7 @@ function applyUi() {
   $('accSaved').style.setProperty('--c', own || 'transparent');
   $('accSaved').classList.toggle('on', !!own && acc === own && !ACCENTS.includes(acc));
   setSeg('segTheme', theme);
+  setSeg('segSize', settings.ui.size || 0);
 }
 
 function setUi(part) {
@@ -1085,6 +1087,10 @@ function dragArea(el, onPos) {
 dragArea($('pickSv'), (x, y) => { hsv[1] = x; hsv[2] = 1 - y; });
 dragArea($('pickHue'), x => { hsv[0] = Math.min(x * 360, 359.9); });
 $('pickDone').addEventListener('click', closePicker);
+$('segSize').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b) setUi({ size: +b.dataset.v });
+});
 $('segTheme').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (b) setUi({ theme: b.dataset.v });
