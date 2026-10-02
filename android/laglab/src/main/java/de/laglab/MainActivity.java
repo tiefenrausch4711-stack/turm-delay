@@ -157,7 +157,14 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
-                return loader.shouldInterceptRequest(r.getUrl());
+                WebResourceResponse res = loader.shouldInterceptRequest(r.getUrl());
+                // Module und WebAssembly brauchen die passende Dateiart, sonst lädt die Bilderkennung nicht
+                String path = r.getUrl().getPath();
+                if (res != null && path != null) {
+                    if (path.endsWith(".wasm")) res.setMimeType("application/wasm");
+                    else if (path.endsWith(".mjs") || path.endsWith(".js")) res.setMimeType("text/javascript");
+                }
+                return res;
             }
         });
         // Eingebaute Kameras über getUserMedia

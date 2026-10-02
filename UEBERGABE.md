@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 30 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 30, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 02.10.2026. Normale App v2 unter `app/`, inhaltlich gleich mit Test-App Stand 10. Test-App Stand 31 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 31, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -243,6 +243,16 @@ Abgestimmt am 02.10.2026. Am selben Tag mit Stand 10 als v2 in die normale App �
 - Für niedrige Rahmen gibt es `@container app (max-height: 760px)`: Belichtung und Fokus nebeneinander, Modus und Größe nebeneinander, knappere Abstände, flacheres Farbfeld, Werkzeuge in zwei Spalten und bei Stufe 2 und 3 in drei. Bei Stufe 3 sind die Beschriftungen der Werkzeuge während Schneiden und Bildfolge ausgeblendet.
 - Ab „Groß“ teilen sich Name und Eigenschaft die zweite Zeile der Kopfzeile, auch bei wenig Platz.
 - Geprüft in 1280 × 800 mit einem Rahmen 1203 × 676 und ohne Rahmen, alle vier Größen: Live mit Auto und Manuell, Fenster, Farbwähler, Löschen, Übersicht, Videofenster mit Video, Bild, Schneiden und Bildfolge, Betrieb, Haltekreis, Prüfbild. Ohne Befund.
+
+## Test-App Stand 31, Zauberstab als Machbarkeitstest
+
+- Neues Werkzeug „Zauberstab“ nach „Lot“ (`data-tool="magic"`). Erst das Werkzeug wählen, dann auf den Springer tippen. Die App erkennt Schulter, Hüfte, Knie und Knöchel und legt eine Zeichnung `type: 'pose'` an: Körperlinie, Hüftwinkel (Schulter, Hüfte, Knie) und Winkel der Körperachse Schulter bis Knöchel zum Lot. Ist der Knöchel unsicher, gilt Schulter bis Hüfte, Beschriftung „Lot x° Rumpf“. Unsichere Punkte sind grau. Alle vier Punkte lassen sich verschieben, danach gelten sie als sicher. Rückgängig, Leeren und Speichern wie bei den anderen Zeichnungen.
+- Erkennung: MediaPipe Tasks Vision 1.0.1, Pose Landmarker „full“, Apache 2.0, Dateien in `test/mp` (zusammen etwa 21 MB, Lizenz in `mp/LICENSE`). `pose.js` lädt sie erst beim ersten Gebrauch per `import()`. Grafikchip, sonst Prozessor. `numPoses: 3`, gewählt wird die Person, deren Rumpf der angetippten Stelle am nächsten ist.
+- Ablauf in `detectPose`: Ausschnitt halber Bildhöhe um die angetippte Stelle, Eingabe 512 × 512. Nur wenn das Ergebnis unsicher ist (mittlere Sicherheit unter 0,65), folgen Versuche um 90°, 180° und 270° gedreht. Danach ein enger Ausschnitt um den gefundenen Körper. Die Seite mit der höheren Sicherheit wird gemessen. Unter 0,5 im Mittel erscheint „Haltung nicht sicher erkannt“.
+- Getestet mit 22 Fotos der Olympischen Jugendspiele 2018 von Wikimedia Commons (Sandro Halank, CC BY-SA), eingesetzt in Videobilder 1920 × 1080 mit Springerhöhe 600 und 330 px. Alle erkannt, 0,2 bis 0,3 s je Bild auf dem PC. Die gedrehten Versuche brachten praktisch nichts, die Erkennung richtet den Körper selbst aus. Punkte meist plausibel, auch kopfüber in Hocke und Hechte. Bei einer Hechte kopfüber lag die Schulter zu weit oben am Rücken. Die Fotos liegen in `test/_probe`, das in `.gitignore` steht und wegen des Unterstrichs nicht in die APK kommt.
+- Offline im Browser: eigener Speicher `laglab-mp-1.0.1`, den neue Versionen nicht löschen. `pose.js` holt die Dateien 20 s nach dem Start einmal im Hintergrund. Die Android-App bringt sie als Assets mit, `MainActivity` setzt für `.wasm` und `.mjs` die richtige Dateiart.
+- Wegen des 13. Werkzeugs sind die Werkzeugknöpfe 44 px statt 46 px hoch, beim Schneiden kleinere Symbole. Alle Größen mit und ohne Fernseher-Rahmen geprüft.
+- Offen: Jede APK im Repository vergrößert den Verlauf, inzwischen etwa 23 MB je Fassung. Später auf GitHub Releases umstellen oder nur ausgewählte Stände hochladen.
 
 ## Neue Version veröffentlichen
 

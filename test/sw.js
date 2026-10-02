@@ -1,8 +1,11 @@
 // Bei jeder neuen Version VERSION erhöhen. Die neue Version wird beim nächsten App-Start übernommen.
 // Test-App. Nur eigene Speicher werden gelöscht, damit die normale App unberührt bleibt.
 const PREFIX = 'lagcam-test-';
-const VERSION = PREFIX + 's30';   // Zählung seit Stand 1 vom 01.10.2026, weiter mit s2, s3 und so fort
-const FILES = ['./', 'index.html', 'native.js', 'app.js', 'analysis.js', 'draw.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+const VERSION = PREFIX + 's31';   // Zählung seit Stand 1 vom 01.10.2026, weiter mit s2, s3 und so fort
+// Die Bilderkennung für den Zauberstab ist groß und ändert sich selten. Sie liegt in einem eigenen
+// Speicher, den neue Versionen nicht löschen, und wird erst beim ersten Gebrauch geladen.
+const MP_CACHE = 'laglab-mp-1.0.1';
+const FILES = ['./', 'index.html', 'native.js', 'app.js', 'pose.js', 'analysis.js', 'draw.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
   // cache: 'reload' umgeht den Browser-Zwischenspeicher, sonst landen alte Dateien im neuen Offline-Speicher
@@ -24,6 +27,13 @@ self.addEventListener('message', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
+  if (new URL(e.request.url).pathname.includes('/mp/')) {
+    e.respondWith(caches.open(MP_CACHE).then(c => c.match(e.request).then(hit => hit || fetch(e.request).then(res => {
+      if (res.ok) c.put(e.request, res.clone());
+      return res;
+    }))));
+    return;
+  }
   e.respondWith(
     caches.open(VERSION)
       .then(c => c.match(e.request, { ignoreSearch: true }))

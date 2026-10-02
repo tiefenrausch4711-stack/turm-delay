@@ -607,7 +607,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .pR .tool.icon { width: 48px; padding: 0; display: grid; place-items: center; }
 .pR .tool.icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .pR .tool { padding: 0 11px; font-size: 14px; }
-.tl { min-height: 46px; }
+.tl { min-height: 44px; }
 
 /* ---------- Größe der Bedienung ----------
    Drei Stufen aus den Einstellungen. Vergrößert werden nur Bedienteile, nicht Bild- und Zeichenflächen
@@ -642,7 +642,7 @@ html.big #pTools {
 html.big #dUndo,
 html.big #dSave { grid-column-start: 1; }
 /* Beim Schneiden und bei der Bildfolge kommt unten eine Leiste dazu, dann werden die Werkzeuge flacher */
-#aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 40px; }
+#aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 38px; }
 #pTools { scrollbar-width: none; }
 /* Die Anzeigen im Kamerabild sind keine Bedienung und wachsen nur wenig mit, damit das Bild frei bleibt */
 .hud { zoom: min(var(--z), 1.15); }
@@ -774,3 +774,10 @@ html.tvfit #out { object-fit: fill; }
 }
 /* Ab „Groß“ teilen sich Name und Eigenschaft die zweite Zeile, auch wenn der Platz knapp ist */
 html.big .pR #pName, html.big .pR #pProp { flex: 0 1 calc(50% - 4px); width: auto; max-width: 180px; }
+/* Mit dem Zauberstab sind es 13 Werkzeuge. Beim Schneiden bei 150 % im niedrigen Rahmen nur Symbole in flachen Knöpfen. */
+@container app (max-height: 760px) {
+  html[data-size="3"] #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 30px; }
+}
+/* Beim Schneiden und bei der Bildfolge in einer Spalte etwas kleinere Symbole, damit alle 13 Werkzeuge passen */
+#aPlayer:has(#pRange:not(.hidden)) .tl { gap: 0; }
+#aPlayer:has(#pRange:not(.hidden)) .tl svg { width: 21px; height: 21px; }

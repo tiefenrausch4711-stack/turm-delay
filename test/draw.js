@@ -11,9 +11,9 @@ const DOUBLE_TAP_MS = 300;
 
 const dStage = $('pStage'), dView = $('pView'), dCanvas = $('pDraw');
 const dctx = dCanvas.getContext('2d');
-let tool = 'view';          // view, free, line, angle oder plumb
+let tool = 'view';          // view, free, line, angle, plumb oder magic
 let colorIdx = 0;
-let shapes = [];            // { type: 'free' | 'line' | 'angle' | 'plumb', pts: [[x, y], ...], color }
+let shapes = [];            // { type: 'free' | 'line' | 'angle' | 'plumb' | 'pose', pts: [[x, y], ...], color, unsure }
 let pending = null;         // Form, die gerade entsteht
 let placing = false;        // der letzte Punkt von pending folgt noch dem Finger
 let drag = null;            // verschobener Punkt { shape, idx }
@@ -65,9 +65,104 @@ const pxScale = () => dCanvas.width / vbox.w / vz.z;
 
 // ---------- Zeichnen ----------
 
+// Gradzahl auf dunklem Feld
+function drawLabel(text, x, y, color, k) {
+  dctx.font = `700 ${24 * k}px system-ui, Roboto, sans-serif`;
+  dctx.textAlign = 'center';
+  dctx.textBaseline = 'middle';
+  const w = dctx.measureText(text).width + 14 * k;
+  dctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  dctx.fillRect(x - w / 2, y - 17 * k, w, 34 * k);
+  dctx.fillStyle = color;
+  dctx.fillText(text, x, y + 1 * k);
+}
+
+// Strich mit dunklem Rand, damit er auf hellem und dunklem Grund sichtbar bleibt
+function strokeLine(path, color, k) {
+  dctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+  dctx.lineWidth = (LINE_PX + 3) * k;
+  dctx.stroke(path);
+  dctx.strokeStyle = color;
+  dctx.lineWidth = LINE_PX * k;
+  dctx.stroke(path);
+}
+
+// Körperhaltung vom Zauberstab: Schulter, Hüfte, Knie, Knöchel, dazu Hüftwinkel und Winkel zum Lot
+function drawPose(s, k, handles) {
+  const [S, H, K, A] = s.pts;
+  const un = s.unsure || [];
+  dctx.lineCap = 'round';
+  dctx.lineJoin = 'round';
+  const body = new Path2D();
+  body.moveTo(S[0], S[1]);
+  body.lineTo(H[0], H[1]);
+  body.lineTo(K[0], K[1]);
+  body.lineTo(A[0], A[1]);
+  strokeLine(body, s.color, k);
+
+  // Hüftwinkel zwischen Schulter und Knie
+  const a1 = Math.atan2(S[1] - H[1], S[0] - H[0]);
+  let diff = Math.atan2(K[1] - H[1], K[0] - H[0]) - a1;
+  while (diff > Math.PI) diff -= 2 * Math.PI;
+  while (diff <= -Math.PI) diff += 2 * Math.PI;
+  const arc = new Path2D();
+  arc.arc(H[0], H[1], 42 * k, a1, a1 + diff, diff < 0);
+  strokeLine(arc, s.color, k);
+  const mid = a1 + diff / 2;
+  // Beschriftungen kommen zuletzt, damit sie über den Linien liegen und sich nicht überdecken
+  dctx.font = `700 ${24 * k}px system-ui, Roboto, sans-serif`;
+  const labels = [];
+  const hipText = 'Hüfte ' + Math.round(Math.abs(diff) * 180 / Math.PI) + '°';
+  labels.push({ text: hipText, x: H[0] - Math.cos(mid) * 58 * k, y: H[1] - Math.sin(mid) * 58 * k, w: dctx.measureText(hipText).width + 14 * k });
+
+  // Körperachse zum Lot. Ohne sicheren Knöchel zählt der Rumpf von der Schulter bis zur Hüfte.
+  const E = un[3] ? H : A;
+  const [lo, hi] = S[1] > E[1] ? [S, E] : [E, S];   // das Lot steht auf dem unteren Punkt
+  const len = Math.hypot(hi[0] - lo[0], hi[1] - lo[1]);
+  if (len > 1) {
+    const lot = new Path2D();
+    lot.moveTo(lo[0], lo[1]);
+    lot.lineTo(lo[0], lo[1] - len);
+    dctx.setLineDash([14 * k, 9 * k]);
+    strokeLine(lot, s.color, k);
+    dctx.setLineDash([]);
+    const up = -Math.PI / 2, dir = Math.atan2(hi[1] - lo[1], hi[0] - lo[0]);
+    const r = Math.min(70 * k, len * 0.4);
+    const arc2 = new Path2D();
+    arc2.arc(lo[0], lo[1], r, up, dir, dir < up);
+    strokeLine(arc2, s.color, k);
+    const dev = Math.round(Math.acos(Math.min(1, Math.abs(hi[1] - lo[1]) / len)) * 180 / Math.PI);
+    // Beschriftung neben dem Lot auf der Seite, auf der der Körper nicht liegt
+    const away = hi[0] < lo[0] ? 1 : -1;
+    const text = 'Lot ' + dev + '°' + (un[3] ? ' Rumpf' : '');
+    const w = dctx.measureText(text).width + 14 * k;
+    labels.push({ text, x: lo[0] + away * (w / 2 + 12 * k), y: lo[1] - Math.min(len * 0.3, r * 0.8), w });
+  }
+  // Überdecken sich die Beschriftungen, wechselt die für die Hüfte auf die andere Seite, notfalls nach oben
+  if (labels.length === 2) {
+    const [h, l] = labels;
+    const hit = () => Math.abs(h.x - l.x) < (h.w + l.w) / 2 + 6 * k && Math.abs(h.y - l.y) < 40 * k;
+    if (hit()) h.x = 2 * H[0] - h.x;
+    if (hit()) h.y = l.y - 44 * k;
+  }
+  for (const b of labels) drawLabel(b.text, b.x, b.y, s.color, k);
+
+  if (!handles) return;
+  s.pts.forEach((p, i) => {
+    dctx.beginPath();
+    dctx.arc(p[0], p[1], 8 * k, 0, 2 * Math.PI);
+    dctx.fillStyle = un[i] ? '#9aa0a6' : s.color;   // grau, wenn die Erkennung unsicher war
+    dctx.fill();
+    dctx.lineWidth = 2 * k;
+    dctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+    dctx.stroke();
+  });
+}
+
 function drawShape(s, k, handles) {
   const pts = s.pts;
   if (!pts.length) return;
+  if (s.type === 'pose') { drawPose(s, k, handles); return; }
   dctx.lineCap = 'round';
   dctx.lineJoin = 'round';
   const stroke = path => {
@@ -187,6 +282,7 @@ function drawDown(e) {
   const p = videoPoint(e);
   const h = findHandle(p);
   if (h && !(pending && pending.type === 'angle')) { drag = h; return; }
+  if (tool === 'magic') { poseTap(p); return; }
   const color = COLORS[colorIdx];
   if (tool === 'free') pending = { type: 'free', pts: [p], color };
   else if (tool === 'line') pending = { type: 'line', pts: [p, p.slice()], color };
@@ -201,7 +297,12 @@ function drawDown(e) {
 
 function drawMove(e) {
   const p = videoPoint(e);
-  if (drag) { drag.shape.pts[drag.idx] = p; renderDrawing(); return; }
+  if (drag) {
+    drag.shape.pts[drag.idx] = p;
+    if (drag.shape.unsure) drag.shape.unsure[drag.idx] = false;   // von Hand gesetzt gilt als sicher
+    renderDrawing();
+    return;
+  }
   if (!pending) return;
   if (pending.type === 'free') {
     const last = pending.pts[pending.pts.length - 1];
