@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '6';   // Stand der Test-App
+const APP_VERSION = '7';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -590,11 +590,14 @@ function enterSettings() {
   renderSettings();
 }
 
+// Als installierte App läuft LagTime schon im Vollbild. Ein zusätzlicher Vollbildwunsch würde nur
+// Chromes Hinweis zum Herauswischen auslösen, deshalb gibt es ihn nur im normalen Browser-Tab.
+const installedApp = () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
 async function goFullscreen() {
   try {
-    if (!document.fullscreenElement) await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
-    await screen.orientation.lock('landscape');
+    if (!installedApp() && !document.fullscreenElement) await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
   } catch (e) {}
+  try { await screen.orientation.lock('landscape'); } catch (e) {}
 }
 
 // ---------- Langes Drücken ----------

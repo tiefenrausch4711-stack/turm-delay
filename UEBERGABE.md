@@ -1,6 +1,6 @@
 # Übergabe LagTime
 
-Stand 01.10.2026. Normale App v1.4 unter `app/`. Test-App Stand 6 unter `test/`, noch nicht übernommen, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 01.10.2026. Normale App v1.4 unter `app/`. Test-App Stand 7 unter `test/`, noch nicht übernommen, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -135,6 +135,7 @@ Abgestimmt am 02.10.2026, noch nicht in der normalen App.
 - Fenster. Kopfzeile in drei Bereichen, links „‹ Übersicht“ und Titel, Mitte „Video | Bilder“, rechts ★, Name, Eigenschaft, „Herunterladen“, „Löschen“. Die Pfeile liegen oben links auf dem Bild. Unter „Video“ blättern sie durch die Videos der Übersicht mit Filter, unter „Bilder“ durch die Bilder dieses Videos. Ein Bild aus der Übersicht öffnet das Fenster direkt unter „Bilder“. Unter „Bilder“ gibt es keine Abspielleiste, kein Schneiden und keine Bildfolge. „Herunterladen“ lädt dort nur das Bild mit Zeichnung, „Löschen“ löscht nur das Bild.
 - Dateinamen ohne „LagTime“, mit Eigenschaft, also `2026-10-02-Teo_Kopfsprung_V3.mp4` und `2026-10-02-Teo_Kopfsprung_V3_B1.jpg`. Fehlende Teile entfallen. In der Übersicht steht „V3“ und „V3_B1“, die Meldung im Betrieb lautet „Gespeichert · V3“.
 - Die Schleife ist entfallen. „Ansehen“ heißt „Zoom“, „‹ Liste“ heißt „‹ Übersicht“.
+- Seit Stand 7 fordert die App als installierte App keinen zusätzlichen Vollbildmodus mehr an, siehe `installedApp`. Vorher zeigte Chrome beim ersten Wechsel zur Analyse und zurück den Hinweis zum Herauswischen aus dem Vollbild.
 - Nutzertest Stand 6 am 02.10.2026, behoben: Name und Eigenschaft übernehmen eine vorhandene Schreibweise unabhängig von Groß- und Kleinschreibung. Änderungen an einem gespeicherten Bild werden beim Verlassen automatisch gespeichert, siehe `flushImageEdits`. „Speichern“ bleibt grau, solange sich seit dem letzten Speichern nichts geändert hat, siehe `saveSig`. Bild, Zeichnung und Nummer werden beim Tippen sofort erfasst, wer ein Bild öffnet, wartet auf ein laufendes Speichern. Videonummern eines Tages werden nie wieder vergeben, gemerkt in `settings.lastNr`. Bilder eines Videos stehen aufsteigend. Nach dem Löschen eines Bildes folgt das nächste Bild desselben Videos, ohne weitere Bilder das Video. Die Rückfrage beim Löschen in den Einstellungen nennt auch die Zahl der Bilder.
 
 ## Neue Version veröffentlichen
