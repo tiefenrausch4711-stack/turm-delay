@@ -11,8 +11,11 @@
 </head>
 <body>
 
-<!-- Eigener Startbildschirm, schließt nahtlos an den von Android an -->
-<div id="splash"><img src="icon-512.png" alt=""></div>
+<!-- Eigener Startbildschirm mit Symbol und Namen in der Schrift wie oben links -->
+<div id="splash"><img src="icon-512.png" alt=""><div class="splashName">Lag<b>Lab</b></div></div>
+
+<!-- Die ganze App. Mit „Fernseher angepasst“ liegt sie im eingestellten Rahmen, rundherum schwarz. -->
+<div id="app">
 
 <div id="settings" class="hidden">
   <header class="bar">
@@ -23,7 +26,7 @@
 
   <main class="left">
     <div id="pvWrap">
-      <video id="pv" autoplay muted playsinline></video>
+      <video id="pv" autoplay muted playsinline poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
       <div class="thirds"></div>
       <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
       <div class="hud top"><span id="hudState" class="state"><span class="dot"></span><span id="hudStateTxt">Start</span></span><span id="hudCam"></span></div>
@@ -51,6 +54,7 @@
       <div class="seg" id="segFacing">
         <button data-v="environment">Rückseite</button>
         <button data-v="user">Vorderseite</button>
+        <button data-v="external">USB</button>
       </div>
     </div>
 
@@ -115,7 +119,7 @@
       <nav class="tabs" id="fKind"><button data-k="videos" class="on">Videos</button><button data-k="images">Bilder</button></nav>
       <button id="fStar" class="chip" aria-label="Nur mit Stern">★</button>
       <select id="fName" aria-label="Name"></select>
-      <select id="fProp" aria-label="Eigenschaft"></select>
+      <select id="fProp" aria-label="Stichwort"></select>
     </div>
     <div id="aGrid"></div>
     <p id="aEmpty" class="hidden"></p>
@@ -130,13 +134,12 @@
       <nav class="tabs" id="pKind"><button data-pk="video" class="on">Video</button><button data-pk="images">Bilder</button></nav>
       <div class="pR">
         <button id="pStar" class="star" aria-label="Stern">☆</button>
-        <input id="pName" list="pNames" placeholder="Name" autocomplete="off" enterkeyhint="done">
-        <input id="pProp" list="pProps" placeholder="Eigenschaft" autocomplete="off" enterkeyhint="done">
-        <datalist id="pNames"></datalist>
-        <datalist id="pProps"></datalist>
-        <button id="pDown" class="tool">Herunterladen</button>
+        <input id="pName" placeholder="Name" autocomplete="off" enterkeyhint="done">
+        <input id="pProp" placeholder="Stichwort" autocomplete="off" enterkeyhint="done">
+        <button id="pDown" class="tool icon" aria-label="Herunterladen" title="Herunterladen"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>
         <button id="pDel" class="tool danger">Löschen</button>
       </div>
+      <div id="pSuggest" class="hidden" role="listbox"></div>
     </header>
     <div id="pMain">
       <div id="pStage"><div id="pView"><canvas id="pOut"></canvas><canvas id="pDraw"></canvas></div><div id="pStill" class="hidden"></div><div id="pMsg" class="hidden"></div>
@@ -195,14 +198,38 @@
         <button class="sw custom" id="accCustom" aria-label="Farbe frei wählen"></button>
         <button class="sw saved" id="accSaved" aria-label="Eigene Farbe"></button>
       </div>
-      <div class="label"><span class="no">02</span>Modus</div>
-      <div class="seg" id="segTheme">
-        <button data-v="dark">Dunkel</button>
-        <button data-v="light">Hell</button>
+      <div class="dlgPair">
+        <div>
+          <div class="label"><span class="no">02</span>Modus</div>
+          <div class="seg" id="segTheme">
+            <button data-v="dark">Dunkel</button>
+            <button data-v="mid">Mittel</button>
+            <button data-v="light">Hell</button>
+          </div>
+        </div>
+        <div>
+          <div class="label"><span class="no">03</span>Größe</div>
+          <div class="sizeRow">
+            <span class="vidText">klein</span>
+            <div class="sizeScale">
+              <input type="range" id="uiSize" min="0" max="3" step="1" value="0" aria-label="Größe der Bedienung">
+              <div class="sizeTicks"><i></i><i></i><i></i><i></i></div>
+            </div>
+            <span class="vidText">groß</span>
+          </div>
+        </div>
       </div>
-      <div class="label"><span class="no">03</span>Videos</div>
+      <div class="label"><span class="no">04</span>Bildschirm</div>
+      <div class="tvRow">
+        <div class="seg" id="segTv">
+          <button data-v="0">Normal</button>
+          <button data-v="1">Angepasst</button>
+        </div>
+        <button id="tvOpen" class="tool">Anpassen …</button>
+      </div>
+      <div class="label"><span class="no">05</span>Videos</div>
       <div class="vidGrid">
-        <span id="keepLabel" class="vidText">Ohne Stern löschen nach</span>
+        <span id="keepLabel" class="vidText">Videos ohne Stern und ohne Bild löschen nach</span>
         <div class="keepCtl">
           <button id="keepMinus" class="step xs" aria-label="Ein Tag weniger">−</button>
           <b id="keepDays"></b>
@@ -236,6 +263,54 @@
   </div>
 </div>
 
+</div>
+
+<!-- Prüfbild, um die Fläche für den Betrieb an den Zoom des Fernsehers anzupassen -->
+<div id="tvCal" class="hidden">
+  <div id="tvFrame">
+    <video id="tvVideo" autoplay muted playsinline poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
+    <i class="tvc tl"></i><i class="tvc tr"></i><i class="tvc bl"></i><i class="tvc br"></i><i class="tvCross"></i>
+  </div>
+  <div id="tvCtl">
+    <h2>Bildschirm anpassen</h2>
+    <p class="vidText">Am Fernseher den Zoom einstellen. Dann den Rahmen verkleinern, bis auf dem Fernseher alle vier Ecken ganz zu sehen sind.</p>
+      <div class="tvCtlRow" data-k="w">
+        <span class="vidText">Breite</span>
+        <button class="step xs" data-d="-1" aria-label="Breite weniger">−</button>
+        <input type="range" aria-label="Breite">
+        <button class="step xs" data-d="1" aria-label="Breite mehr">+</button>
+        <b class="tvVal"></b>
+      </div>
+      <div class="tvCtlRow" data-k="h">
+        <span class="vidText">Höhe</span>
+        <button class="step xs" data-d="-1" aria-label="Höhe weniger">−</button>
+        <input type="range" aria-label="Höhe">
+        <button class="step xs" data-d="1" aria-label="Höhe mehr">+</button>
+        <b class="tvVal"></b>
+      </div>
+      <div class="tvCtlRow" data-k="x">
+        <span class="vidText">Links, rechts</span>
+        <button class="step xs" data-d="-1" aria-label="Links, rechts weniger">−</button>
+        <input type="range" aria-label="Links, rechts">
+        <button class="step xs" data-d="1" aria-label="Links, rechts mehr">+</button>
+        <b class="tvVal"></b>
+      </div>
+      <div class="tvCtlRow" data-k="y">
+        <span class="vidText">Oben, unten</span>
+        <button class="step xs" data-d="-1" aria-label="Oben, unten weniger">−</button>
+        <input type="range" aria-label="Oben, unten">
+        <button class="step xs" data-d="1" aria-label="Oben, unten mehr">+</button>
+        <b class="tvVal"></b>
+      </div>
+      <div class="tvBtns">
+        <button id="tvReset" class="tool">Zurücksetzen</button>
+        <button id="tvCancel" class="tool">Abbrechen</button>
+        <button id="tvDone" class="tool ok">Fertig</button>
+      </div>
+  </div>
+</div>
+
+<script src="native.js"></script>
 <script src="app.js"></script>
 <script src="analysis.js"></script>
 <script src="draw.js"></script>

@@ -6,7 +6,7 @@
   --fg: #e9edf0;
   --mut: #7b858f;
   --dim: #78828c;
-  --acc: #4fbfb3;
+  --acc: #8fb9ad;
   --acc-ink: #04201d;
   --warn: #ffcc33;
   --bad: #ff5a5a;
@@ -39,6 +39,25 @@ html[data-theme="light"] #uiDlg {
   --acc-text: color-mix(in srgb, var(--acc) 55%, #000);
 }
 html[data-theme="light"] body { background: #f2f4f6; }
+/* Mittlerer Modus: graublau zwischen Hell und Dunkel, Schrift weiß. Der Betrieb bleibt dunkel. */
+html[data-theme="mid"] #settings,
+html[data-theme="mid"] #analysis,
+html[data-theme="mid"] #uiDlg {
+  --bg: #3a434d;
+  --surface: #46505b;
+  --line: #535e6a;
+  --line-2: #67737f;
+  --fg: #f4f6f8;
+  --mut: #c3cbd3;
+  --dim: #b4bdc6;
+  --grid: rgba(255, 255, 255, 0.03);
+  --tint: rgba(255, 255, 255, 0.04);
+  --card: #4b5561;
+  --card-line: #5d6874;
+  /* Akzentfarbe als Schrift heller, damit sie auf dem mittleren Grund lesbar bleibt */
+  --acc-text: color-mix(in srgb, var(--acc) 70%, #fff);
+}
+html[data-theme="mid"] body { background: #3a434d; }
 #settings, #analysis, #uiDlg { color: var(--fg); }
 * { box-sizing: border-box; }
 html, body {
@@ -56,7 +75,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 #settings {
   position: fixed; inset: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(360px, 32vw, 460px);
+  grid-template-columns: minmax(0, 1fr) clamp(360px, 32cqw, 460px);
   grid-template-rows: auto minmax(0, 1fr);
   gap: 18px 28px;
   padding: 18px 24px 20px;
@@ -91,7 +110,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .tabs button.on { background: color-mix(in srgb, var(--fg) 14%, transparent); color: var(--fg); }
 .mark { display: flex; align-items: center; gap: 10px; font-size: 15px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mut); }
-.mark b { color: var(--fg); font-weight: 600; margin-left: 0.35em; }   /* LAG LAB mit Leerzeichen */
+.mark b { color: var(--fg); font-weight: 600; margin-left: 0.06em; }   /* LAG und LAB nur durch einen schmalen Abstand getrennt */
 .tag { margin-left: 6px; padding: 2px 8px; border-radius: 4px; background: #c2570c; color: #fff; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; }
 .glyph { width: 14px; height: 14px; border: 2px solid var(--acc-text); border-radius: 50%; position: relative; }
 .glyph::after { content: ""; position: absolute; left: 50%; top: 1px; width: 2px; height: 5px; background: var(--acc); transform: translateX(-50%); }
@@ -140,6 +159,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .hud.top { top: 14px; }
 .hud.bottom { bottom: 14px; }
 .hud > span { background: rgba(5, 6, 7, 0.62); padding: 4px 8px; border-radius: 4px; }
+/* Einträge brechen nie in sich um. Reicht die Breite nicht, rutscht ein ganzer Eintrag in die nächste Zeile. */
+.hud > span { white-space: nowrap; }
+.hud.bottom { flex-wrap: wrap; gap: 6px; }
 .state { display: inline-flex; align-items: center; gap: 8px; text-transform: uppercase; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
 .state.ok .dot { background: var(--acc); box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 22%, transparent); animation: pulse 2s ease-in-out infinite; }
@@ -277,7 +299,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #run { position: fixed; inset: 0; background: #000; touch-action: none; }
 #stage {
   position: absolute; left: 50%; top: 50%;
-  width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9;
+  width: min(100cqw, calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9;
   transform: translate(-50%, -50%);
   container-type: size;
 }
@@ -285,14 +307,14 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #badge {
   position: absolute; top: 3cqh; right: 2.5cqw;
   color: #fff;
-  font: 700 6cqh/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+  font: 400 4.5cqh/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
   /* kein Hintergrund, nur ein weicher Schatten für helle Bildstellen */
   text-shadow: 0 0 0.6cqh rgba(0, 0, 0, 0.8), 0 0.2cqh 0.4cqh rgba(0, 0, 0, 0.6);
 }
 #badge.warn { color: var(--warn); }
 #badge.bad { color: var(--bad); }
 #badge:empty { display: none; }
-#ring { position: fixed; width: 132px; height: 132px; pointer-events: none; transform: translate(-50%, -50%) rotate(-90deg); }
+#ring { position: fixed; width: 104px; height: 104px; pointer-events: none; transform: translate(-50%, -50%) rotate(-90deg); }
 #ring circle { fill: none; stroke-width: 5; }
 #ring .track { fill: rgba(0, 0, 0, 0.45); stroke: rgba(255, 255, 255, 0.2); }
 #ring .prog { stroke: var(--acc); stroke-linecap: round; stroke-dasharray: 314.2; stroke-dashoffset: 314.2; }
@@ -301,10 +323,15 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 /* Speicherknopf, gestaltet wie der Kreis zum Zurückkehren. Der graue Ring ist immer sichtbar, innen durchsichtig.
    Beim Halten wird er innen getönt und der Ring füllt sich in der Akzentfarbe.
    Ein Viertel der Fläche des Zurück-Kreises, der Rand vergrößert die Fläche zum Treffen. */
+/* Klein im Ruhezustand. Beim Drücken wächst er auf die Größe des Kreises beim Verlassen, beim Loslassen schrumpft er. */
 #saveBtn {
-  position: absolute; left: 1.5cqw; bottom: 2.5cqh;
-  width: 13.2cqh; height: 13.2cqh; padding: 2.2cqh; touch-action: none;
+  position: absolute; left: 6cqh; bottom: 6cqh;
+  width: 5.25cqh; height: 5.25cqh; padding: 0.9cqh; touch-action: none;
+  transform-origin: 50% 50%; transition: transform .15s ease;
 }
+#saveBtn.go { transform: scale(4.2); }
+/* Größere Tippfläche als der sichtbare Kreis */
+#saveBtn::before { content: ""; position: absolute; inset: -2.5cqh; border-radius: 50%; }
 #saveBtn svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
 #saveBtn circle { fill: none; stroke-width: 7; }
 #saveBtn .track { fill: transparent; stroke: rgba(255, 255, 255, 0.35); transition: fill .15s; }
@@ -313,12 +340,17 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #saveBtn.go .prog { transition: stroke-dashoffset 1s linear; stroke-dashoffset: 0; }
 #saveBtn.done .prog { stroke-dashoffset: 0; }
 #toast {
-  position: absolute; left: calc(1.5cqw + 14cqh); bottom: 5.5cqh;
+  position: absolute; left: 13cqh; bottom: 5.9cqh;
   padding: 0.8cqh 1.8cqh; border-radius: 1.2cqh;
   background: rgba(0, 0, 0, 0.6); color: #fff;
-  font: 600 4.5cqh/1.2 var(--sans);
+  font: 400 3.2cqh/1.2 var(--sans);
 }
 #toast.bad { color: var(--warn); }
+/* Nach dem Speichern 5 Sekunden grau. Ein Tippen öffnet dann das Video. */
+#saveBtn.recent .track { fill: rgba(128, 128, 128, 0.55); stroke: rgba(200, 200, 200, 0.6); }
+#saveBtn.recent .prog { stroke: rgba(200, 200, 200, 0.6); stroke-dashoffset: 0; }
+/* Videoseite aus dem Betrieb ohne Pfeile zu anderen Videos */
+#aPlayer.review .clipNav { display: none; }
 
 /* ---------- Analyse ---------- */
 
@@ -432,7 +464,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .tl:active { filter: brightness(1.25); }
 .tl:disabled { opacity: 0.3; }
 /* Drei Gruppen: Werkzeuge, dann Rückgängig und Leeren, dann Speichern */
-#dUndo, #dSave { margin-top: 16px; }
+#dUndo, #dSave { margin-top: var(--grp, 16px); }
 .tl .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--c, #ffd21f); border: 2px solid rgba(255, 255, 255, 0.35); }
 .seekWrap { flex: 1; min-width: 120px; position: relative; display: flex; align-items: center; }
 #pBand {
@@ -475,7 +507,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   background: rgba(0, 0, 0, 0.5);
 }
 .dlg {
-  width: min(460px, 92vw); padding: 20px 22px 18px;
+  width: min(510px, 92cqw); padding: 20px 22px 18px;
   display: flex; flex-direction: column; gap: 14px;
   background: var(--surface); color: var(--fg);
   border: 1px solid var(--line-2); border-radius: 14px;
@@ -579,11 +611,14 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 /* Startbildschirm in der Farbe des Symbols. Er blendet aus, sobald die App bereit ist, frühestens nach SPLASH_MS. */
 #splash {
   position: fixed; inset: 0; z-index: 100;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
   background: #3a434d; transition: opacity .45s ease;
 }
-/* Gleiche Größe wie der Startbildschirm von Chrome, damit das Symbol beim Übergang nicht springt */
-#splash img { width: 128px; height: 128px; }
+#splash img { width: 168px; height: 168px; }
+/* Name wie oben links, nur größer. Farben wie im Modus Mittel. */
+.splashName { display: flex; align-items: center; font: 26px var(--sans); letter-spacing: 0.22em; text-transform: uppercase; color: #c3cbd3; }
+.splashName b { color: #f4f6f8; font-weight: 600; margin-left: 0.06em; }
+.splashName .tag { margin-left: 12px; font-size: 15px; padding: 3px 10px; }
 #splash.out { opacity: 0; pointer-events: none; }
 
 /* Umschaltung „Video | Bilder“ in der Kopfzeile des Fensters */
@@ -594,6 +629,178 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .pbar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
 .pL, .pR { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .pR { justify-content: flex-end; }
-.pR #pName, .pR #pProp { width: 112px; min-width: 70px; flex: 0 1 auto; }
+.pR #pName, .pR #pProp { width: 160px; min-width: 120px; flex: 0 1 auto; }
+/* Herunterladen als Symbol, damit Name und Stichwort Platz haben */
+.pR .tool.icon { width: 48px; padding: 0; display: grid; place-items: center; }
+.pR .tool.icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .pR .tool { padding: 0 11px; font-size: 14px; }
 .tl { min-height: 46px; }
+
+/* ---------- Größe der Bedienung ----------
+   Drei Stufen aus den Einstellungen. Vergrößert werden nur Bedienteile, nicht Bild- und Zeichenflächen
+   und nicht der Betrieb für den Fernseher. Spalten, die das Elternelement festlegt, wachsen mit. */
+:root { --z: 1; }
+html[data-size="1"] { --z: 1.1667; }
+html[data-size="2"] { --z: 1.3333; }
+html[data-size="3"] { --z: 1.5; }
+.bar, .filters, .delay, #panel, .dlg, #aGrid, #aEmpty, .pbar, .pctl, #pRange, #pTools,
+.clipNav, #pMsg, #pStill, #camMsg, .hud { zoom: var(--z); }
+#settings { grid-template-columns: minmax(0, 1fr) calc(clamp(360px, 32cqw, 460px) * var(--z)); }
+/* Ab „Groß“ stehen Belichtung und Fokus nebeneinander, sonst reicht die Höhe nicht */
+html.big #panel {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; align-content: start;
+}
+html.big #panel > :not(#expGrp):not(#focusGrp) { grid-column: 1 / -1; }
+html.big #panel .row { gap: 10px; }
+/* Start bleibt immer sichtbar, auch wenn die Spalte rollen muss */
+#panel .actions { position: sticky; bottom: 0; z-index: 1; background: var(--bg); }
+/* Farbkreise wachsen mit der Stufe nicht über ihre normale Größe hinaus, sonst wird das Fenster zu hoch */
+.swatches { grid-template-columns: repeat(6, minmax(0, calc(64px / var(--z)))); justify-content: space-between; }
+.dlg { max-height: calc((100cqh - 16px) / var(--z)); overflow-y: auto; }
+/* Ab „Groß“: Name und Stichwort in einer zweiten Zeile rechts, unter Stern, Herunterladen und Löschen */
+html.big .pR { flex-wrap: wrap; row-gap: 6px; }
+html.big .pR::after { content: ""; flex-basis: 100%; order: 5; }
+html.big .pR #pName,
+html.big .pR #pProp { order: 10; width: 150px; min-width: 0; }
+/* Ab „Groß“: Werkzeuge in zwei Spalten. Rückgängig und Speichern beginnen jeweils eine neue Reihe. */
+html.big #pTools {
+  flex-basis: 178px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start;
+}
+html.big #dUndo,
+html.big #dSave { grid-column-start: 1; }
+/* In Spalten steht Leeren neben Rückgängig und braucht denselben Abstand nach oben */
+html.big #dClear { margin-top: var(--grp, 16px); }
+/* Beim Schneiden und bei der Bildfolge kommt unten eine Leiste dazu, dann werden die Werkzeuge flacher */
+#aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 40px; }
+#pTools { scrollbar-width: none; }
+/* Die Anzeigen im Kamerabild sind keine Bedienung und wachsen nur wenig mit, damit das Bild frei bleibt */
+.hud { zoom: min(var(--z), 1.15); }
+
+/* Vorschläge unter Name und Stichwort, hell wie eine übliche Auswahlliste */
+.pbar { position: relative; z-index: 4; }
+#pSuggest {
+  position: absolute; max-width: 320px; max-height: 360px; overflow-y: auto; z-index: 5;
+  background: #fff; color: #111; border-radius: 10px; padding: 4px 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+#pSuggest button {
+  display: block; width: 100%; min-height: 44px; padding: 0 16px; text-align: left;
+  font: 16px var(--sans); color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#pSuggest button:active { background: #e6e9ec; }
+
+/* Bei 150 % werden Werkzeuge und Abstände etwas flacher, sonst reicht die Höhe nicht */
+html[data-size="3"] .tl { min-height: 42px; }
+html[data-size="3"] #pTools { --grp: 8px; }
+html[data-size="3"] #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 34px; }
+html[data-size="3"] .sv { aspect-ratio: 16 / 8; }
+
+/* Regler für die Größe mit vier Rastpunkten */
+.sizeRow { display: flex; align-items: center; gap: 14px; }
+.sizeScale { flex: 1; position: relative; }
+.sizeTicks { position: absolute; left: 13px; right: 13px; top: 50%; height: 0; display: flex; justify-content: space-between; pointer-events: none; }
+.sizeTicks i { width: 6px; height: 6px; margin: 8px -3px 0; border-radius: 50%; background: var(--line-2); }
+html[data-size="3"] #panel { gap: 6px 16px; }
+html[data-size="3"] #panel .grp { padding-bottom: 6px; }
+/* Start sitzt in jeder Größe ganz unten in der Spalte */
+html.big #panel { grid-template-rows: auto auto auto 1fr; align-content: stretch; }
+html.big #panel .actions { align-self: end; }
+
+/* ---------- Fernseher anpassen ---------- */
+.tvRow { display: flex; gap: 10px; align-items: center; }
+.tvRow .seg { flex: 1; }
+.tvRow .tool { min-height: 56px; }
+#tvCal { position: fixed; inset: 0; z-index: 30; background: #000; color: #e9edf0; touch-action: none; }
+#tvFrame {
+  position: absolute; transform: translate(-50%, -50%); overflow: hidden;
+  outline: 3px solid #fff; outline-offset: -3px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px) 0 0 / 10% 10%,
+    linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px) 0 0 / 10% 10%, #1b2026;
+}
+#tvVideo { display: block; width: 100%; height: 100%; object-fit: fill; opacity: 0.6; }
+.tvc { position: absolute; width: 9vh; height: 9vh; border: 1.4vh solid var(--acc); }
+.tvc.tl { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+.tvc.tr { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.tvc.bl { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+.tvc.br { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+.tvCross {
+  position: absolute; left: 50%; top: 50%; width: 8vh; height: 8vh; transform: translate(-50%, -50%);
+  background: linear-gradient(#fff, #fff) center / 3px 100% no-repeat, linear-gradient(#fff, #fff) center / 100% 3px no-repeat;
+}
+#tvCtl {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); zoom: var(--z);
+  width: 500px; max-width: 92vw; padding: 18px 20px; border-radius: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  background: rgba(20, 24, 28, 0.9); border: 1px solid #2f363e;
+}
+#tvCtl h2 { margin: 0; font-size: 18px; font-weight: 650; }
+#tvCtl p { margin: 0 0 4px; line-height: 1.4; }
+.tvCtlRow { display: grid; grid-template-columns: 112px 40px minmax(0, 1fr) 40px 64px; align-items: center; gap: 8px; }
+.tvVal { font: 15px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.tvBtns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+.tvBtns .tool { min-width: 120px; min-height: 48px; }
+
+/* Modus und Größe stehen normal untereinander, ab Stufe 2 nebeneinander, damit das Fenster nicht rollen muss */
+.dlgPair, .dlgPair > div { display: contents; }
+html[data-size="2"] .dlgPair, html[data-size="3"] .dlgPair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+html[data-size="2"] .dlgPair > div, html[data-size="3"] .dlgPair > div { display: flex; flex-direction: column; gap: 14px; }
+
+/* ---------- Rahmen der ganzen App ----------
+   #app ist Bezugsfläche für alle fest positionierten Seiten und für die Maßeinheiten cqw und cqh.
+   Bei „Normal“ füllt sie den Bildschirm. Bei „Angepasst“ setzt applyTv Lage und Größe. */
+#app { position: fixed; inset: 0; contain: layout paint; container-type: size; container-name: app; overflow: hidden; background: var(--bg); }
+html.tvfit, html.tvfit body { background: #000; }
+html.tvfit #app { inset: auto; transform: translate(-50%, -50%); }
+/* Im Betrieb füllt das Video bei „Angepasst“ den ganzen Rahmen */
+html.tvfit #stage { left: 0; top: 0; width: 100%; height: 100%; aspect-ratio: auto; transform: none; }
+html.tvfit #out { object-fit: fill; }
+
+/* ---------- Niedriger Rahmen ----------
+   Bei „Fernseher angepasst“ ist die App weniger hoch als das Tablet. Dann rückt alles enger zusammen,
+   Belichtung und Fokus stehen nebeneinander, Modus und Größe ebenso. */
+@container app (max-height: 760px) {
+  #panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto 1fr; gap: 6px 16px; align-content: stretch; }
+  #panel > :not(#expGrp):not(#focusGrp) { grid-column: 1 / -1; }
+  #panel .row { gap: 10px; min-height: 44px; }
+  #panel .actions { align-self: end; }
+  #panel .grp { padding-bottom: 6px; }
+  #panel .label { margin-bottom: 6px; }
+  #panel .seg button { min-height: 42px; }
+  .dlgPair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+  .dlgPair > div { display: flex; flex-direction: column; gap: 10px; }
+  #uiMain, #uiPick { gap: 10px; }
+  .dlg { padding-top: 14px; padding-bottom: 14px; }
+  .sv { aspect-ratio: 16 / 7; }
+}
+@container app (max-height: 760px) {
+  html[data-size="3"] #panel .row { min-height: 36px; }
+  html[data-size="3"] #panel .seg button { min-height: 36px; }
+  html[data-size="3"] #panel .grp { padding-bottom: 4px; }
+  html[data-size="3"] #panel .label { margin-bottom: 4px; }
+  html[data-size="3"] #uiMain, html[data-size="3"] #uiPick { gap: 7px; }
+  html[data-size="3"] .dlg .seg button, html[data-size="3"] .tvRow .tool { min-height: 40px; }
+  html[data-size="3"] .dlg .label { margin-top: 2px; }
+  html[data-size="3"] .sv { aspect-ratio: 16 / 6; }
+}
+/* Werkzeuge im niedrigen Rahmen: zwei Spalten, bei 150 % drei */
+@container app (max-height: 760px) {
+  #pTools { flex-basis: 178px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; --grp: 8px; }
+  #dUndo, #dSave { grid-column-start: 1; }
+  #dClear { margin-top: var(--grp, 16px); }
+  html[data-size="2"] .tl { min-height: 42px; }
+  html[data-size="3"] #pTools { flex-basis: 260px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html[data-size="3"] .tl { min-height: 40px; }
+}
+@container app (max-height: 760px) {
+  html[data-size="2"] #pTools, html[data-size="3"] #pTools { flex-basis: 250px; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 4px; }
+  html[data-size="2"] .tl, html[data-size="3"] .tl,
+  html[data-size="2"] #aPlayer:has(#pRange:not(.hidden)) .tl, html[data-size="3"] #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 36px; gap: 0; }
+  html[data-size="2"] .tl svg, html[data-size="3"] .tl svg { width: 22px; height: 22px; }
+  html[data-size="2"] #pTools, html[data-size="3"] #pTools { --grp: 4px; }
+}
+@container app (max-height: 760px) {
+  html[data-size="3"] #aPlayer:has(#pRange:not(.hidden)) .tl span { display: none; }
+}
+/* Ab „Groß“ teilen sich Name und Stichwort die zweite Zeile, auch wenn der Platz knapp ist */
+html.big .pR #pName, html.big .pR #pProp { flex: 0 1 calc(50% - 4px); width: auto; max-width: 180px; }

@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 03.10.2026. Normale App v2.1 unter `app/`, inhaltlich gleich mit Test-App Stand 10, nur Symbol und Startbild seit v2.1 schiefergrau `#3a434d` wie die Test-App. Test-App Stand 46 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 46, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 03.10.2026. Normale App v3 unter `app/`, gleich mit Test-App Stand 46 bis auf Name, Schild „TEST“, Speicherorte und Versionsnummer. Sie gibt es auch als Android-App `apk/laglab.apk`. Test-App Stand 46 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 46, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -336,6 +336,14 @@ Vom Nutzer entschieden:
 - Startbildschirm: Symbol 168 statt 128 Pixel, darunter der Name „LAG LAB“ mit Schild „TEST“ im Stil von oben links, 26 Pixel, Farben wie im Modus Mittel (`.splashName`). Der nahtlose Übergang vom Startbildschirm von Chrome entfällt damit bewusst.
 - Kamera im Symbol etwas größer, `SC` in `icon.py` 0.90 statt 0.84. Neu erzeugt nur für die Test-App, die normale App hat noch 0.84.
 - Die Android-Variante `labtest` hat jetzt ein adaptives Symbol (`mipmap-anydpi-v26/ic_launcher.xml`). Vordergrund ist die Kamera ohne Hintergrund (`ic_launcher_foreground.png`, 432 Pixel), Hintergrund die Farbe `splash`. Vorher war es ein fertiges Quadrat, das Android verkleinert in seine Form setzte, dadurch wirkte die Kamera verloren. Erzeugt mit `python icon.py android labtest 3a434d`. Für die normale App bei der Übernahme `python icon.py android normal 3a434d` und die XML-Datei kopieren.
+
+## Normale App v3, übernommen aus Test-App Stand 46
+
+- Alle Dateien aus `test/` nach `app/` kopiert, dazu neu `native.js`. Unterschiede danach nur noch diese: `APP_VERSION = '3'` mit Anzeige „v3“, `STORE_KEY = 'turmdelay.settings.v1'` ohne Übernahme fremder Einstellungen, `DB_NAME = 'lagtime'`, Titel und Manifest „LagLab“, kein Schild „TEST“ in Kopfzeilen und Startbildschirm, Service Worker `turm-delay-r9` ohne das Aufräumen der früheren MediaPipe-Speicher. Ein `diff -r test app` zeigt genau diese Stellen.
+- Gespeicherte Videos und Einstellungen der normalen App bleiben erhalten. Alte feste Farben werden zum Salbei, Größe und Bildschirm bekommen die Startwerte.
+- Symbole mit `python icon.py app 3a434d` und `python icon.py android normal 3a434d`, adaptives Symbol auch für die Variante `normal`.
+- Android-App der normalen App gebaut mit `./gradlew :laglab:assembleNormalRelease`, versionCode 300, liegt als `apk/laglab.apk`. Die Startseite verlinkt beide Android-Apps. Paket `de.laglab.app`, sie lässt sich neben der Test-App `de.laglab.test` installieren.
+- Git-Tag `v3`.
 
 ## Neue Version veröffentlichen
 

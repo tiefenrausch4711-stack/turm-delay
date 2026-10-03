@@ -50,10 +50,16 @@ const deleteClip = id => inTx(['clips', 'data', 'images'], 'readwrite', async t 
   for (const k of keys) t.objectStore('images').delete(k);
 });
 
+// Videos, die bei dieser Frist fällig sind. Ein Stern oder gespeicherte Bilder schützen ein Video.
+async function keepVictims(days) {
+  if (!days) return [];   // nie löschen
+  const limit = Date.now() - days * 864e5;
+  const withImages = new Set((await allImages()).map(im => im.clipId));
+  return (await allClips()).filter(c => !c.star && !withImages.has(c.id) && c.created < limit);
+}
+
 async function cleanupOld() {
-  if (!settings.keepDays) return;   // nie löschen
-  const limit = Date.now() - settings.keepDays * 864e5;
-  for (const c of await allClips()) if (!c.star && c.created < limit) await deleteClip(c.id);
+  for (const c of await keepVictims(settings.keepDays)) await deleteClip(c.id);
 }
 
 // ---------- Speichern aus dem Betrieb ----------
@@ -104,6 +110,7 @@ async function writeClip({ config, entries }) {
   const meta = { day, nr, created: now.getTime(), dur, w: config.codedWidth, h: config.codedHeight, star: false, name: '', prop: '', thumb: null };
   await inTx(['clips', 'data'], 'readwrite', async t => {
     const id = await reqP(t.objectStore('clips').add(meta));
+    meta.id = id;
     t.objectStore('data').add({ id, cfg, frames, data: new Blob(parts) });
   });
   return meta;
@@ -175,35 +182,87 @@ function makeMp4(cfg, frames, bytes, skip = 0) {
   return new Blob([ftyp, moov(ftyp.length + moovLen + 8), mdatHead, bytes], { type: 'video/mp4' });
 }
 
-// 2026-10-02-Teo_Kopfsprung_V3.mp4 und 2026-10-02-Teo_Kopfsprung_V3_B1.jpg.
-// Fehlen Name oder Eigenschaft, entfällt der jeweilige Teil.
+// 2026-10-02_v3_Teo_Kopfsprung.mp4 und 2026-10-02_v3.1_Teo_Kopfsprung.jpg.
+// Fehlen Name oder Stichwort, entfällt der jeweilige Teil.
 const cleanPart = v => (v || '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
-function clipBaseName(c) {
-  const name = cleanPart(c.name), prop = cleanPart(c.prop);
-  return `${c.day}${name ? '-' + name : ''}${prop ? '_' + prop : ''}_V${c.nr}`;
+function fileName(c, label, ext) {
+  const parts = [c.day, label, cleanPart(c.name), cleanPart(c.prop)].filter(Boolean);
+  return parts.join('_') + ext;
 }
-const clipFileName = c => clipBaseName(c) + '.mp4';
-const imageFileName = (c, im) => `${clipBaseName(c)}_B${im.n}.jpg`;
-const clipLabel = c => 'V' + c.nr;
-const imageLabel = (c, im) => `V${c.nr}_B${im.n}`;
+const clipLabel = c => 'v' + c.nr;
+const imageLabel = (c, im) => `v${c.nr}.${im.n}`;
+const clipFileName = c => fileName(c, clipLabel(c), '.mp4');
+const imageFileName = (c, im) => fileName(c, imageLabel(c, im), '.jpg');
 
 // ---------- Ein- und Ausstieg ----------
 
+// Die Kamera läuft in der Analyse noch eine Weile weiter. Dann ist das Bild beim Zurückkehren
+// sofort da. Die USB-Kamera der Android-App braucht einen Decoder, den der Player braucht.
+// Sie geht deshalb gleich aus.
+const ANALYSIS_CAM_MS = 3 * 60 * 1000;
+let analysisCamTimer = 0;
+
 function enterAnalysis() {
   mode = 'analysis';
+  // Jedes Öffnen beginnt mit allen Videos, ohne Filter und oben in der Liste
+  Object.assign(listFilter, { kind: 'videos', star: false, name: '', prop: '' });
+  listScroll = null;
+  $('aGrid').scrollTop = 0;
   history.pushState({ v: 'list' }, '');
-  camOp(async () => { stopCamera(); });
+  clearTimeout(analysisCamTimer);
+  const stopCam = () => { if (mode === 'analysis') camOp(async () => { stopCamera(); }); };
+  if (NATIVE && settings.facing === 'external') stopCam();
+  else analysisCamTimer = setTimeout(stopCam, ANALYSIS_CAM_MS);
   $('settings').classList.add('hidden');
   $('analysis').classList.remove('hidden');
   showList();
+}
+
+// ---------- Videoseite direkt aus dem Betrieb ----------
+// Die Kamera nimmt weiter in den Puffer auf. Zurück geht es in die verzögerte Wiedergabe.
+
+async function enterReview(p) {
+  if (reviewing || mode !== 'run') return;
+  const saved = await p.catch(() => null);
+  if (!saved || reviewing || mode !== 'run') return;
+  clearRecent();
+  cancelPress();
+  reviewing = true;
+  releaseRunDecoder();
+  history.pushState({ v: 'review' }, '');
+  listClips = await allClips();
+  listImages = (await allImages()).filter(im => clipById(im.clipId));
+  $('pBack').textContent = '‹ Wiedergabe';
+  $('aPlayer').classList.add('review');
+  $('run').classList.add('hidden');
+  $('analysis').classList.remove('hidden');
+  try { await openClip(clipById(saved.id) || saved); }
+  catch (e) { console.warn(e); }
+  // Ohne Video zurück in die Wiedergabe
+  if (!pc && reviewing) history.back();
+}
+
+async function leaveReview() {
+  await flushImageEdits();
+  closePlayer();
+  closeRange();
+  $('aPlayer').classList.add('hidden');
+  $('aPlayer').classList.remove('review');
+  $('analysis').classList.add('hidden');
+  $('pBack').textContent = '‹ Übersicht';
+  restartRunPlayback();
+  reviewing = false;
+  $('run').classList.remove('hidden');
 }
 
 function leaveAnalysis() {
   closePlayer();
   closeThumbDecoder();
   $('analysis').classList.add('hidden');
+  clearTimeout(analysisCamTimer);
+  const live = camState === 'ok' && track && track.readyState === 'live';
   enterSettings();
-  restartCamera();
+  if (!live) restartCamera();
 }
 
 // ---------- Liste ----------
@@ -232,7 +291,7 @@ let listClips = [];
 let listImages = [];
 const listFilter = { kind: 'videos', star: false, name: '', prop: '' };
 
-// Gilt für Videos und für Bilder, Bilder übernehmen Stern, Name und Eigenschaft von ihrem Video
+// Gilt für Videos und für Bilder, Bilder übernehmen Stern, Name und Stichwort von ihrem Video
 const passesFilter = c => (!listFilter.star || c.star) && (!listFilter.name || c.name === listFilter.name) && (!listFilter.prop || c.prop === listFilter.prop);
 const clipById = id => listClips.find(c => c.id === id);
 
@@ -248,6 +307,9 @@ async function showList() {
   if (gen !== listGen) return;
   listClips = clips;
   listImages = images.filter(im => clipById(im.clipId));
+  // Vorhandene Namen und Stichwörter gelten als je eingetragen
+  rememberTerms('name', clips.map(c => c.name));
+  rememberTerms('prop', clips.map(c => c.prop));
   renderList(clips);
   if (listScroll !== null) { $('aGrid').scrollTop = listScroll; listScroll = null; }
   renderStorage();
@@ -272,7 +334,7 @@ function renderList(clips) {
   $('aEmpty').textContent = images
     ? (all ? 'Keine Bilder für diese Auswahl.' : 'Noch keine Bilder gespeichert.')
     : (all ? 'Keine Videos für diese Auswahl.' : 'Noch keine Videos gespeichert.');
-  // Neueste Videos zuerst, die Bilder eines Videos in ihrer Reihenfolge B1, B2, B3
+  // Neueste Videos zuerst, die Bilder eines Videos in ihrer Reihenfolge v3.1, v3.2, v3.3
   items.sort((a, b) => b.c.created - a.c.created || (a.im ? a.im.n - b.im.n : 0));
   let day = null, row = null;
   for (const x of items) {
@@ -301,7 +363,7 @@ function renderFilter(clips) {
   if (listFilter.name && !names.includes(listFilter.name)) listFilter.name = '';
   if (listFilter.prop && !props.includes(listFilter.prop)) listFilter.prop = '';
   fillSelect($('fName'), 'Name', names, listFilter.name);
-  fillSelect($('fProp'), 'Eigenschaft', props, listFilter.prop);
+  fillSelect($('fProp'), 'Stichwort', props, listFilter.prop);
   $('fStar').classList.toggle('on', listFilter.star);
   $('fStar').disabled = !clips.length;
   for (const b of $('fKind').querySelectorAll('button')) b.classList.toggle('on', b.dataset.k === listFilter.kind);
@@ -312,25 +374,56 @@ function renderFilter(clips) {
 const KEEP_MIN = 1, KEEP_MAX = 30;
 const keepRaw = Math.round(+settings.keepDays);
 settings.keepDays = keepRaw === 0 ? 0 : clamp(keepRaw || 7, KEEP_MIN, KEEP_MAX);
+// Angezeigte Frist. Sie gilt erst, wenn feststeht, dass dabei nichts gelöscht wird, oder nach der Rückfrage.
+// So löscht eine kürzere Frist nie ohne Nachfrage.
+let keepShown = settings.keepDays;
 let keepTimer = 0;
 
 function renderKeep() {
-  const d = settings.keepDays;
-  $('keepLabel').textContent = d ? 'Ohne Stern löschen nach' : 'Ohne Stern löschen';
+  const d = keepShown;
+  $('keepLabel').textContent = d ? 'Videos ohne Stern und ohne Bild löschen nach' : 'Videos ohne Stern und ohne Bild löschen';
   $('keepDays').textContent = !d ? 'nie' : d === 1 ? '1 Tag' : d + ' Tagen';
   $('keepMinus').disabled = d === KEEP_MIN;
   $('keepPlus').disabled = d === 0;
 }
 
 function stepKeep(delta) {
-  const d = settings.keepDays || KEEP_MAX + 1;   // nie liegt eine Stufe über 30
+  const d = keepShown || KEEP_MAX + 1;   // nie liegt eine Stufe über 30
   const next = clamp(d + delta, KEEP_MIN, KEEP_MAX + 1);
-  settings.keepDays = next > KEEP_MAX ? 0 : next;
-  saveSettings();
+  keepShown = next > KEEP_MAX ? 0 : next;
   renderKeep();
-  // Erst kurz nach dem letzten Tippen aufräumen, eine kürzere Frist löscht dann sofort
+  // Erst kurz nach dem letzten Tippen prüfen
   clearTimeout(keepTimer);
-  keepTimer = setTimeout(() => { if (mode === 'analysis' && !viewMode) showList(); }, 1500);
+  keepTimer = setTimeout(checkKeep, 1500);
+}
+
+function commitKeep() {
+  settings.keepDays = keepShown;
+  saveSettings();
+}
+
+// Übernimmt eine geänderte Frist. Würde sie sofort Videos löschen, kommt vorher eine Rückfrage.
+async function checkKeep() {
+  clearTimeout(keepTimer);
+  keepTimer = 0;
+  if (keepShown === settings.keepDays) return;
+  const victims = await keepVictims(keepShown);
+  if (!victims.length) { commitKeep(); return; }
+  if (mode === 'run') { keepShown = settings.keepDays; renderKeep(); return; }
+  // Ist das Fenster schon zu, öffnet es sich für die Rückfrage noch einmal
+  if ($('uiDlg').classList.contains('hidden')) {
+    $('uiDlg').classList.remove('hidden');
+    history.pushState({ v: 'dlg' }, '');
+    renderStorage();
+  }
+  closePicker();
+  askKind = 'keep';
+  const n = victims.length, d = keepShown;
+  $('delQuestion').textContent = `Bei ${d === 1 ? '1 Tag' : d + ' Tagen'} ${n === 1 ? 'wird 1 Video' : 'werden ' + n + ' Videos'} ohne Stern und ohne Bild sofort gelöscht, weil ${n === 1 ? 'es' : 'sie'} älter ${n === 1 ? 'ist' : 'sind'}. Das lässt sich nicht rückgängig machen.`;
+  $('delChoose').classList.add('hidden');
+  $('delAsk').classList.remove('hidden');
+  $('uiMain').classList.add('hidden');
+  $('uiDel').classList.remove('hidden');
 }
 $('keepMinus').addEventListener('click', () => stepKeep(-1));
 $('keepPlus').addEventListener('click', () => stepKeep(1));
@@ -481,7 +574,7 @@ async function makeThumbNow(id) {
     }
     await dec.flush();
   } finally { thumbOut = null; }
-  return new Promise(res => cv.toBlob(res, 'image/jpeg', 0.75));
+  return canvasBlob(cv, 0.75);
 }
 
 // ---------- Wiedergabe ----------
@@ -516,6 +609,8 @@ function chunkAt(i) {
   return new EncodedVideoChunk({ type: key ? 'key' : 'delta', timestamp: ts, data: pc.bytes.subarray(off, off + len) });
 }
 
+// Scheitert der Hardware-Decoder, etwa weil alle belegt sind, dekodiert die App das Video in Software
+let pSoft = false;
 function resetDecoder() {
   pGen++;
   pQueue.forEach(q => q.frame.close());
@@ -523,12 +618,19 @@ function resetDecoder() {
   if (!pdec || pdec.state === 'closed') {
     pdec = new VideoDecoder({
       output: onPlayerFrame,
-      error: e => { console.warn(e); pdec = null; },
+      error: e => {
+        console.warn(e);
+        pdec = null;
+        if (pSoft || !pc) return;
+        pSoft = true;
+        const i = pTarget >= 0 ? pTarget : pPos;
+        setTimeout(() => { if (!pc) return; pTarget = -1; pPending = -1; seek(i); }, 0);
+      },
     });
   } else {
     pdec.reset();
   }
-  pdec.configure(pc.cfg);
+  pdec.configure(pSoft ? { ...pc.cfg, hardwareAcceleration: 'prefer-software' } : pc.cfg);
 }
 
 function drawPlayer(f) {
@@ -558,6 +660,15 @@ function seek(i) {
     for (let k = keyBefore(i); k <= i; k++) pdec.decode(chunkAt(k));
   } catch (e) { console.warn(e); pdec = null; }
   const gen = pGen;
+  // Kommt nach 1,5 s kein Bild, hängt der Hardware-Decoder. Dann in Software noch einmal.
+  setTimeout(() => {
+    if (gen !== pGen || pTarget !== i || pSoft || !pc) return;
+    pSoft = true;
+    if (pdec) { try { pdec.close(); } catch (e) {} }
+    pdec = null;
+    pTarget = -1; pPending = -1;
+    seek(i);
+  }, 1500);
   const done = () => {
     if (gen !== pGen) return;
     pTarget = -1;
@@ -643,6 +754,7 @@ function updatePlayerUi() {
   for (const b of $('pSpeed').querySelectorAll('button')) b.classList.toggle('on', +b.dataset.v === pSpeed);
   $('pPrev').disabled = pPos <= pFirst;
   $('pNext').disabled = pPos >= n - 1;
+  renderSaveBtn();   // ein anderes Bild lässt sich wieder speichern
 }
 
 async function openClip(c) {
@@ -653,6 +765,7 @@ async function openClip(c) {
   pIndex = new Map(pc.frames.map((f, i) => [f[0], i]));
   pFirst = clamp(d.skip || 0, 0, pc.frames.length - 1);
   pPos = pFirst; pTarget = -1; pPending = -1; pPlaying = false; pStill = false;
+  pSoft = false;   // jedes Video versucht es zuerst mit der Hardware
   $('pStill').classList.add('hidden');
   closeRange();
   viewMode = 'video';
@@ -673,24 +786,27 @@ async function openClip(c) {
   seek(pFirst);
 }
 
-// Stern, Name und Eigenschaft gehören zum Video, auch wenn ein Bild offen ist
+// Stern, Name und Stichwort gehören zum Video, auch wenn ein Bild offen ist
 const curClip = () => (viewMode === 'image' ? pimg && pimg.clip : pc && pc.meta);
 
-// Bereits vergebene Namen und Eigenschaften erscheinen beim Eintippen als Auswahl
 function fillClipFields(c) {
+  hideSuggest();
   $('pName').value = c.name || '';
   $('pProp').value = c.prop || '';
-  for (const [id, key] of [['pNames', 'name'], ['pProps', 'prop']]) {
-    const dl = $(id);
-    dl.textContent = '';
-    for (const v of sortedValues(listClips, key)) { const o = document.createElement('option'); o.value = v; dl.append(o); }
-  }
   renderStar();
   renderClipNav();
   resetDelete();
 }
 
+// Was noch im Feld für Name oder Stichwort steht, wird vor jedem Wechsel übernommen.
+// Bei der Zurück-Geste behält das Feld sonst den Fokus, und die Eingabe ginge verloren.
+function commitFields() {
+  const a = document.activeElement;
+  if (a && (a.id === 'pName' || a.id === 'pProp')) a.blur();
+}
+
 function closePlayer() {
+  commitFields();
   viewMode = null;
   pimg = null;
   if (!pc) return;
@@ -820,8 +936,24 @@ document.addEventListener('click', e => {
 // Zurück-Taste und Zurück-Geste von Android. Wiedergabe führt zur Liste, Liste zu Live.
 // Im Betrieb bleibt sie wirkungslos, damit ein versehentliches Wischen den Betrieb nicht beendet.
 window.addEventListener('popstate', () => {
-  if (!$('uiDlg').classList.contains('hidden')) { closeUi(); return; }   // zuerst das Fenster Darstellung
-  if (mode === 'run') { history.pushState({ v: 'run' }, ''); return; }
+  if (!$('tvCal').classList.contains('hidden')) { closeTvCal(); return; }   // zuerst das Prüfbild für den Fernseher
+  if (!$('uiDlg').classList.contains('hidden')) {
+    // Aus Farbwähler und Löschen zuerst zurück in die Einstellungen, erst dann zu
+    if (!$('uiPick').classList.contains('hidden') || !$('uiDel').classList.contains('hidden')) {
+      closePicker();
+      closeDelete();   // eine offene Rückfrage zur Frist gilt als Abbrechen
+      history.pushState({ v: 'dlg' }, '');
+      return;
+    }
+    closeUi();
+    checkKeep();   // eine noch nicht geprüfte Frist, notfalls mit Rückfrage
+    return;
+  }   // zuerst das Fenster Darstellung
+  if (mode === 'run') {
+    if (reviewing) { leaveReview(); return; }   // von der Videoseite zurück in die Wiedergabe
+    history.pushState({ v: 'run' }, '');
+    return;
+  }
   if (mode !== 'analysis') return;
   if (!$('aPlayer').classList.contains('hidden')) showList();
   else leaveAnalysis();
@@ -870,17 +1002,85 @@ for (const [id, key] of [['pName', 'name'], ['pProp', 'prop']]) {
     if (!c) return;
     // Doppelte Leerzeichen entfernen und eine vorhandene Schreibweise übernehmen, damit „teo“ und „Teo“ ein Name bleiben
     let v = $(id).value.replace(/\s+/g, ' ').trim();
-    const known = sortedValues(listClips.filter(x => x !== c), key).find(k => k.toLocaleLowerCase('de') === v.toLocaleLowerCase('de'));
+    const known = knownTerms(key).find(k => k.toLocaleLowerCase('de') === v.toLocaleLowerCase('de'));
     if (known) v = known;
     $(id).value = v;
+    rememberTerms(key, [v]);
     c[key] = v;
     renderClipNav();
     await putClip(c);
   });
   $(id).addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+  $(id).addEventListener('input', () => showSuggest($(id), key));
+  $(id).addEventListener('focus', () => showSuggest($(id), key));
+  $(id).addEventListener('blur', () => setTimeout(hideSuggest, 150));
 }
 
-function download(file) {
+// ---------- Vorschläge für Name und Stichwort ----------
+// Erst ab dem ersten Buchstaben. Passend ist der Anfang des Begriffs, danach der Anfang eines Wortes darin.
+// Jeder je eingetragene Begriff bleibt in den Einstellungen gemerkt, auch wenn sein Video gelöscht ist.
+
+const lc = s => s.toLocaleLowerCase('de');
+
+function knownTerms(key) {
+  const seen = new Map();
+  const saved = (settings.terms && settings.terms[key]) || [];
+  for (const t of [...saved, ...listClips.map(c => c[key])]) if (t && !seen.has(lc(t))) seen.set(lc(t), t);
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, 'de'));
+}
+
+function rememberTerms(key, list) {
+  settings.terms = settings.terms || {};
+  const mine = settings.terms[key] || (settings.terms[key] = []);
+  let added = false;
+  for (const t of list) if (t && !mine.some(m => lc(m) === lc(t))) { mine.push(t); added = true; }
+  if (added) saveSettings();
+}
+
+function showSuggest(input, key) {
+  const q = lc(input.value.replace(/\s+/g, ' ').trimStart());
+  if (!q) return hideSuggest();
+  const terms = knownTerms(key).filter(t => lc(t) !== lc(input.value.trim()));
+  const starts = terms.filter(t => lc(t).startsWith(q));
+  const inWord = terms.filter(t => !lc(t).startsWith(q) && lc(t).split(/[\s-]+/).some(w => w.startsWith(q)));
+  const hits = [...starts, ...inWord].slice(0, 8);
+  if (!hits.length) return hideSuggest();
+  const box = $('pSuggest');
+  box.textContent = '';
+  for (const t of hits) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = t;
+    // pointerdown statt click, damit das Feld den Fokus erst nach der Wahl verliert
+    b.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      input.value = t;
+      hideSuggest();
+      input.dispatchEvent(new Event('change'));
+      input.blur();
+    });
+    box.append(b);
+  }
+  // Rechtsbündig direkt unter dem Feld, in den Maßen der Kopfzeile
+  const bar = box.parentElement;
+  box.style.top = (input.offsetTop + input.offsetHeight + 4) + 'px';
+  box.style.right = (bar.clientWidth - input.offsetLeft - input.offsetWidth) + 'px';
+  box.style.minWidth = input.offsetWidth + 'px';
+  box.classList.remove('hidden');
+}
+
+function hideSuggest() {
+  $('pSuggest').classList.add('hidden');
+}
+
+async function download(file) {
+  // In der Android-App speichert Android die Datei im Download-Ordner
+  if (NATIVE) {
+    playerMsg('Wird gespeichert …', true);
+    const ok = await native.save(file).catch(() => false);
+    playerMsg(ok ? 'Im Download-Ordner gespeichert' : 'Speichern fehlgeschlagen');
+    return;
+  }
   const u = URL.createObjectURL(file);
   const a = document.createElement('a');
   a.href = u;
@@ -896,16 +1096,28 @@ function currentFile() {
   return new File([makeMp4(pc.cfg, pc.frames, pc.bytes, pFirst)], clipFileName(pc.meta), { type: 'video/mp4' });
 }
 
-// Video lädt das Video, ein Bild nur das Bild mit seiner Zeichnung
+// Video lädt das Video, ein Bild nur das Bild mit seiner Zeichnung.
+// Bis eine Datei fertig ist, bleibt weiteres Tippen ohne Wirkung, sonst entstünde sie doppelt.
+let downBusy = false;
 $('pDown').addEventListener('click', async () => {
+  if (downBusy) return;
   if (viewMode === 'image') {
-    const blob = await composeImage(pCanvas.width, pCanvas.height, 0.92);
-    download(new File([blob], imageFileName(pimg.clip, pimg.rec), { type: 'image/jpeg' }));
+    // Name und Bild werden sofort festgehalten, damit ein Wechsel oder Löschen nichts durcheinanderbringt
+    if (!pimg) return;
+    downBusy = true;
+    const name = imageFileName(pimg.clip, pimg.rec);
+    const snap = snapCanvas(pCanvas.width, pCanvas.height, true);
+    try {
+      const blob = await canvasBlob(snap, 0.92);
+      await download(new File([blob], name, { type: 'image/jpeg' }));
+    } finally { downBusy = false; }
     return;
   }
   if (!pc) return;
   pause();
-  download(currentFile());
+  downBusy = true;
+  try { await download(currentFile()); }
+  finally { downBusy = false; }
 });
 
 $('pDel').addEventListener('click', async () => {
@@ -1073,9 +1285,11 @@ async function makeStrobe(a, b, count) {
     c.width = STROBE_W; c.height = STROBE_H;
     return c;
   });
-  // Ein eigener Decoder läuft einmal durch den Abschnitt und behält nur die gewünschten Bilder
-  await new Promise((res, rej) => {
-    const dec = new VideoDecoder({
+  // Ein eigener Decoder läuft einmal durch den Abschnitt und behält nur die gewünschten Bilder.
+  // Scheitert die Hardware oder hängt sie, weil alle Decoder belegt sind, rechnet die App in Software.
+  let dec = null;
+  const run = soft => new Promise((res, rej) => {
+    dec = new VideoDecoder({
       output: f => {
         const j = want.get(f.timestamp);
         if (j !== undefined) cvs[j].getContext('2d').drawImage(f, 0, 0, STROBE_W, STROBE_H);
@@ -1083,10 +1297,19 @@ async function makeStrobe(a, b, count) {
       },
       error: rej,
     });
-    dec.configure(pc.cfg);
+    dec.configure(soft ? { ...pc.cfg, hardwareAcceleration: 'prefer-software' } : pc.cfg);
     for (let i = keyBefore(a); i <= b; i++) dec.decode(chunkAt(i));
-    dec.flush().then(() => { dec.close(); res(); }, rej);
+    dec.flush().then(res, rej);
   });
+  const closeDec = () => { if (dec && dec.state !== 'closed') { try { dec.close(); } catch (e) {} } };
+  try { await withTimeout(run(pSoft), 8000); }
+  catch (e) {
+    closeDec();
+    if (pSoft) throw e;
+    console.warn(e);
+    await run(true);
+  }
+  closeDec();
 
   const n = cvs.length;
   const gw = STROBE_W / STROBE_CELL, gh = STROBE_H / STROBE_CELL, cells = gw * gh;
@@ -1156,7 +1379,15 @@ async function makeStrobe(a, b, count) {
 
 // ---------- Bilder speichern ----------
 
-const canvasBlob = (cv, q) => new Promise(res => cv.toBlob(res, 'image/jpeg', q));
+// Chrome wandelt bei toBlob erst um, wenn die Seite gerade nichts zu tun hat, und wartet sonst bis zu
+// einer Sekunde. Bei laufender Kamera und Wiedergabe ist das fast immer so. toDataURL wandelt sofort um.
+function canvasBlob(cv, q) {
+  const url = cv.toDataURL('image/jpeg', q);
+  const bin = atob(url.slice(url.indexOf(',') + 1));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return Promise.resolve(new Blob([bytes], { type: 'image/jpeg' }));
+}
 
 // Bild mit oder ohne Zeichnung, ohne Griffe und ohne Zoom, in der gewünschten Größe.
 // Läuft ohne Warten, damit genau das Bild im Moment des Tippens erfasst wird.
@@ -1175,15 +1406,14 @@ function snapCanvas(w, h, withDrawing) {
 const composeImage = (w, h, q) => canvasBlob(snapCanvas(w, h, true), q);
 
 let playerMsgTimer = 0;
-// keep lässt die Meldung stehen, bis die nächste kommt
-function playerMsg(text, keep) {
+// keep lässt die Meldung stehen, bis die nächste kommt. ms bestimmt sonst die Dauer.
+function playerMsg(text, keep, ms = 2200) {
   $('pMsg').textContent = text;
   $('pMsg').classList.remove('hidden');
   clearTimeout(playerMsgTimer);
-  if (!keep) playerMsgTimer = setTimeout(() => $('pMsg').classList.add('hidden'), 2200);
+  if (!keep) playerMsgTimer = setTimeout(() => $('pMsg').classList.add('hidden'), ms);
 }
 
-// Im Videofenster nur sinnvoll, wenn gezeichnet wurde oder eine Bildfolge zu sehen ist
 // Fingerabdruck des aktuellen Standes. Ist er seit dem letzten Speichern unverändert, bleibt der Knopf grau,
 // damit kein doppeltes Bild entsteht.
 const saveSig = () => JSON.stringify([viewMode, viewMode === 'image' ? pimg && pimg.rec.id : pPos, pStill, shapes]);
@@ -1192,8 +1422,8 @@ let savedSig = null;
 function renderSaveBtn() {
   const b = $('dSave');
   if (!b) return;
-  const possible = viewMode === 'video' ? (hasDrawing() || pStill) : viewMode === 'image';
-  b.disabled = !possible || saveSig() === savedSig;
+  // Jedes Bild lässt sich speichern, auch ohne Zeichnung. Nur dasselbe Bild nicht zweimal.
+  b.disabled = !viewMode || saveSig() === savedSig;
 }
 
 let saveBusy = false;
@@ -1205,6 +1435,7 @@ $('dSave').addEventListener('click', () => {
 });
 
 async function saveNowImage() {
+  let slow = 0;
   try {
     if (viewMode === 'video') pause();
     // Zuerst alles im Moment des Tippens festhalten, danach in Ruhe umwandeln
@@ -1212,7 +1443,8 @@ async function saveNowImage() {
     const thumbCv = snapCanvas(384, 216, true);
     const shapesNow = getShapes();
     const sig = saveSig();
-    playerMsg('Wird gespeichert …', true);   // sofortige Rückmeldung, das Umwandeln dauert einen Moment
+    // Der Hinweis erscheint nur, wenn das Umwandeln merklich dauert
+    slow = setTimeout(() => playerMsg('Wird gespeichert …', true), 400);
     if (viewMode === 'image') {
       // Änderungen gehen in dasselbe Bild, das Bild bleibt seinem Video zugeordnet
       const rec = pimg.rec;
@@ -1220,7 +1452,8 @@ async function saveNowImage() {
       rec.thumb = await canvasBlob(thumbCv, 0.8);
       await putImage(rec);
       savedSig = sig;
-      playerMsg('Gespeichert');
+      clearTimeout(slow);
+      playerMsg('Gespeichert', false, 1200);
       return;
     }
     const c = pc.meta;
@@ -1231,8 +1464,7 @@ async function saveNowImage() {
     const rec = { clipId: c.id, n, created: Date.now(), w: W, h: H, shapes: shapesNow, strobe: still };
     listImages.push(rec);
     try {
-      rec.base = await canvasBlob(baseCv, 0.92);
-      rec.thumb = await canvasBlob(thumbCv, 0.8);
+      [rec.base, rec.thumb] = await Promise.all([canvasBlob(baseCv, 0.92), canvasBlob(thumbCv, 0.8)]);
       rec.id = await putImage(rec);
     } catch (e) {
       listImages.splice(listImages.indexOf(rec), 1);
@@ -1240,9 +1472,11 @@ async function saveNowImage() {
     }
     savedSig = sig;
     renderClipNav();
-    playerMsg('Gespeichert als ' + imageLabel(c, rec));
+    clearTimeout(slow);
+    playerMsg('Gespeichert als ' + imageLabel(c, rec), false, 1200);
   } catch (e) {
     console.warn(e);
+    clearTimeout(slow);
     playerMsg('Speichern fehlgeschlagen');
   } finally {
     saveBusy = false;
@@ -1263,6 +1497,7 @@ async function flushImageEdits() {
 
 // Drei Schritte, damit nichts aus Versehen verloren geht: Knopf, Auswahl mit Anzahl, Rückfrage.
 let delOnlyNoStar = true;
+let askKind = null;   // many beim Löschen über den Knopf, keep bei einer kürzeren Frist
 
 $('delOpen').addEventListener('click', async () => {
   const clips = await allClips();
@@ -1278,12 +1513,16 @@ $('delOpen').addEventListener('click', async () => {
 });
 
 function closeDelete() {
+  // Abbrechen der Rückfrage zur Frist stellt die bisherige Frist wieder her
+  if (askKind === 'keep') { keepShown = settings.keepDays; renderKeep(); }
+  askKind = null;
   $('uiDel').classList.add('hidden');
   $('uiMain').classList.remove('hidden');
 }
 
 async function askDelete(onlyNoStar) {
   delOnlyNoStar = onlyNoStar;
+  askKind = 'many';
   const clips = await allClips();
   const hit = onlyNoStar ? clips.filter(c => !c.star) : clips;
   const n = hit.length;
@@ -1314,7 +1553,15 @@ async function deleteMany(onlyNoStar) {
 $('delNoStar').addEventListener('click', () => askDelete(true));
 $('delAll').addEventListener('click', () => askDelete(false));
 $('delCancel').addEventListener('click', closeDelete);
-$('delYes').addEventListener('click', () => deleteMany(delOnlyNoStar));
+$('delYes').addEventListener('click', async () => {
+  if (askKind !== 'keep') { deleteMany(delOnlyNoStar); return; }
+  askKind = null;
+  commitKeep();
+  await cleanupOld();
+  closeDelete();
+  renderStorage();
+  if (mode === 'analysis' && !viewMode) showList();
+});
 $('delNo').addEventListener('click', closeDelete);
 
 // ---------- Start ----------

@@ -1,8 +1,8 @@
 // Bei jeder neuen Version VERSION erhöhen. Die neue Version wird beim nächsten App-Start übernommen.
-// Normale App unter app/. Nur eigene Speicher werden gelöscht, damit die Test-App unter test/ unberührt bleibt
+// Normale App unter app/. Nur eigene Speicher werden gelöscht, damit die Test-App unter test/ unberührt bleibt.
 const PREFIX = 'turm-delay-';
-const VERSION = PREFIX + 'r8';   // Zählung seit v1 vom 01.10.2026, weiter mit r2, r3 und so fort
-const FILES = ['./', 'index.html', 'app.js', 'analysis.js', 'draw.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+const VERSION = PREFIX + 'r9';   // Zählung seit v1 vom 01.10.2026, weiter mit r10, r11 und so fort
+const FILES = ['./', 'index.html', 'native.js', 'app.js', 'analysis.js', 'draw.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
   // cache: 'reload' umgeht den Browser-Zwischenspeicher, sonst landen alte Dateien im neuen Offline-Speicher
@@ -12,6 +12,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
+      // laglab-mp war der Speicher der entfernten Bilderkennung, er wird mit gelöscht
       .then(keys => Promise.all(keys.filter(k => k.startsWith(PREFIX) && k !== VERSION).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );

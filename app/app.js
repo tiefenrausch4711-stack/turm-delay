@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '2.1';
+const APP_VERSION = '3';   // Version der normalen App, entspricht Test-App Stand 46
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -25,9 +25,10 @@ const DEFAULTS = {
   facing: 'environment',
   height: 1080,
   fps: 30,
-  delay: 20,
-  cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM } },
-  ui: { acc: '#4fbfb3', theme: 'dark', custom: '' },
+  delay: 15,
+  cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM }, external: { ...DEFAULT_CAM } },
+  ui: { acc: '#8fb9ad', theme: 'mid', custom: '', size: 1 },   // size 0 bis 3 für 100, 117, 133 und 150 Prozent
+  tv: { on: false, set: false, w: 100, h: 0, x: 0, y: 0 },   // Fläche für den Betrieb in Prozent des Bildschirms, h 0 heißt noch nicht angepasst
   keepDays: 7,           // Videos ohne Stern werden nach so vielen Tagen gelöscht, 1 bis 30, 0 bedeutet nie
 };
 
@@ -41,8 +42,10 @@ function loadSettings() {
     cams: {
       environment: { ...DEFAULT_CAM, ...(s.cams && s.cams.environment) },
       user: { ...DEFAULT_CAM, ...(s.cams && s.cams.user) },
+      external: { ...DEFAULT_CAM, ...(s.cams && s.cams.external) },
     },
     ui: { ...DEFAULTS.ui, ...s.ui },
+    tv: { ...DEFAULTS.tv, ...s.tv },
   };
 }
 
@@ -53,7 +56,7 @@ function saveSettings() {
 const settings = loadSettings();
 
 // Alte Stufen wie 1/250 aus früheren Versionen werden zu Manuell
-for (const f of ['environment', 'user']) {
+for (const f of ['environment', 'user', 'external']) {
   const c = settings.cams[f];
   if (c.exp !== 'auto' && c.exp !== 'manual') c.exp = 'manual';
 }
@@ -97,6 +100,7 @@ let frameQueue = [];           // dekodierte Bilder, die auf ihre Anzeigezeit wa
 let opStart = null;             // Zeitpunkt des ersten Bildes im Betrieb, vorher null
 let lastShownTs = 0;
 let lastTrimAt = 0;
+let reviewing = false;         // Videoseite direkt aus dem Betrieb, die Aufnahme läuft im Hintergrund weiter
 
 const canvas = $('out');
 const ctx = canvas.getContext('2d', { alpha: false });
@@ -131,12 +135,38 @@ function camOp(fn) {
   return camQueue;
 }
 
+// Eine Kamera am USB-Anschluss, etwa eine Webcam über einen Hub. Chrome nennt die eingebauten
+// Kameras "camera2 0, facing back" oder "facing front", alles andere gilt als USB-Kamera.
+const BUILTIN_RE = /facing (back|front)/i;
+async function externalCam() {
+  const list = async () => (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+  let all = await list();
+  // Namen gibt es erst nach einer Kamerafreigabe, dafür kurz irgendeine Kamera öffnen
+  if (all.length && !all[0].label) {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+    s.getTracks().forEach(t => t.stop());
+    all = await list();
+  }
+  const ext = all.find(d => d.label && !BUILTIN_RE.test(d.label));
+  if (ext) return ext;
+  const e = new Error('Gefundene Kameras: ' + (all.map(d => d.label || 'ohne Namen').join(' · ') || 'keine'));
+  e.name = 'NoExternal';
+  throw e;
+}
+
 async function getStream() {
   const base = {
     width: { ideal: reqWidth() },
     height: { ideal: settings.height },
     frameRate: { ideal: settings.fps, max: settings.fps },
   };
+  if (settings.facing === 'external') {
+    if (NATIVE) return native.usbStream();
+    const d = await externalCam();
+    const id = { deviceId: { exact: d.deviceId } };
+    try { return await navigator.mediaDevices.getUserMedia({ audio: false, video: { ...base, ...id, zoom: true } }); }
+    catch (e) { return await navigator.mediaDevices.getUserMedia({ audio: false, video: { ...base, ...id } }); }
+  }
   const tries = [
     { ...base, facingMode: { exact: settings.facing }, zoom: true },
     { ...base, facingMode: { exact: settings.facing } },
@@ -162,10 +192,7 @@ async function startCamera() {
   track.addEventListener('ended', () => { if (gen === camGen) cameraLost(); });
   const st = track.getSettings();
   degraded = (st.height || 0) < settings.height;
-  await applyZoom();
-  await applyExposure();
-  await applyFocus();
-  if (mode === 'settings') video.srcObject = stream;
+  if (mode === 'settings') showLive();
   lastFrameAt = performance.now();
   quietWatchdog(2000);   // Anlaufzeit bis zum ersten Bild
   fpsCount = 0; fpsWindowStart = performance.now(); measuredFps = 0;
@@ -174,6 +201,13 @@ async function startCamera() {
   reader = new MediaStreamTrackProcessor({ track }).readable.getReader();
   pump(reader, gen);
   renderSettings();
+  // Zoom, Belichtung und Schärfe erst danach. So wartet das Bild nicht auf die Kamerabefehle.
+  await applyZoom();
+  if (gen !== camGen) return;
+  await applyExposure();
+  if (gen !== camGen) return;
+  await applyFocus();
+  if (gen === camGen) renderSettings();
 }
 
 function stopCamera() {
@@ -196,6 +230,7 @@ async function pump(rd, gen) {
 }
 
 function restartCamera() {
+  startConnecting();
   return camOp(async () => {
     stopCamera();
     resetPlayback();
@@ -204,10 +239,22 @@ function restartCamera() {
   });
 }
 
+// Wartezeit zwischen zwei Versuchen. Kehrt man in die App zurück, endet sie sofort.
+let wakeReconnect = () => {};
+let shownAt = -1e9;
+function napReconnect() {
+  const ms = performance.now() - shownAt < 5000 ? 300 : RECONNECT_MS;
+  return new Promise(r => {
+    const t = setTimeout(r, ms);
+    wakeReconnect = () => { clearTimeout(t); r(); };
+  });
+}
+
 let reconnecting = false;
 async function cameraLost(err) {
   if (reconnecting) return;
   reconnecting = true;
+  startConnecting();
   camState = 'lost';
   stopCamera();
   // Im Betrieb bleibt der Puffer erhalten. Was schon aufgenommen ist, läuft weiter auf den Fernseher
@@ -215,8 +262,9 @@ async function cameraLost(err) {
   if (mode !== 'run') resetPlayback();
   renderSettings(err);
   while (true) {
-    await sleep(RECONNECT_MS);
-    if (mode === 'analysis') continue;   // Während der Analyse bleibt die Kamera aus
+    await napReconnect();
+    // Während der Analyse bleibt die Kamera aus, im Hintergrund darf die App sie nicht öffnen
+    if (mode === 'analysis' || document.hidden) continue;
     let ok = false;
     await camOp(async () => {
       // Kamera wurde inzwischen anderweitig gestartet, etwa durch einen Kamerawechsel
@@ -446,6 +494,26 @@ function resetPlayback() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
+// Wiedergabe neu ansetzen, der Puffer bleibt. Danach geht es ab dem passenden Keyframe weiter.
+function restartRunPlayback() {
+  feedSeq = null;
+  frameQueue.forEach(f => f.close());
+  frameQueue = [];
+  if (decoder && decoder.state !== 'closed') {
+    try { decoder.reset(); } catch (e) { decoder = null; }
+  }
+  decoderConfigRef = null;
+  lastShownTs = 0;
+}
+
+// Auf der Videoseite aus dem Betrieb braucht die Wiedergabe keinen Decoder. Er wird ganz freigegeben,
+// weil das Tablet nur wenige Hardware-Decoder hat und das Video sonst schwarz bleibt.
+function releaseRunDecoder() {
+  restartRunPlayback();
+  if (decoder && decoder.state !== 'closed') { try { decoder.close(); } catch (e) {} }
+  decoder = null;
+}
+
 function baseSeq() { return buffer.length ? buffer[0].seq : nextSeq; }
 
 function feed(limit, T) {
@@ -520,6 +588,10 @@ function tick() {
   if (mode !== 'run') return;
   requestAnimationFrame(tick);
   const now = performance.now();
+  if (reviewing) {
+    if (now - lastTrimAt > 1000) { trim(now); lastTrimAt = now; }
+    return;
+  }
 
   const lost = camState === 'lost';
   if (!lost && camState !== 'ok') { setBadge(String(settings.delay), ''); return; }   // Kamera startet noch
@@ -578,19 +650,26 @@ function enterRun() {
   requestAnimationFrame(tick);
 }
 
+// Live-Bild zeigen. Die Android-WebView startet es nach einem Wechsel nicht von selbst.
+function showLive() {
+  video.srcObject = stream;
+  video.play().catch(() => {});
+}
+
 function enterSettings() {
   mode = 'settings';
   cancelSavePress();
+  clearRecent();
   resetPlayback();
   $('run').classList.add('hidden');
   $('settings').classList.remove('hidden');
-  if (stream) video.srcObject = stream;
+  if (stream) showLive();
   renderSettings();
 }
 
 // Als installierte App läuft LagLab schon im Vollbild. Ein zusätzlicher Vollbildwunsch würde nur
 // Chromes Hinweis zum Herauswischen auslösen, deshalb gibt es ihn nur im normalen Browser-Tab.
-const installedApp = () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
+const installedApp = () => NATIVE || matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
 async function goFullscreen() {
   try {
     if (!installedApp() && !document.fullscreenElement) await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
@@ -613,8 +692,9 @@ function cancelPress() {
 
 $('run').addEventListener('pointerdown', e => {
   if (press) { cancelPress(); return; }   // zweiter Finger oder Tropfen bricht ab
-  ring.style.left = e.clientX + 'px';
-  ring.style.top = e.clientY + 'px';
+  const a = $('app').getBoundingClientRect();
+  ring.style.left = (e.clientX - a.left) + 'px';
+  ring.style.top = (e.clientY - a.top) + 'px';
   ring.classList.remove('hidden', 'go');
   void ring.getBoundingClientRect();
   ring.classList.add('go');
@@ -666,16 +746,33 @@ async function saveNow() {
   }
   const snap = snapshotBuffer();
   if (!snap) { showToast('Nichts zu speichern', true); return; }
-  saveBtn.classList.add('done');
+  const p = saveClip(snap);
+  setRecent(p);
   try {
-    const c = await saveClip(snap);
-    showToast('Gespeichert · V' + c.nr);
+    const c = await p;
+    showToast('Gespeichert · v' + c.nr);
+    // Die 5 Sekunden zählen ab dem fertigen Speichern
+    if (recent && recent.p === p) recent.timer = setTimeout(clearRecent, RECENT_MS);
   } catch (e) {
     console.warn(e);
+    clearRecent();
     showToast('Speichern fehlgeschlagen', true);
-  } finally {
-    setTimeout(() => saveBtn.classList.remove('done'), 600);
   }
+}
+
+// Nach dem Speichern bleibt der Knopf kurz grau. Ein Tippen in dieser Zeit öffnet das Video.
+const RECENT_MS = 5000;
+let recent = null;   // { p: Speichervorgang, timer }
+function setRecent(p) {
+  clearRecent();
+  recent = { p, timer: 0 };
+  saveBtn.classList.add('recent');
+}
+function clearRecent() {
+  if (!recent) return;
+  clearTimeout(recent.timer);
+  recent = null;
+  saveBtn.classList.remove('recent');
 }
 
 // Eine Sekunde halten. Dabei füllt sich der Ring wie beim Zurückkehren.
@@ -691,6 +788,7 @@ function cancelSavePress() {
 
 saveBtn.addEventListener('pointerdown', e => {
   e.stopPropagation();   // löst nicht das Zurück in die Einstellungen aus
+  if (recent) { enterReview(recent.p); return; }
   if (savePress) { cancelSavePress(); return; }
   cancelPress();
   saveBtn.classList.remove('go');
@@ -709,7 +807,7 @@ for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
 
 const fmtNum = x => String(r1(x)).replace('.', ',');
 const fmtZoom = z => (Number.isInteger(r1(z)) ? r1(z) + ',0' : fmtNum(z)) + '×';
-const CAM_LABEL = { environment: 'Rückseite', user: 'Vorderseite' };
+const CAM_LABEL = { environment: 'Rückseite', user: 'Vorderseite', external: 'USB' };
 
 function setSeg(id, value) {
   for (const b of $(id).querySelectorAll('button')) b.classList.toggle('on', b.dataset.v === String(value));
@@ -775,7 +873,8 @@ function renderSettings(err) {
   $('delay').value = settings.delay;
   $('delayVal').textContent = settings.delay;
   fillRange($('delay'));
-  $('version').textContent = 'v' + APP_VERSION;
+  renderDelayButtons();
+  $('version').textContent = 'v' + APP_VERSION + (NATIVE ? ' · Android' : '');
 
   applyPreviewTransform();
   renderCamInfo(err);
@@ -783,6 +882,27 @@ function renderSettings(err) {
 
 let lastCamError = null;
 let unsupported = false;
+// Beim Start, nach einem Kamerawechsel und nach einem Abbruch heißt es zuerst nur „wird verbunden“.
+// Erst wenn es nach dieser Zeit nicht geklappt hat, erscheint eine Meldung mit dem Grund.
+const CONNECT_GRACE_MS = 10000;
+let connectSince = performance.now();
+let graceTimer = setTimeout(() => renderCamInfo(), CONNECT_GRACE_MS + 50);
+function startConnecting() {
+  connectSince = performance.now();
+  clearTimeout(graceTimer);
+  graceTimer = setTimeout(() => renderCamInfo(), CONNECT_GRACE_MS + 50);
+}
+
+function failText(err) {
+  if (err && err.name === 'NoExternal') return 'Keine USB-Kamera erkannt. ' + err.message;
+  if (err && err.name === 'NotAllowedError') {
+    return 'Keine Verbindung zur Kamera. Der Zugriff ist nicht erlaubt. ' + (NATIVE
+      ? `Bitte in den Android-Einstellungen bei „${document.title}“ die Kamera erlauben.`
+      : 'Bitte in den Chrome-Einstellungen für diese Seite freigeben.');
+  }
+  return 'Keine Verbindung zur Kamera. Die App versucht es weiter.';
+}
+
 function renderCamInfo(err) {
   if (err) lastCamError = err;
   if (camState === 'ok') lastCamError = null;
@@ -792,12 +912,14 @@ function renderCamInfo(err) {
   const fpsEl = $('hudFps');
   $('hudCam').textContent = CAM_LABEL[settings.facing];
 
-  if (unsupported || camState === 'lost' || err) {
-    let text = 'Kamera wird neu verbunden';
-    if (unsupported) text = 'Dieser Browser unterstützt die nötigen Funktionen nicht.';
-    else if (err && err.name === 'NotAllowedError') text = 'Kamerazugriff wurde nicht erlaubt. Bitte in den Chrome-Einstellungen für diese Seite freigeben.';
-    state.className = 'state bad';
-    stateTxt.textContent = 'Getrennt';
+  if (unsupported || camState !== 'ok' || !track) {
+    // Ein verweigerter Zugriff ändert sich nicht durch Warten und erscheint deshalb sofort
+    const denied = err && err.name === 'NotAllowedError';
+    const waiting = !unsupported && !denied && performance.now() - connectSince < CONNECT_GRACE_MS;
+    const text = unsupported ? 'Dieser Browser unterstützt die nötigen Funktionen nicht.'
+      : waiting ? 'Kamera wird verbunden …' : failText(err);
+    state.className = waiting ? 'state' : 'state bad';
+    stateTxt.textContent = waiting ? 'Verbinde' : 'Getrennt';
     msg.textContent = text;
     msg.classList.remove('hidden');
     $('hudRes').textContent = '–';
@@ -808,11 +930,6 @@ function renderCamInfo(err) {
     return;
   }
   msg.classList.add('hidden');
-  if (!track) {
-    state.className = 'state';
-    stateTxt.textContent = 'Start';
-    return;
-  }
   const st = track.getSettings();
   const low = degraded || (measuredFps && measuredFps < settings.fps * 0.8);
   state.className = 'state ' + (low ? 'warn' : 'ok');
@@ -876,7 +993,14 @@ function setDelay(d) {
   $('delay').value = settings.delay;
   $('delayVal').textContent = settings.delay;
   fillRange($('delay'));
+  renderDelayButtons();
   saveSettings();
+}
+
+// An den Grenzen sind „−“ und „+“ grau, weil sie dort nichts mehr bewirken
+function renderDelayButtons() {
+  $('delayMinus').disabled = settings.delay <= 1;
+  $('delayPlus').disabled = settings.delay >= maxDelay();
 }
 $('delay').addEventListener('input', e => setDelay(+e.target.value));
 $('delayMinus').addEventListener('click', () => setDelay(settings.delay - 1));
@@ -886,9 +1010,10 @@ $('start').addEventListener('click', () => { goFullscreen(); enterRun(); });
 
 // ---------- Darstellung ----------
 
-// Etwas mildere Vorschläge. Die früheren, kräftigeren Werte werden auf die neuen umgestellt.
-const ACCENTS = ['#4fbfb3', '#5b8fd6', '#4caf7d', '#e9edf0'];
-const OLD_ACCENTS = { '#37d3c4': '#4fbfb3', '#3b82f6': '#5b8fd6', '#22c55e': '#4caf7d', '#ffffff': '#e9edf0' };
+// Eine feste Farbe, ein helles Salbei passend zum Schiefergrau. Wer eine der früheren festen Farben
+// gewählt hatte, bekommt sie. Eine eigene Farbe bleibt erhalten.
+const ACCENTS = ['#8fb9ad'];
+const OLD_ACCENTS = ['#4fbfb3', '#5b8fd6', '#4caf7d', '#e9edf0', '#37d3c4', '#3b82f6', '#22c55e', '#ffffff'];
 const isHex = v => /^#[0-9a-f]{6}$/i.test(v);
 
 // Schrift auf der Akzentfarbe wird dunkel oder weiß, je nachdem was besser lesbar ist
@@ -898,13 +1023,42 @@ function inkFor(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.179 ? '#0b0d0f' : '#ffffff';
 }
 
+// Helligkeit einer Farbe nach WCAG, 0 schwarz bis 1 weiß
+function lumOf(hex) {
+  const lin = c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = [1, 3, 5].map(i => lin(parseInt(hex.slice(i, i + 2), 16) / 255));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function mixHex(hex, to, t) {
+  const c = i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - t) + to * t).toString(16).padStart(2, '0');
+  return '#' + c(1) + c(3) + c(5);
+}
+
+// Eine Akzentfarbe nah am Hintergrund würde Knöpfe und Regler unsichtbar machen. Dann gilt eine
+// dunklere Abstufung im hellen Modus und eine hellere im dunklen. Die gewählte Farbe bleibt gespeichert.
+function readableAcc(hex, theme) {
+  let out = hex;
+  // Im mittleren Modus braucht die Farbe mehr Helligkeit als im dunklen, sonst geht sie im Grau unter
+  const minLum = theme === 'mid' ? 0.2 : 0.08;
+  for (let t = 0.1; t <= 0.9; t += 0.1) {
+    if (theme === 'light' ? lumOf(out) <= 0.4 : lumOf(out) >= minLum) break;
+    out = mixHex(hex, theme === 'light' ? 0 : 255, t);
+  }
+  return out;
+}
+
 function applyUi() {
-  const { acc, theme } = settings.ui;
+  const { theme } = settings.ui;
+  const acc = readableAcc(settings.ui.acc, theme);
   const root = document.documentElement;
   root.style.setProperty('--acc', acc);
   root.style.setProperty('--acc-ink', inkFor(acc));
   root.dataset.theme = theme;
-  document.querySelector('meta[name=theme-color]').content = theme === 'light' ? '#f2f4f6' : '#0b0d0f';
+  const size = clamp(Math.round(+settings.ui.size || 0), 0, 3);
+  root.dataset.size = String(size);
+  root.classList.toggle('big', size > 0);
+  document.querySelector('meta[name=theme-color]').content = theme === 'light' ? '#f2f4f6' : theme === 'mid' ? '#3a434d' : '#0b0d0f';
   for (const sw of $('swatches').querySelectorAll('.sw[data-c]')) sw.classList.toggle('on', sw.dataset.c === acc);
   // Sechster Kreis mit der eigenen Farbe, leer bis zur ersten freien Wahl
   const own = settings.ui.custom;
@@ -912,6 +1066,9 @@ function applyUi() {
   $('accSaved').style.setProperty('--c', own || 'transparent');
   $('accSaved').classList.toggle('on', !!own && acc === own && !ACCENTS.includes(acc));
   setSeg('segTheme', theme);
+  $('uiSize').value = size;
+  fillRange($('uiSize'));
+  applyTv();
 }
 
 function setUi(part) {
@@ -920,15 +1077,14 @@ function setUi(part) {
   applyUi();
 }
 
-// Reihenfolge: Farbwähler, vier Vorschläge, eigene Farbe
+// Reihenfolge: Farbwähler, eigene Farbe, feste Farbe
 for (const c of ACCENTS) {
   const b = document.createElement('button');
   b.className = 'sw';
   b.dataset.c = c;
   b.style.setProperty('--c', c);
   b.setAttribute('aria-label', 'Farbe ' + c);
-  if (c === '#e9edf0') b.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.25)';
-  $('swatches').insertBefore(b, $('accSaved'));
+  $('swatches').append(b);   // feste Farben nach Farbwähler und eigener Farbe
 }
 $('swatches').addEventListener('click', e => {
   const b = e.target.closest('button.sw');
@@ -1005,6 +1161,115 @@ function dragArea(el, onPos) {
 dragArea($('pickSv'), (x, y) => { hsv[1] = x; hsv[2] = 1 - y; });
 dragArea($('pickHue'), x => { hsv[0] = Math.min(x * 360, 359.9); });
 $('pickDone').addEventListener('click', closePicker);
+// ---------- Fernseher anpassen ----------
+// Mit Zoom am Fernseher schneidet dieser die Ränder ab. Im Betrieb erscheint das Video dann in einer
+// eingestellten Fläche, Breite und Höhe in Prozent des Bildschirms, die Mitte um x und y verschoben.
+
+const TV_RANGE = { w: [40, 100], h: [40, 100], x: [-30, 30], y: [-30, 30] };
+const TV_STEP = 0.5;
+
+// Ausgangswert: das Video über die volle Breite in 16:9, wie in der normalen Anzeige
+function tvDefaults() {
+  const h = Math.min(100, Math.round(innerWidth * 9 / 16 / innerHeight * 100 / TV_STEP) * TV_STEP);
+  return { w: 100, h, x: 0, y: 0 };
+}
+
+function placeBox(el, t) {
+  Object.assign(el.style, { width: t.w + 'vw', height: t.h + 'vh', left: (50 + t.x) + '%', top: (50 + t.y) + '%', aspectRatio: 'auto' });
+}
+
+// Bei „Angepasst“ liegt die ganze App im Rahmen, bei „Normal“ füllt sie den Bildschirm
+function applyTv() {
+  const t = settings.tv, app = $('app'), fit = !!(t.on && t.h);
+  document.documentElement.classList.toggle('tvfit', fit);
+  if (fit) placeBox(app, t);
+  else app.removeAttribute('style');
+  setSeg('segTv', t.on ? 1 : 0);
+}
+
+const fmtTv = (k, v) => (k === 'x' || k === 'y')
+  ? (v > 0 ? '+' : v < 0 ? '−' : '') + String(Math.abs(v)).replace('.', ',') + ' %'
+  : String(v).replace('.', ',') + ' %';
+
+function renderTvCal() {
+  const t = settings.tv;
+  placeBox($('tvFrame'), t);
+  for (const row of document.querySelectorAll('#tvCtl [data-k]')) {
+    const k = row.dataset.k, r = row.querySelector('input');
+    [r.min, r.max] = TV_RANGE[k];
+    r.step = TV_STEP;
+    r.value = t[k];
+    fillRange(r);
+    row.querySelector('.tvVal').textContent = fmtTv(k, t[k]);
+  }
+}
+
+function setTv(k, v) {
+  settings.tv[k] = clamp(Math.round(v / TV_STEP) * TV_STEP, ...TV_RANGE[k]);
+  saveSettings();
+  renderTvCal();
+  applyTv();
+}
+
+// Stand beim Öffnen. Abbrechen und die Zurück-Geste stellen ihn wieder her, nur Fertig übernimmt die Änderungen.
+let tvBefore = null, tvKeep = false;
+
+function openTvCal() {
+  tvBefore = { ...settings.tv };
+  tvKeep = false;
+  if (!settings.tv.h) Object.assign(settings.tv, tvDefaults());
+  renderTvCal();
+  const v = $('tvVideo');
+  if (stream) { v.srcObject = stream; v.play().catch(() => {}); }
+  $('tvCal').classList.remove('hidden');
+  history.pushState({ v: 'tv' }, '');
+}
+
+function closeTvCal() {
+  $('tvCal').classList.add('hidden');
+  $('tvVideo').srcObject = null;
+  if (!tvKeep && tvBefore) {
+    settings.tv = { ...tvBefore };
+    saveSettings();
+    applyTv();
+  }
+  tvBefore = null;
+}
+
+$('tvOpen').addEventListener('click', openTvCal);
+$('tvDone').addEventListener('click', () => {
+  settings.tv.on = true;
+  settings.tv.set = true;
+  tvKeep = true;
+  saveSettings();
+  applyTv();
+  history.back();
+});
+$('tvCancel').addEventListener('click', () => history.back());
+$('tvReset').addEventListener('click', () => {
+  Object.assign(settings.tv, tvDefaults());
+  saveSettings();
+  renderTvCal();
+  applyTv();
+});
+for (const row of document.querySelectorAll('#tvCtl [data-k]')) {
+  const k = row.dataset.k;
+  row.querySelector('input').addEventListener('input', e => setTv(k, +e.target.value));
+  for (const b of row.querySelectorAll('[data-d]')) b.addEventListener('click', () => setTv(k, settings.tv[k] + TV_STEP * b.dataset.d));
+}
+// Angepasst ohne bisherige Einstellung öffnet gleich das Prüfbild
+$('segTv').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.v === '1' && !settings.tv.set) { openTvCal(); return; }
+  settings.tv.on = b.dataset.v === '1';
+  saveSettings();
+  applyTv();
+});
+
+// Die Größe wechselt erst beim Loslassen, sonst wüchse der Regler unter dem Finger mit
+$('uiSize').addEventListener('input', () => fillRange($('uiSize')));
+$('uiSize').addEventListener('change', () => setUi({ size: +$('uiSize').value }));
 $('segTheme').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (b) setUi({ theme: b.dataset.v });
@@ -1024,7 +1289,7 @@ function closeUi() {
 // Geschlossen wird durch Tippen neben das Fenster oder die Zurück-Geste
 $('uiDlg').addEventListener('click', e => { if (e.target === $('uiDlg')) history.back(); });
 if (!isHex(settings.ui.acc)) settings.ui.acc = DEFAULTS.ui.acc;
-if (OLD_ACCENTS[settings.ui.acc]) settings.ui.acc = OLD_ACCENTS[settings.ui.acc];
+if (OLD_ACCENTS.includes(settings.ui.acc) && settings.ui.acc !== settings.ui.custom) settings.ui.acc = ACCENTS[0];
 // Eine früher frei gewählte Farbe bekommt ihren eigenen Platz
 if (!isHex(settings.ui.custom || '')) settings.ui.custom = ACCENTS.includes(settings.ui.acc) ? '' : settings.ui.acc;
 applyUi();
@@ -1047,6 +1312,14 @@ async function requestWakeLock() {
   } catch (e) { wakeLock = null; }
 }
 document.addEventListener('visibilitychange', requestWakeLock);
+// Zurück in der App. Eine Kamera, die von selbst weiterläuft, bekommt kurz Zeit.
+// Ein laufender Neuversuch startet sofort statt nach der Wartezeit.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  shownAt = performance.now();
+  quietWatchdog(1500);
+  wakeReconnect();
+});
 setInterval(requestWakeLock, 5000);
 
 // ---------- Start ----------
@@ -1055,6 +1328,11 @@ setInterval(requestWakeLock, 5000);
 // Beim nächsten Start wird sie ohne Wartezeit übernommen, nie während des Betriebs.
 async function applyUpdateAtStart() {
   if (!('serviceWorker' in navigator)) return false;
+  // Die Android-App bringt ihre Dateien selbst mit und braucht keinen Offline-Speicher
+  if (NATIVE) {
+    for (const r of await navigator.serviceWorker.getRegistrations().catch(() => [])) r.unregister();
+    return false;
+  }
   try {
     const reg = await navigator.serviceWorker.register('sw.js');
     // reg.active fehlt bei der allerersten Installation, dann ist nichts zu übernehmen
