@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '39';   // Stand der Test-App
+const APP_VERSION = '40';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -740,7 +740,7 @@ async function saveNow() {
   setRecent(p);
   try {
     const c = await p;
-    showToast('Gespeichert · V' + c.nr);
+    showToast('Gespeichert · v' + c.nr);
     // Die 5 Sekunden zählen ab dem fertigen Speichern
     if (recent && recent.p === p) recent.timer = setTimeout(clearRecent, RECENT_MS);
   } catch (e) {

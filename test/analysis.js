@@ -176,17 +176,17 @@ function makeMp4(cfg, frames, bytes, skip = 0) {
   return new Blob([ftyp, moov(ftyp.length + moovLen + 8), mdatHead, bytes], { type: 'video/mp4' });
 }
 
-// 2026-10-02-Teo_Kopfsprung_V3.mp4 und 2026-10-02-Teo_Kopfsprung_V3_B1.jpg.
+// 2026-10-02-Teo_Kopfsprung_v3.mp4 und 2026-10-02-Teo_Kopfsprung_v3.1.jpg.
 // Fehlen Name oder Stichwort, entfällt der jeweilige Teil.
 const cleanPart = v => (v || '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
 function clipBaseName(c) {
   const name = cleanPart(c.name), prop = cleanPart(c.prop);
-  return `${c.day}${name ? '-' + name : ''}${prop ? '_' + prop : ''}_V${c.nr}`;
+  return `${c.day}${name ? '-' + name : ''}${prop ? '_' + prop : ''}_v${c.nr}`;
 }
 const clipFileName = c => clipBaseName(c) + '.mp4';
-const imageFileName = (c, im) => `${clipBaseName(c)}_B${im.n}.jpg`;
-const clipLabel = c => 'V' + c.nr;
-const imageLabel = (c, im) => `V${c.nr}_B${im.n}`;
+const imageFileName = (c, im) => `${clipBaseName(c)}.${im.n}.jpg`;
+const clipLabel = c => 'v' + c.nr;
+const imageLabel = (c, im) => `v${c.nr}.${im.n}`;
 
 // ---------- Ein- und Ausstieg ----------
 
@@ -328,7 +328,7 @@ function renderList(clips) {
   $('aEmpty').textContent = images
     ? (all ? 'Keine Bilder für diese Auswahl.' : 'Noch keine Bilder gespeichert.')
     : (all ? 'Keine Videos für diese Auswahl.' : 'Noch keine Videos gespeichert.');
-  // Neueste Videos zuerst, die Bilder eines Videos in ihrer Reihenfolge B1, B2, B3
+  // Neueste Videos zuerst, die Bilder eines Videos in ihrer Reihenfolge v3.1, v3.2, v3.3
   items.sort((a, b) => b.c.created - a.c.created || (a.im ? a.im.n - b.im.n : 0));
   let day = null, row = null;
   for (const x of items) {
