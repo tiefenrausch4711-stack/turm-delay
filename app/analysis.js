@@ -228,6 +228,8 @@ async function enterReview(p) {
   clearRecent();
   cancelPress();
   reviewing = true;
+  slow = null;   // eine laufende Zeitlupe endet, zurück geht es in die normale Verzögerung
+  renderSlow();
   releaseRunDecoder();
   history.pushState({ v: 'review' }, '');
   listClips = await allClips();

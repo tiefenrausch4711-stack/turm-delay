@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '3.2';   // Version der normalen App, entspricht Test-App Stand 46
+const APP_VERSION = '3.3';   // Version der normalen App, entspricht Test-App Stand 50
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -26,6 +26,7 @@ const DEFAULTS = {
   height: 1080,
   fps: 30,
   delay: 15,
+  slow: 0.5,             // Geschwindigkeit der Zeitlupe im Betrieb, 0.5, 0.25 oder 0.125
   cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM }, external: { ...DEFAULT_CAM } },
   ui: { acc: '#8fb9ad', theme: 'mid', custom: '', size: 1 },   // size 0 bis 3 für 100, 117, 133 und 150 Prozent
   tv: { on: false, set: false, w: 100, h: 0, x: 0, y: 0 },   // Fläche für den Betrieb in Prozent des Bildschirms, h 0 heißt noch nicht angepasst
@@ -471,9 +472,44 @@ function makeDecoder() {
   decoderConfigRef = null;
 }
 
+// Zeitlupe im Betrieb. Sie spielt ab dem Bild auf dem Fernseher den Puffer bis zum Moment des Tippens langsamer ab.
+// Die Kamera nimmt dabei weiter auf. Danach geht es mit der eingestellten Verzögerung weiter, die Zeit dazwischen entfällt.
+let slow = null;   // { wall: Beginn, ts: Bild beim Beginn, end: Ende im Puffer }
+const SLOW_LABEL = { 0.5: '½', 0.25: '¼', 0.125: '⅛' };
+
+// Zeitpunkt im Puffer, der gerade auf dem Fernseher erscheinen soll
+function showT(now) {
+  return slow ? slow.ts + (now - slow.wall) * settings.slow : now - settings.delay * 1000;
+}
+
+function toggleSlow() {
+  if (slow) { stopSlow(); return; }
+  const now = performance.now();
+  if (opStart === null || now - opStart < settings.delay * 1000) {
+    showToast('Puffer füllt sich noch', true);
+    return;
+  }
+  // Ab dem Bild auf dem Fernseher. Direkt nach einem Sprung gilt die Stelle der normalen Verzögerung.
+  slow = { wall: now, ts: lastShownTs || showT(now), end: now };
+  renderSlow();
+}
+
+function stopSlow() {
+  if (!slow) return;
+  slow = null;
+  restartRunPlayback();   // weiter ab dem Keyframe vor der normalen Verzögerung
+  renderSlow();
+}
+
+function renderSlow() {
+  $('slowBtn').classList.toggle('on', !!slow);
+  $('slowTag').classList.toggle('hidden', !slow);
+  $('slowTag').querySelector('span').textContent = SLOW_LABEL[settings.slow] || '';
+}
+
 function onDecoded(frame) {
   frameQueue.push(frame);
-  const T = performance.now() - settings.delay * 1000;
+  const T = showT(performance.now());
   // Veraltete Bilder sofort freigeben, damit der Hardware-Decoder nicht blockiert
   while (frameQueue.length > 1 && frameQueue[1].timestamp / 1000 <= T) frameQueue.shift().close();
   while (frameQueue.length > 8) frameQueue.shift().close();
@@ -552,7 +588,7 @@ function feed(limit, T) {
 }
 
 function trim(now) {
-  const cutoff = now - settings.delay * 1000 - 2000;
+  const cutoff = showT(now) - 2000;
   let k = 0;
   for (let i = 1; i < buffer.length; i++) {
     const e = buffer[i];
@@ -603,7 +639,8 @@ function tick() {
     return;
   }
 
-  const T = now - settings.delay * 1000;
+  if (slow && showT(now) >= slow.end) stopSlow();   // Puffer bis zum Tippen durchgespielt
+  const T = showT(now);
   feed(T + LOOKAHEAD_MS, T);
 
   let show = null;
@@ -639,6 +676,8 @@ function hasDueFrame(after, until) {
 
 function enterRun() {
   mode = 'run';
+  slow = null;
+  renderSlow();
   history.pushState({ v: 'run' }, '');
   $('settings').classList.add('hidden');
   $('run').classList.remove('hidden');
@@ -658,6 +697,7 @@ function showLive() {
 
 function enterSettings() {
   mode = 'settings';
+  slow = null;
   cancelSavePress();
   clearRecent();
   resetPlayback();
@@ -714,7 +754,7 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 // Beginn ist der Keyframe davor, damit das Video dekodierbar bleibt.
 function snapshotBuffer() {
   if (mode !== 'run' || !buffer.length) return null;
-  const T = performance.now() - settings.delay * 1000;
+  const T = showT(performance.now());
   let start = 0;
   for (let i = 0; i < buffer.length; i++) {
     if (buffer[i].ts > T) break;
@@ -774,6 +814,13 @@ function clearRecent() {
   recent = null;
   saveBtn.classList.remove('recent');
 }
+
+// Ein Tippen startet die Zeitlupe, ein zweites beendet sie
+$('slowBtn').addEventListener('pointerdown', e => {
+  e.stopPropagation();   // löst nicht das Zurück in die Einstellungen aus
+  cancelPress();
+  toggleSlow();
+});
 
 // Eine Sekunde halten. Dabei füllt sich der Ring wie beim Zurückkehren.
 const saveBtn = $('saveBtn');
@@ -1066,6 +1113,8 @@ function applyUi() {
   $('accSaved').style.setProperty('--c', own || 'transparent');
   $('accSaved').classList.toggle('on', !!own && acc === own && !ACCENTS.includes(acc));
   setSeg('segTheme', theme);
+  if (!SLOW_LABEL[settings.slow]) settings.slow = DEFAULTS.slow;
+  setSeg('segSlow', settings.slow);
   $('uiSize').value = size;
   fillRange($('uiSize'));
   applyTv();
@@ -1270,6 +1319,13 @@ $('segTv').addEventListener('click', e => {
 // Die Größe wechselt erst beim Loslassen, sonst wüchse der Regler unter dem Finger mit
 $('uiSize').addEventListener('input', () => fillRange($('uiSize')));
 $('uiSize').addEventListener('change', () => setUi({ size: +$('uiSize').value }));
+$('segSlow').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  settings.slow = +b.dataset.v;
+  saveSettings();
+  setSeg('segSlow', settings.slow);
+});
 $('segTheme').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (b) setUi({ theme: b.dataset.v });
