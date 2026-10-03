@@ -304,8 +304,9 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   container-type: size;
 }
 #out { display: block; width: 100%; height: 100%; object-fit: contain; }
+/* Sekunden oben rechts, die Anzeige der Zeitlupe mittig darunter */
+#hudR { position: absolute; top: 3cqh; right: 2.5cqw; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
 #badge {
-  position: absolute; top: 3cqh; right: 2.5cqw;
   color: #fff;
   font: 400 4.5cqh/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
   /* kein Hintergrund, nur ein weicher Schatten für helle Bildstellen */
@@ -362,7 +363,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #slowBtn.on .prog { stroke: #fff; }
 /* Während der Zeitlupe unter den Sekunden: Uhr und Geschwindigkeit */
 #slowTag {
-  position: absolute; top: 8.4cqh; right: 2.5cqw;
+  margin-top: 0.4cqh;
   display: flex; align-items: center; gap: 0.8cqh;
   color: #fff; font: 400 3.4cqh/1 var(--sans);
   text-shadow: 0 0 0.6cqh rgba(0, 0, 0, 0.8), 0 0.2cqh 0.4cqh rgba(0, 0, 0, 0.6);
