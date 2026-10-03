@@ -339,6 +339,28 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #saveBtn .prog { stroke: var(--acc); stroke-linecap: round; stroke-dasharray: 314.2; stroke-dashoffset: 314.2; }
 #saveBtn.go .prog { transition: stroke-dashoffset 1s linear; stroke-dashoffset: 0; }
 #saveBtn.done .prog { stroke-dashoffset: 0; }
+/* Zeitlupe unten links, gegenüber dem Speicherknopf. Im Kreis die Uhrzeiger aus dem Symbol. */
+#slowBtn {
+  position: absolute; left: 6cqh; bottom: 6cqh;
+  width: 5.25cqh; height: 5.25cqh; padding: 0.9cqh; touch-action: none;
+}
+#slowBtn::before { content: ""; position: absolute; inset: -2.5cqh; border-radius: 50%; }
+#slowBtn svg { display: block; width: 100%; height: 100%; }
+#slowBtn .track { fill: transparent; stroke: rgba(255, 255, 255, 0.35); stroke-width: 7; transition: fill .15s; }
+#slowBtn .hands { fill: none; stroke: rgba(255, 255, 255, 0.85); stroke-width: 9; stroke-linecap: round; }
+#slowBtn.on .track { fill: rgba(0, 0, 0, 0.45); stroke: var(--acc); }
+#slowBtn.on .hands { stroke: var(--acc); }
+/* Während der Zeitlupe unter den Sekunden: Uhr und Geschwindigkeit */
+#slowTag {
+  position: absolute; top: 8.4cqh; right: 2.5cqw;
+  display: flex; align-items: center; gap: 0.8cqh;
+  color: #fff; font: 400 3.4cqh/1 var(--sans);
+  text-shadow: 0 0 0.6cqh rgba(0, 0, 0, 0.8), 0 0.2cqh 0.4cqh rgba(0, 0, 0, 0.6);
+}
+#slowTag svg {
+  width: 3.2cqh; height: 3.2cqh; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round;
+  filter: drop-shadow(0 0 0.3cqh rgba(0, 0, 0, 0.8));
+}
 #toast {
   position: absolute; right: 13cqh; bottom: 5.9cqh;   /* links neben dem Speicherknopf */
   padding: 0.8cqh 1.8cqh; border-radius: 1.2cqh;
@@ -708,6 +730,10 @@ html.big #panel { grid-template-rows: auto auto auto 1fr; align-content: stretch
 html.big #panel .actions { align-self: end; }
 
 /* ---------- Fernseher anpassen ---------- */
+/* Bildschirm und Zeitlupe teilen sich eine Zeile, die Zeitlupe nur so breit wie ihre drei Knöpfe */
+.dlgRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; }
+.dlgRow > div { display: flex; flex-direction: column; gap: 14px; }
+#segSlow button { min-width: calc(58px / var(--z)); font-size: 20px; }
 .tvRow { display: flex; gap: 10px; align-items: center; }
 .tvRow .seg { flex: 1; }
 .tvRow .tool { min-height: 56px; }
@@ -769,7 +795,7 @@ html.tvfit #out { object-fit: fill; }
   #panel .label { margin-bottom: 6px; }
   #panel .seg button { min-height: 42px; }
   .dlgPair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
-  .dlgPair > div { display: flex; flex-direction: column; gap: 10px; }
+  .dlgPair > div, .dlgRow > div { display: flex; flex-direction: column; gap: 10px; }
   #uiMain, #uiPick { gap: 10px; }
   .dlg { padding-top: 14px; padding-bottom: 14px; }
   .sv { aspect-ratio: 16 / 7; }

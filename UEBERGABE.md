@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 03.10.2026. Normale App v3.2 unter `app/`, gleich mit Test-App Stand 46 bis auf Name, Schild „TEST“, Speicherorte und Versionsnummer. Sie gibt es auch als Android-App `apk/laglab.apk`. Test-App Stand 49 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 49, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 03.10.2026. Normale App v3.2 unter `app/`, gleich mit Test-App Stand 46 bis auf Name, Schild „TEST“, Speicherorte und Versionsnummer. Sie gibt es auch als Android-App `apk/laglab.apk`. Test-App Stand 50 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 50, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -360,6 +360,14 @@ Vom Nutzer entschieden:
 ## Test-App Stand 49
 
 - Der Speicherknopf im Betrieb sitzt unten rechts statt unten links, weil er sich dort besser drücken lässt (`right: 6cqh`). Die Meldung „Gespeichert · v3“ steht links daneben (`right: 13cqh`).
+
+## Test-App Stand 50, Zeitlupe im Betrieb
+
+- Unten links im Betrieb ein runder Knopf `#slowBtn` mit den Uhrzeigern aus dem Symbol, gegenüber dem Speicherknopf. Ein Tippen startet die Zeitlupe, ein zweites beendet sie. Aktiv ist er innen dunkel, Ring und Zeiger in der Akzentfarbe.
+- Die Zeitlupe spielt ab dem Bild auf dem Fernseher (`lastShownTs`) den Puffer bis zum Moment des Tippens langsamer ab. Dann oder beim zweiten Tippen geht es mit der eingestellten Verzögerung weiter, die Zeit dazwischen entfällt (`stopSlow` mit `restartRunPlayback`). Bei 15 s und ½ dauert sie 30 s.
+- Technik: Nur die Anzeigeuhr ändert sich. `showT(now)` liefert die Stelle im Puffer und gilt für `tick`, `onDecoded`, `trim` und `snapshotBuffer`. Die Kamera kodiert unverändert weiter, kein zweiter Decoder. Speichern während der Zeitlupe nimmt ab dem Bild auf dem Fernseher. Der Wechsel auf die Videoseite, Verlassen und neuer Start beenden die Zeitlupe.
+- Unter den Sekunden oben rechts steht während der Zeitlupe `#slowTag` mit Uhrsymbol und Geschwindigkeit.
+- Einstellung `settings.slow` 0.5, 0.25 oder 0.125, Startwert 0.5. Im Fenster „Einstellungen“ als „05 Zeitlupe“ in einer Zeile mit „04 Bildschirm“ (`.dlgRow`), „Videos“ ist jetzt 06. Das Fenster passt bei 1280 × 720 und 1280 × 800 in allen Größen ohne Scrollen.
 
 ## Neue Version veröffentlichen
 
