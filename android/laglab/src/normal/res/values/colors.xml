@@ -1,3 +1,5 @@
 <resources>
     <color name="splash">#3a434d</color>
+    <!-- Hintergrund des Symbols auf dem Startbildschirm von Android, die Kamera ist im Salbei der Akzentfarbe -->
+    <color name="icon_bg">#ffffff</color>
 </resources>
