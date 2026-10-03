@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '51';   // Stand der Test-App
+const APP_VERSION = '52';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -700,6 +700,7 @@ function showLive() {
 function enterSettings() {
   mode = 'settings';
   slow = null;
+  cancelSlowPress();
   cancelSavePress();
   clearRecent();
   resetPlayback();
@@ -817,12 +818,33 @@ function clearRecent() {
   saveBtn.classList.remove('recent');
 }
 
-// Ein Tippen startet die Zeitlupe, ein zweites beendet sie
-$('slowBtn').addEventListener('pointerdown', e => {
+// Eine Sekunde halten startet die Zeitlupe, noch einmal halten beendet sie. Bedienung wie beim Speichern.
+const slowBtn = $('slowBtn');
+let slowPress = null;
+
+function cancelSlowPress() {
+  if (!slowPress) return;
+  clearTimeout(slowPress.timer);
+  slowPress = null;
+  slowBtn.classList.remove('go');
+}
+
+slowBtn.addEventListener('pointerdown', e => {
   e.stopPropagation();   // löst nicht das Zurück in die Einstellungen aus
+  if (slowPress) { cancelSlowPress(); return; }
   cancelPress();
-  toggleSlow();
+  cancelSavePress();
+  slowBtn.classList.remove('go');
+  void slowBtn.getBoundingClientRect();
+  slowBtn.classList.add('go');
+  slowPress = {
+    id: e.pointerId,
+    timer: setTimeout(() => { cancelSlowPress(); toggleSlow(); }, SAVE_PRESS_MS),
+  };
 });
+for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
+  slowBtn.addEventListener(type, e => { if (slowPress && e.pointerId === slowPress.id) cancelSlowPress(); });
+}
 
 // Eine Sekunde halten. Dabei füllt sich der Ring wie beim Zurückkehren.
 const saveBtn = $('saveBtn');
@@ -840,6 +862,7 @@ saveBtn.addEventListener('pointerdown', e => {
   if (recent) { enterReview(recent.p); return; }
   if (savePress) { cancelSavePress(); return; }
   cancelPress();
+  cancelSlowPress();
   saveBtn.classList.remove('go');
   void saveBtn.getBoundingClientRect();
   saveBtn.classList.add('go');
