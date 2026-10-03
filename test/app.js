@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '42';   // Stand der Test-App
+const APP_VERSION = '43';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -28,7 +28,7 @@ const DEFAULTS = {
   fps: 30,
   delay: 15,
   cams: { environment: { ...DEFAULT_CAM }, user: { ...DEFAULT_CAM }, external: { ...DEFAULT_CAM } },
-  ui: { acc: '#4fbfb3', theme: 'mid', custom: '', size: 1 },   // size 0 bis 3 für 100, 117, 133 und 150 Prozent
+  ui: { acc: '#8fb9ad', theme: 'mid', custom: '', size: 1 },   // size 0 bis 3 für 100, 117, 133 und 150 Prozent
   tv: { on: false, set: false, w: 100, h: 0, x: 0, y: 0 },   // Fläche für den Betrieb in Prozent des Bildschirms, h 0 heißt noch nicht angepasst
   keepDays: 7,           // Videos ohne Stern werden nach so vielen Tagen gelöscht, 1 bis 30, 0 bedeutet nie
 };
@@ -998,9 +998,10 @@ $('start').addEventListener('click', () => { goFullscreen(); enterRun(); });
 
 // ---------- Darstellung ----------
 
-// Etwas mildere Vorschläge. Die früheren, kräftigeren Werte werden auf die neuen umgestellt.
-const ACCENTS = ['#4fbfb3', '#5b8fd6', '#4caf7d', '#e9edf0'];
-const OLD_ACCENTS = { '#37d3c4': '#4fbfb3', '#3b82f6': '#5b8fd6', '#22c55e': '#4caf7d', '#ffffff': '#e9edf0' };
+// Eine feste Farbe, ein helles Salbei passend zum Schiefergrau. Wer eine der früheren festen Farben
+// gewählt hatte, bekommt sie. Eine eigene Farbe bleibt erhalten.
+const ACCENTS = ['#8fb9ad'];
+const OLD_ACCENTS = ['#4fbfb3', '#5b8fd6', '#4caf7d', '#e9edf0', '#37d3c4', '#3b82f6', '#22c55e', '#ffffff'];
 const isHex = v => /^#[0-9a-f]{6}$/i.test(v);
 
 // Schrift auf der Akzentfarbe wird dunkel oder weiß, je nachdem was besser lesbar ist
@@ -1064,14 +1065,13 @@ function setUi(part) {
   applyUi();
 }
 
-// Reihenfolge: Farbwähler, vier Vorschläge, eigene Farbe
+// Reihenfolge: Farbwähler, eigene Farbe, feste Farbe
 for (const c of ACCENTS) {
   const b = document.createElement('button');
   b.className = 'sw';
   b.dataset.c = c;
   b.style.setProperty('--c', c);
   b.setAttribute('aria-label', 'Farbe ' + c);
-  if (c === '#e9edf0') b.style.boxShadow = 'inset 0 0 0 1px rgba(0, 0, 0, 0.25)';
   $('swatches').append(b);   // feste Farben nach Farbwähler und eigener Farbe
 }
 $('swatches').addEventListener('click', e => {
@@ -1277,7 +1277,7 @@ function closeUi() {
 // Geschlossen wird durch Tippen neben das Fenster oder die Zurück-Geste
 $('uiDlg').addEventListener('click', e => { if (e.target === $('uiDlg')) history.back(); });
 if (!isHex(settings.ui.acc)) settings.ui.acc = DEFAULTS.ui.acc;
-if (OLD_ACCENTS[settings.ui.acc]) settings.ui.acc = OLD_ACCENTS[settings.ui.acc];
+if (OLD_ACCENTS.includes(settings.ui.acc) && settings.ui.acc !== settings.ui.custom) settings.ui.acc = ACCENTS[0];
 // Eine früher frei gewählte Farbe bekommt ihren eigenen Platz
 if (!isHex(settings.ui.custom || '')) settings.ui.custom = ACCENTS.includes(settings.ui.acc) ? '' : settings.ui.acc;
 applyUi();
