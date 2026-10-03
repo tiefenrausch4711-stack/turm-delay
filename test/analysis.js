@@ -176,17 +176,17 @@ function makeMp4(cfg, frames, bytes, skip = 0) {
   return new Blob([ftyp, moov(ftyp.length + moovLen + 8), mdatHead, bytes], { type: 'video/mp4' });
 }
 
-// 2026-10-02-Teo_Kopfsprung_v3.mp4 und 2026-10-02-Teo_Kopfsprung_v3.1.jpg.
+// 2026-10-02_v3_Teo_Kopfsprung.mp4 und 2026-10-02_v3.1_Teo_Kopfsprung.jpg.
 // Fehlen Name oder Stichwort, entfällt der jeweilige Teil.
 const cleanPart = v => (v || '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
-function clipBaseName(c) {
-  const name = cleanPart(c.name), prop = cleanPart(c.prop);
-  return `${c.day}${name ? '-' + name : ''}${prop ? '_' + prop : ''}_v${c.nr}`;
+function fileName(c, label, ext) {
+  const parts = [c.day, label, cleanPart(c.name), cleanPart(c.prop)].filter(Boolean);
+  return parts.join('_') + ext;
 }
-const clipFileName = c => clipBaseName(c) + '.mp4';
-const imageFileName = (c, im) => `${clipBaseName(c)}.${im.n}.jpg`;
 const clipLabel = c => 'v' + c.nr;
 const imageLabel = (c, im) => `v${c.nr}.${im.n}`;
+const clipFileName = c => fileName(c, clipLabel(c), '.mp4');
+const imageFileName = (c, im) => fileName(c, imageLabel(c, im), '.jpg');
 
 // ---------- Ein- und Ausstieg ----------
 

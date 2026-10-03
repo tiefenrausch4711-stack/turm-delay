@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 03.10.2026. Normale App v2.1 unter `app/`, inhaltlich gleich mit Test-App Stand 10, nur Symbol und Startbild seit v2.1 schiefergrau `#3a434d` wie die Test-App. Test-App Stand 40 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 40, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 03.10.2026. Normale App v2.1 unter `app/`, inhaltlich gleich mit Test-App Stand 10, nur Symbol und Startbild seit v2.1 schiefergrau `#3a434d` wie die Test-App. Test-App Stand 41 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 41, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -299,6 +299,10 @@ Ohne Befund: Countdown, Speichern zu früh, Zurück-Geste im Betrieb, Videoseite
 ## Test-App Stand 40
 
 - Neue Beschriftung mit kleinem v und Punkt. Videos heißen „v3“, Bilder „v3.1“ statt „V3_B1“. Das gilt für Kacheln, die Meldung „Gespeichert · v3“ im Betrieb, Player-Überschrift, die Meldung nach dem Speichern und die Dateinamen beim Herunterladen, etwa `2026-10-02-Teo_Kopfsprung_v3.mp4` und `…_v3.1.jpg`.
+
+## Test-App Stand 41
+
+- Dateinamen beim Herunterladen mit der Nummer direkt hinter dem Datum, dann Name und Stichwort, alles mit Unterstrich getrennt. Also `2026-10-02_v3_Teo_Kopfsprung.mp4` und `2026-10-02_v3.1_Teo_Kopfsprung.jpg`. Fehlende Teile entfallen.
 
 ## Neue Version veröffentlichen
 
