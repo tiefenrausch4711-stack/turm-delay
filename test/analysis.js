@@ -761,7 +761,15 @@ function fillClipFields(c) {
   resetDelete();
 }
 
+// Was noch im Feld für Name oder Stichwort steht, wird vor jedem Wechsel übernommen.
+// Bei der Zurück-Geste behält das Feld sonst den Fokus, und die Eingabe ginge verloren.
+function commitFields() {
+  const a = document.activeElement;
+  if (a && (a.id === 'pName' || a.id === 'pProp')) a.blur();
+}
+
 function closePlayer() {
+  commitFields();
   viewMode = null;
   pimg = null;
   if (!pc) return;
@@ -1028,11 +1036,12 @@ function hideSuggest() {
   $('pSuggest').classList.add('hidden');
 }
 
-function download(file) {
+async function download(file) {
   // In der Android-App speichert Android die Datei im Download-Ordner
   if (NATIVE) {
     playerMsg('Wird gespeichert …', true);
-    native.save(file).then(ok => playerMsg(ok ? 'Im Download-Ordner gespeichert' : 'Speichern fehlgeschlagen'));
+    const ok = await native.save(file).catch(() => false);
+    playerMsg(ok ? 'Im Download-Ordner gespeichert' : 'Speichern fehlgeschlagen');
     return;
   }
   const u = URL.createObjectURL(file);
@@ -1050,27 +1059,28 @@ function currentFile() {
   return new File([makeMp4(pc.cfg, pc.frames, pc.bytes, pFirst)], clipFileName(pc.meta), { type: 'video/mp4' });
 }
 
-// Video lädt das Video, ein Bild nur das Bild mit seiner Zeichnung
+// Video lädt das Video, ein Bild nur das Bild mit seiner Zeichnung.
+// Bis eine Datei fertig ist, bleibt weiteres Tippen ohne Wirkung, sonst entstünde sie doppelt.
 let downBusy = false;
 $('pDown').addEventListener('click', async () => {
+  if (downBusy) return;
   if (viewMode === 'image') {
-    // Das Umwandeln dauert etwa eine Sekunde. Name und Bild werden sofort festgehalten,
-    // damit ein Wechsel oder Löschen in dieser Zeit nichts durcheinanderbringt.
-    if (downBusy || !pimg) return;
+    // Name und Bild werden sofort festgehalten, damit ein Wechsel oder Löschen nichts durcheinanderbringt
+    if (!pimg) return;
     downBusy = true;
     const name = imageFileName(pimg.clip, pimg.rec);
     const snap = snapCanvas(pCanvas.width, pCanvas.height, true);
-    playerMsg('Bild wird vorbereitet …', true);
     try {
       const blob = await canvasBlob(snap, 0.92);
-      $('pMsg').classList.add('hidden');
-      download(new File([blob], name, { type: 'image/jpeg' }));
+      await download(new File([blob], name, { type: 'image/jpeg' }));
     } finally { downBusy = false; }
     return;
   }
   if (!pc) return;
   pause();
-  download(currentFile());
+  downBusy = true;
+  try { await download(currentFile()); }
+  finally { downBusy = false; }
 });
 
 $('pDel').addEventListener('click', async () => {
@@ -1238,9 +1248,11 @@ async function makeStrobe(a, b, count) {
     c.width = STROBE_W; c.height = STROBE_H;
     return c;
   });
-  // Ein eigener Decoder läuft einmal durch den Abschnitt und behält nur die gewünschten Bilder
-  await new Promise((res, rej) => {
-    const dec = new VideoDecoder({
+  // Ein eigener Decoder läuft einmal durch den Abschnitt und behält nur die gewünschten Bilder.
+  // Scheitert die Hardware oder hängt sie, weil alle Decoder belegt sind, rechnet die App in Software.
+  let dec = null;
+  const run = soft => new Promise((res, rej) => {
+    dec = new VideoDecoder({
       output: f => {
         const j = want.get(f.timestamp);
         if (j !== undefined) cvs[j].getContext('2d').drawImage(f, 0, 0, STROBE_W, STROBE_H);
@@ -1248,10 +1260,19 @@ async function makeStrobe(a, b, count) {
       },
       error: rej,
     });
-    dec.configure(pc.cfg);
+    dec.configure(soft ? { ...pc.cfg, hardwareAcceleration: 'prefer-software' } : pc.cfg);
     for (let i = keyBefore(a); i <= b; i++) dec.decode(chunkAt(i));
-    dec.flush().then(() => { dec.close(); res(); }, rej);
+    dec.flush().then(res, rej);
   });
+  const closeDec = () => { if (dec && dec.state !== 'closed') { try { dec.close(); } catch (e) {} } };
+  try { await withTimeout(run(pSoft), 8000); }
+  catch (e) {
+    closeDec();
+    if (pSoft) throw e;
+    console.warn(e);
+    await run(true);
+  }
+  closeDec();
 
   const n = cvs.length;
   const gw = STROBE_W / STROBE_CELL, gh = STROBE_H / STROBE_CELL, cells = gw * gh;

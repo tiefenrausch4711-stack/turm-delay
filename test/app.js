@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '43';   // Stand der Test-App
+const APP_VERSION = '44';   // Stand der Test-App
 const STORE_KEY = 'lagcam.test.settings';
 const MAIN_STORE_KEY = 'turmdelay.settings.v1';   // Einstellungen der normalen App
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
@@ -241,6 +241,17 @@ function restartCamera() {
   });
 }
 
+// Wartezeit zwischen zwei Versuchen. Kehrt man in die App zurück, endet sie sofort.
+let wakeReconnect = () => {};
+let shownAt = -1e9;
+function napReconnect() {
+  const ms = performance.now() - shownAt < 5000 ? 300 : RECONNECT_MS;
+  return new Promise(r => {
+    const t = setTimeout(r, ms);
+    wakeReconnect = () => { clearTimeout(t); r(); };
+  });
+}
+
 let reconnecting = false;
 async function cameraLost(err) {
   if (reconnecting) return;
@@ -253,8 +264,9 @@ async function cameraLost(err) {
   if (mode !== 'run') resetPlayback();
   renderSettings(err);
   while (true) {
-    await sleep(RECONNECT_MS);
-    if (mode === 'analysis') continue;   // Während der Analyse bleibt die Kamera aus
+    await napReconnect();
+    // Während der Analyse bleibt die Kamera aus, im Hintergrund darf die App sie nicht öffnen
+    if (mode === 'analysis' || document.hidden) continue;
     let ok = false;
     await camOp(async () => {
       // Kamera wurde inzwischen anderweitig gestartet, etwa durch einen Kamerawechsel
@@ -903,7 +915,9 @@ function renderCamInfo(err) {
   $('hudCam').textContent = CAM_LABEL[settings.facing];
 
   if (unsupported || camState !== 'ok' || !track) {
-    const waiting = !unsupported && performance.now() - connectSince < CONNECT_GRACE_MS;
+    // Ein verweigerter Zugriff ändert sich nicht durch Warten und erscheint deshalb sofort
+    const denied = err && err.name === 'NotAllowedError';
+    const waiting = !unsupported && !denied && performance.now() - connectSince < CONNECT_GRACE_MS;
     const text = unsupported ? 'Dieser Browser unterstützt die nötigen Funktionen nicht.'
       : waiting ? 'Kamera wird verbunden …' : failText(err);
     state.className = waiting ? 'state' : 'state bad';
@@ -1300,6 +1314,14 @@ async function requestWakeLock() {
   } catch (e) { wakeLock = null; }
 }
 document.addEventListener('visibilitychange', requestWakeLock);
+// Zurück in der App. Eine Kamera, die von selbst weiterläuft, bekommt kurz Zeit.
+// Ein laufender Neuversuch startet sofort statt nach der Wartezeit.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  shownAt = performance.now();
+  quietWatchdog(1500);
+  wakeReconnect();
+});
 setInterval(requestWakeLock, 5000);
 
 // ---------- Start ----------
