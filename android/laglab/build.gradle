@@ -1,9 +1,14 @@
 plugins { id 'com.android.application' }
 
 // Die Versionsnummer kommt aus der Web-App, damit Android und Web dieselbe Zählung haben
+// Die normale App zählt mit Punkt, etwa 2.1. Daraus wird für Android 201, aus 3 wird 300.
 def webVersion(String dir) {
-    def m = (file("../../${dir}/app.js").getText('UTF-8') =~ /APP_VERSION = '(\d+)'/)
-    return m[0][1] as int
+    def m = (file("../../${dir}/app.js").getText('UTF-8') =~ /APP_VERSION = '([\d.]+)'/)
+    return m[0][1]
+}
+def webCode(String dir) {
+    def p = webVersion(dir).tokenize('.')
+    return dir == 'app' ? (p[0] as int) * 100 + (p.size() > 1 ? p[1] as int : 0) : (p[0] as int)
 }
 
 android {
@@ -20,7 +25,7 @@ android {
         labtest {
             dimension 'variant'
             applicationId 'de.laglab.test'
-            versionCode webVersion('test')
+            versionCode webCode('test')
             versionName "Stand ${webVersion('test')}"
             resValue 'string', 'app_name', 'LagLab Test'
         }
@@ -28,7 +33,7 @@ android {
         normal {
             dimension 'variant'
             applicationId 'de.laglab.app'
-            versionCode webVersion('app')
+            versionCode webCode('app')
             versionName "v${webVersion('app')}"
             resValue 'string', 'app_name', 'LagLab'
         }

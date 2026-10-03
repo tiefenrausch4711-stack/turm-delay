@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 03.10.2026. Normale App v2.1 unter `app/`, inhaltlich gleich mit Test-App Stand 10, nur Symbol und Startbild seit v2.1 schiefergrau `#3a434d` wie die Test-App. Test-App Stand 38 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 38, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 03.10.2026. Normale App v2.1 unter `app/`, inhaltlich gleich mit Test-App Stand 10, nur Symbol und Startbild seit v2.1 schiefergrau `#3a434d` wie die Test-App. Test-App Stand 39 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 39, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -287,6 +287,14 @@ Ohne Befund: Countdown, Speichern zu früh, Zurück-Geste im Betrieb, Videoseite
 ## Normale App v2.1
 
 - Auf Wunsch des Nutzers direkt geändert, ohne Übernahme: Symbol und Startbild der normalen App sind schiefergrau `#3a434d` statt blaugrau, erzeugt mit `python icon.py app 3a434d`. Ebenso Manifest und die Farbe `splash` der Android-Variante `normal`. Damit sind die Symbole beider Apps gleich, sie unterscheiden sich nur im Namen und durch das Schild „TEST“ in der App.
+
+## Test-App Stand 39
+
+- Die Kamera bleibt in der Analyse an, damit das Bild beim Zurückkehren sofort da ist. Nach 3 Minuten in der Analyse geht sie aus (`ANALYSIS_CAM_MS` in `analysis.js`). Die USB-Kamera der Android-App geht wie bisher gleich aus, weil ihr Decoder sonst mit dem Player konkurriert. `leaveAnalysis` startet die Kamera nur neu, wenn sie nicht mehr läuft.
+- `startCamera` zeigt das Bild jetzt sofort und stellt Zoom, Belichtung und Schärfe erst danach ein. Das verkürzt die Wartezeit beim Kamerawechsel.
+- Neue Startgröße ist die zweitkleinste Stufe (`ui.size: 1`).
+- Werkzeugleiste in zwei oder drei Spalten: „Leeren“ hat denselben Abstand nach oben wie „Rückgängig“ und steht auf gleicher Höhe. Der Abstand steckt in der Variablen `--grp` an `#pTools`.
+- `android/laglab/build.gradle` liest jetzt auch Versionen mit Punkt. Die normale App v2.1 hat den versionCode 201.
 
 ## Neue Version veröffentlichen
 

@@ -190,6 +190,12 @@ const imageLabel = (c, im) => `V${c.nr}_B${im.n}`;
 
 // ---------- Ein- und Ausstieg ----------
 
+// Die Kamera läuft in der Analyse noch eine Weile weiter. Dann ist das Bild beim Zurückkehren
+// sofort da. Die USB-Kamera der Android-App braucht einen Decoder, den der Player braucht.
+// Sie geht deshalb gleich aus.
+const ANALYSIS_CAM_MS = 3 * 60 * 1000;
+let analysisCamTimer = 0;
+
 function enterAnalysis() {
   mode = 'analysis';
   // Jedes Öffnen beginnt mit allen Videos, ohne Filter und oben in der Liste
@@ -197,7 +203,10 @@ function enterAnalysis() {
   listScroll = null;
   $('aGrid').scrollTop = 0;
   history.pushState({ v: 'list' }, '');
-  camOp(async () => { stopCamera(); });
+  clearTimeout(analysisCamTimer);
+  const stopCam = () => { if (mode === 'analysis') camOp(async () => { stopCamera(); }); };
+  if (NATIVE && settings.facing === 'external') stopCam();
+  else analysisCamTimer = setTimeout(stopCam, ANALYSIS_CAM_MS);
   $('settings').classList.add('hidden');
   $('analysis').classList.remove('hidden');
   showList();
@@ -244,8 +253,10 @@ function leaveAnalysis() {
   closePlayer();
   closeThumbDecoder();
   $('analysis').classList.add('hidden');
+  clearTimeout(analysisCamTimer);
+  const live = camState === 'ok' && track && track.readyState === 'live';
   enterSettings();
-  restartCamera();
+  if (!live) restartCamera();
 }
 
 // ---------- Liste ----------

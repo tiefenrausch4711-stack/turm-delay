@@ -464,7 +464,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .tl:active { filter: brightness(1.25); }
 .tl:disabled { opacity: 0.3; }
 /* Drei Gruppen: Werkzeuge, dann Rückgängig und Leeren, dann Speichern */
-#dUndo, #dSave { margin-top: 16px; }
+#dUndo, #dSave { margin-top: var(--grp, 16px); }
 .tl .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--c, #ffd21f); border: 2px solid rgba(255, 255, 255, 0.35); }
 .seekWrap { flex: 1; min-width: 120px; position: relative; display: flex; align-items: center; }
 #pBand {
@@ -665,6 +665,8 @@ html.big #pTools {
 }
 html.big #dUndo,
 html.big #dSave { grid-column-start: 1; }
+/* In Spalten steht Leeren neben Rückgängig und braucht denselben Abstand nach oben */
+html.big #dClear { margin-top: var(--grp, 16px); }
 /* Beim Schneiden und bei der Bildfolge kommt unten eine Leiste dazu, dann werden die Werkzeuge flacher */
 #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 40px; }
 #pTools { scrollbar-width: none; }
@@ -686,7 +688,7 @@ html.big #dSave { grid-column-start: 1; }
 
 /* Bei 150 % werden Werkzeuge und Abstände etwas flacher, sonst reicht die Höhe nicht */
 html[data-size="3"] .tl { min-height: 42px; }
-html[data-size="3"] #dUndo, html[data-size="3"] #dSave { margin-top: 8px; }
+html[data-size="3"] #pTools { --grp: 8px; }
 html[data-size="3"] #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 34px; }
 html[data-size="3"] .sv { aspect-ratio: 16 / 8; }
 
@@ -780,8 +782,9 @@ html.tvfit #out { object-fit: fill; }
 }
 /* Werkzeuge im niedrigen Rahmen: zwei Spalten, bei 150 % drei */
 @container app (max-height: 760px) {
-  #pTools { flex-basis: 178px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
-  #dUndo, #dSave { grid-column-start: 1; margin-top: 8px; }
+  #pTools { flex-basis: 178px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; --grp: 8px; }
+  #dUndo, #dSave { grid-column-start: 1; }
+  #dClear { margin-top: var(--grp, 16px); }
   html[data-size="2"] .tl { min-height: 42px; }
   html[data-size="3"] #pTools { flex-basis: 260px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   html[data-size="3"] .tl { min-height: 40px; }
@@ -791,7 +794,7 @@ html.tvfit #out { object-fit: fill; }
   html[data-size="2"] .tl, html[data-size="3"] .tl,
   html[data-size="2"] #aPlayer:has(#pRange:not(.hidden)) .tl, html[data-size="3"] #aPlayer:has(#pRange:not(.hidden)) .tl { min-height: 36px; gap: 0; }
   html[data-size="2"] .tl svg, html[data-size="3"] .tl svg { width: 22px; height: 22px; }
-  html[data-size="2"] #dUndo, html[data-size="2"] #dSave, html[data-size="3"] #dUndo, html[data-size="3"] #dSave { margin-top: 4px; }
+  html[data-size="2"] #pTools, html[data-size="3"] #pTools { --grp: 4px; }
 }
 @container app (max-height: 760px) {
   html[data-size="3"] #aPlayer:has(#pRange:not(.hidden)) .tl span { display: none; }
