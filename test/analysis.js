@@ -50,10 +50,16 @@ const deleteClip = id => inTx(['clips', 'data', 'images'], 'readwrite', async t 
   for (const k of keys) t.objectStore('images').delete(k);
 });
 
+// Videos, die bei dieser Frist fällig sind. Ein Stern oder gespeicherte Bilder schützen ein Video.
+async function keepVictims(days) {
+  if (!days) return [];   // nie löschen
+  const limit = Date.now() - days * 864e5;
+  const withImages = new Set((await allImages()).map(im => im.clipId));
+  return (await allClips()).filter(c => !c.star && !withImages.has(c.id) && c.created < limit);
+}
+
 async function cleanupOld() {
-  if (!settings.keepDays) return;   // nie löschen
-  const limit = Date.now() - settings.keepDays * 864e5;
-  for (const c of await allClips()) if (!c.star && c.created < limit) await deleteClip(c.id);
+  for (const c of await keepVictims(settings.keepDays)) await deleteClip(c.id);
 }
 
 // ---------- Speichern aus dem Betrieb ----------
@@ -368,25 +374,56 @@ function renderFilter(clips) {
 const KEEP_MIN = 1, KEEP_MAX = 30;
 const keepRaw = Math.round(+settings.keepDays);
 settings.keepDays = keepRaw === 0 ? 0 : clamp(keepRaw || 7, KEEP_MIN, KEEP_MAX);
+// Angezeigte Frist. Sie gilt erst, wenn feststeht, dass dabei nichts gelöscht wird, oder nach der Rückfrage.
+// So löscht eine kürzere Frist nie ohne Nachfrage.
+let keepShown = settings.keepDays;
 let keepTimer = 0;
 
 function renderKeep() {
-  const d = settings.keepDays;
-  $('keepLabel').textContent = d ? 'Videos ohne Stern löschen nach' : 'Videos ohne Stern löschen';
+  const d = keepShown;
+  $('keepLabel').textContent = d ? 'Videos ohne Stern und ohne Bild löschen nach' : 'Videos ohne Stern und ohne Bild löschen';
   $('keepDays').textContent = !d ? 'nie' : d === 1 ? '1 Tag' : d + ' Tagen';
   $('keepMinus').disabled = d === KEEP_MIN;
   $('keepPlus').disabled = d === 0;
 }
 
 function stepKeep(delta) {
-  const d = settings.keepDays || KEEP_MAX + 1;   // nie liegt eine Stufe über 30
+  const d = keepShown || KEEP_MAX + 1;   // nie liegt eine Stufe über 30
   const next = clamp(d + delta, KEEP_MIN, KEEP_MAX + 1);
-  settings.keepDays = next > KEEP_MAX ? 0 : next;
-  saveSettings();
+  keepShown = next > KEEP_MAX ? 0 : next;
   renderKeep();
-  // Erst kurz nach dem letzten Tippen aufräumen, eine kürzere Frist löscht dann sofort
+  // Erst kurz nach dem letzten Tippen prüfen
   clearTimeout(keepTimer);
-  keepTimer = setTimeout(() => { if (mode === 'analysis' && !viewMode) showList(); }, 1500);
+  keepTimer = setTimeout(checkKeep, 1500);
+}
+
+function commitKeep() {
+  settings.keepDays = keepShown;
+  saveSettings();
+}
+
+// Übernimmt eine geänderte Frist. Würde sie sofort Videos löschen, kommt vorher eine Rückfrage.
+async function checkKeep() {
+  clearTimeout(keepTimer);
+  keepTimer = 0;
+  if (keepShown === settings.keepDays) return;
+  const victims = await keepVictims(keepShown);
+  if (!victims.length) { commitKeep(); return; }
+  if (mode === 'run') { keepShown = settings.keepDays; renderKeep(); return; }
+  // Ist das Fenster schon zu, öffnet es sich für die Rückfrage noch einmal
+  if ($('uiDlg').classList.contains('hidden')) {
+    $('uiDlg').classList.remove('hidden');
+    history.pushState({ v: 'dlg' }, '');
+    renderStorage();
+  }
+  closePicker();
+  askKind = 'keep';
+  const n = victims.length, d = keepShown;
+  $('delQuestion').textContent = `Bei ${d === 1 ? '1 Tag' : d + ' Tagen'} ${n === 1 ? 'wird 1 Video' : 'werden ' + n + ' Videos'} ohne Stern und ohne Bild sofort gelöscht, weil ${n === 1 ? 'es' : 'sie'} älter ${n === 1 ? 'ist' : 'sind'}. Das lässt sich nicht rückgängig machen.`;
+  $('delChoose').classList.add('hidden');
+  $('delAsk').classList.remove('hidden');
+  $('uiMain').classList.add('hidden');
+  $('uiDel').classList.remove('hidden');
 }
 $('keepMinus').addEventListener('click', () => stepKeep(-1));
 $('keepPlus').addEventListener('click', () => stepKeep(1));
@@ -904,12 +941,12 @@ window.addEventListener('popstate', () => {
     // Aus Farbwähler und Löschen zuerst zurück in die Einstellungen, erst dann zu
     if (!$('uiPick').classList.contains('hidden') || !$('uiDel').classList.contains('hidden')) {
       closePicker();
-      $('uiDel').classList.add('hidden');
-      $('uiMain').classList.remove('hidden');
+      closeDelete();   // eine offene Rückfrage zur Frist gilt als Abbrechen
       history.pushState({ v: 'dlg' }, '');
       return;
     }
     closeUi();
+    checkKeep();   // eine noch nicht geprüfte Frist, notfalls mit Rückfrage
     return;
   }   // zuerst das Fenster Darstellung
   if (mode === 'run') {
@@ -1460,6 +1497,7 @@ async function flushImageEdits() {
 
 // Drei Schritte, damit nichts aus Versehen verloren geht: Knopf, Auswahl mit Anzahl, Rückfrage.
 let delOnlyNoStar = true;
+let askKind = null;   // many beim Löschen über den Knopf, keep bei einer kürzeren Frist
 
 $('delOpen').addEventListener('click', async () => {
   const clips = await allClips();
@@ -1475,12 +1513,16 @@ $('delOpen').addEventListener('click', async () => {
 });
 
 function closeDelete() {
+  // Abbrechen der Rückfrage zur Frist stellt die bisherige Frist wieder her
+  if (askKind === 'keep') { keepShown = settings.keepDays; renderKeep(); }
+  askKind = null;
   $('uiDel').classList.add('hidden');
   $('uiMain').classList.remove('hidden');
 }
 
 async function askDelete(onlyNoStar) {
   delOnlyNoStar = onlyNoStar;
+  askKind = 'many';
   const clips = await allClips();
   const hit = onlyNoStar ? clips.filter(c => !c.star) : clips;
   const n = hit.length;
@@ -1511,7 +1553,15 @@ async function deleteMany(onlyNoStar) {
 $('delNoStar').addEventListener('click', () => askDelete(true));
 $('delAll').addEventListener('click', () => askDelete(false));
 $('delCancel').addEventListener('click', closeDelete);
-$('delYes').addEventListener('click', () => deleteMany(delOnlyNoStar));
+$('delYes').addEventListener('click', async () => {
+  if (askKind !== 'keep') { deleteMany(delOnlyNoStar); return; }
+  askKind = null;
+  commitKeep();
+  await cleanupOld();
+  closeDelete();
+  renderStorage();
+  if (mode === 'analysis' && !viewMode) showList();
+});
 $('delNo').addEventListener('click', closeDelete);
 
 // ---------- Start ----------

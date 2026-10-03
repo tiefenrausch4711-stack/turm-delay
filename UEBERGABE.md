@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 03.10.2026. Normale App v2.1 unter `app/`, inhaltlich gleich mit Test-App Stand 10, nur Symbol und Startbild seit v2.1 schiefergrau `#3a434d` wie die Test-App. Test-App Stand 44 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 44, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 03.10.2026. Normale App v2.1 unter `app/`, inhaltlich gleich mit Test-App Stand 10, nur Symbol und Startbild seit v2.1 schiefergrau `#3a434d` wie die Test-App. Test-App Stand 45 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 45, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -321,11 +321,15 @@ Gefunden und behoben:
 - Die Bildfolge hatte keinen Ausweg, wenn der Hardware-Decoder scheitert oder hängt. Jetzt wie im Player nach Fehler oder 8 s in Software.
 - In der Android-App erzeugte doppeltes Tippen auf Herunterladen eine zweite Datei. `downBusy` gilt jetzt auch für Videos, `download` wartet auf Android.
 
-Offen, zur Entscheidung beim Nutzer:
-- Beim automatischen Löschen verschwinden mit einem Video ohne Stern auch seine gespeicherten Bilder.
-- Eine kürzere Aufbewahrung löscht in der Analyse nach 1,5 s ohne Rückfrage.
-- Im Bildfenster blättern die Pfeile nur durch die Bilder desselben Videos, nicht durch alle Bilder der Liste.
-- Eine Zeichnung auf einem Videobild verschwindet beim nächsten Bild ohne Hinweis.
+Vom Nutzer entschieden:
+- Im Bildfenster blättern die Pfeile weiter nur durch die Bilder desselben Videos. Wer mehr Bilder sehen will, geht in der Übersicht auf „Bilder“.
+- Eine Zeichnung auf einem Videobild verschwindet weiter beim nächsten Bild. Speichern liegt direkt daneben.
+- Die beiden Punkte zum automatischen Löschen kamen in Stand 45.
+
+## Test-App Stand 45
+
+- Ein Video mit gespeicherten Bildern wird wie eines mit Stern nie automatisch gelöscht (`keepVictims`). Die Beschriftung heißt jetzt „Videos ohne Stern und ohne Bild löschen nach“. Das Löschen über „Videos löschen …“ bleibt wie bisher und nennt die Zahl der Bilder.
+- Eine kürzere Frist löscht nicht mehr ohne Rückfrage. Angezeigt wird `keepShown`, gespeichert in `settings.keepDays` erst, wenn bei der neuen Frist nichts fällig ist oder nach „Ja, löschen“. Die Prüfung läuft 1,5 s nach dem letzten Tippen oder beim Schließen des Fensters, das sich dafür notfalls wieder öffnet. Die Rückfrage nutzt `delAsk` mit `askKind = 'keep'`. Abbrechen und die Zurück-Geste stellen die bisherige Frist wieder her.
 
 ## Neue Version veröffentlichen
 
