@@ -537,7 +537,7 @@ async function makeThumbNow(id) {
     }
     await dec.flush();
   } finally { thumbOut = null; }
-  return new Promise(res => cv.toBlob(res, 'image/jpeg', 0.75));
+  return canvasBlob(cv, 0.75);
 }
 
 // ---------- Wiedergabe ----------
@@ -1321,7 +1321,15 @@ async function makeStrobe(a, b, count) {
 
 // ---------- Bilder speichern ----------
 
-const canvasBlob = (cv, q) => new Promise(res => cv.toBlob(res, 'image/jpeg', q));
+// Chrome wandelt bei toBlob erst um, wenn die Seite gerade nichts zu tun hat, und wartet sonst bis zu
+// einer Sekunde. Bei laufender Kamera und Wiedergabe ist das fast immer so. toDataURL wandelt sofort um.
+function canvasBlob(cv, q) {
+  const url = cv.toDataURL('image/jpeg', q);
+  const bin = atob(url.slice(url.indexOf(',') + 1));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return Promise.resolve(new Blob([bytes], { type: 'image/jpeg' }));
+}
 
 // Bild mit oder ohne Zeichnung, ohne Griffe und ohne Zoom, in der gewünschten Größe.
 // Läuft ohne Warten, damit genau das Bild im Moment des Tippens erfasst wird.
