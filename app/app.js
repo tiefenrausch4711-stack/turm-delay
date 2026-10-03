@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '3.1';   // Version der normalen App, entspricht Test-App Stand 46
+const APP_VERSION = '3.2';   // Version der normalen App, entspricht Test-App Stand 46
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert

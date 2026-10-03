@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 03.10.2026. Normale App v3.1 unter `app/`, gleich mit Test-App Stand 46 bis auf Name, Schild „TEST“, Speicherorte und Versionsnummer. Sie gibt es auch als Android-App `apk/laglab.apk`. Test-App Stand 47 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 47, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 03.10.2026. Normale App v3.2 unter `app/`, gleich mit Test-App Stand 46 bis auf Name, Schild „TEST“, Speicherorte und Versionsnummer. Sie gibt es auch als Android-App `apk/laglab.apk`. Test-App Stand 48 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 48, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -352,6 +352,10 @@ Vom Nutzer entschieden:
 ## Normale App v3.1
 
 - Android-Symbol wie Test-App Stand 47, weiß mit Kamera in Salbei. `python icon.py android normal ffffff 8fb9ad`, dazu `icon_bg` in `normal/res/values/colors.xml` und die XML-Datei des adaptiven Symbols. Sonst unverändert, versionCode 301, Git-Tag `v3.1`.
+
+## Test-App Stand 48 und normale App v3.2
+
+- Auf Wunsch direkt in beide Apps: Im Startbildschirm sitzt der Name näher an der Kamera. Kein Abstand mehr zwischen Symbol und Name, dafür `margin-top: -27px` an `.splashName`, weil das Symbol unter der Kamera freie Fläche hat. Sichtbar bleiben etwa 18 Pixel. `style.css` ist in beiden Apps gleich.
 
 ## Neue Version veröffentlichen
 
