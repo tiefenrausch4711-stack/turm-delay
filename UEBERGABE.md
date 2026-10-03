@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 03.10.2026. Normale App v2.1 unter `app/`, inhaltlich gleich mit Test-App Stand 10, nur Symbol und Startbild seit v2.1 schiefergrau `#3a434d` wie die Test-App. Test-App Stand 45 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 45, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 03.10.2026. Normale App v2.1 unter `app/`, inhaltlich gleich mit Test-App Stand 10, nur Symbol und Startbild seit v2.1 schiefergrau `#3a434d` wie die Test-App. Test-App Stand 46 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 46, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -330,6 +330,12 @@ Vom Nutzer entschieden:
 
 - Ein Video mit gespeicherten Bildern wird wie eines mit Stern nie automatisch gelöscht (`keepVictims`). Die Beschriftung heißt jetzt „Videos ohne Stern und ohne Bild löschen nach“. Das Löschen über „Videos löschen …“ bleibt wie bisher und nennt die Zahl der Bilder.
 - Eine kürzere Frist löscht nicht mehr ohne Rückfrage. Angezeigt wird `keepShown`, gespeichert in `settings.keepDays` erst, wenn bei der neuen Frist nichts fällig ist oder nach „Ja, löschen“. Die Prüfung läuft 1,5 s nach dem letzten Tippen oder beim Schließen des Fensters, das sich dafür notfalls wieder öffnet. Die Rückfrage nutzt `delAsk` mit `askKind = 'keep'`. Abbrechen und die Zurück-Geste stellen die bisherige Frist wieder her.
+
+## Test-App Stand 46
+
+- Startbildschirm: Symbol 168 statt 128 Pixel, darunter der Name „LAG LAB“ mit Schild „TEST“ im Stil von oben links, 26 Pixel, Farben wie im Modus Mittel (`.splashName`). Der nahtlose Übergang vom Startbildschirm von Chrome entfällt damit bewusst.
+- Kamera im Symbol etwas größer, `SC` in `icon.py` 0.90 statt 0.84. Neu erzeugt nur für die Test-App, die normale App hat noch 0.84.
+- Die Android-Variante `labtest` hat jetzt ein adaptives Symbol (`mipmap-anydpi-v26/ic_launcher.xml`). Vordergrund ist die Kamera ohne Hintergrund (`ic_launcher_foreground.png`, 432 Pixel), Hintergrund die Farbe `splash`. Vorher war es ein fertiges Quadrat, das Android verkleinert in seine Form setzte, dadurch wirkte die Kamera verloren. Erzeugt mit `python icon.py android labtest 3a434d`. Für die normale App bei der Übernahme `python icon.py android normal 3a434d` und die XML-Datei kopieren.
 
 ## Neue Version veröffentlichen
 
