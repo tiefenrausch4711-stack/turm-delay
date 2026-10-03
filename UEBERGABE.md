@@ -1,6 +1,6 @@
 # Übergabe LagLab
 
-Stand 03.10.2026. Normale App v3.4 unter `app/`, gleich mit Test-App Stand 51,, gleich mit Test-App Stand 46 bis auf Name, Schild „TEST“, Speicherorte und Versionsnummer. Sie gibt es auch als Android-App `apk/laglab.apk`. Test-App Stand 54 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 54, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
+Stand 03.10.2026. Normale App v3.5 unter `app/`, gleich mit Test-App Stand 54,, gleich mit Test-App Stand 46 bis auf Name, Schild „TEST“, Speicherorte und Versionsnummer. Sie gibt es auch als Android-App `apk/laglab.apk`. Test-App Stand 54 unter `test/` hat zusätzlich die Kamerawahl „USB“ und die Brücke `native.js` für die Android-App. Git-Tags `v2`, `stand-10`, `stand-11`, `usbtest-1`. Neu sind die Android-Apps im Ordner `android/`, der Machbarkeitstest „LagLab USB-Test“ und die Android-Test-App „LagLab Test“ Stand 54, siehe Abschnitt „Android“. Seit dem 02.10.2026 heißen die Apps „LagLab“ und „LagLab Test“, vorher „LagTime“, Startseite im Hauptordner. Test-App Stand 2 ist lokal committet und noch nicht übernommen. Die Git-Tags `v0`, `v1` und `stand-1` gibt es nur lokal, GitHub Desktop lädt sie nicht mit hoch.
 
 Diese Datei dient als Einstieg in einen neuen Chat. Lies zuerst diese Datei und danach `PLAN.md`. `PLAN.md` enthält die vollständige, abgestimmte Planung, die Testergebnisse des Tablets und die Regeln für die Kommunikation mit dem Nutzer.
 
@@ -393,6 +393,10 @@ Vom Nutzer entschieden:
 ## Test-App Stand 54
 
 - Android-Symbol der Test-App: weiße Kamera auf dunklem Schiefergrau `#2c333b` statt Stahlblau. `python icon.py android labtest 2c333b ffffff`.
+
+## Normale App v3.5, übernommen aus Test-App Stand 54
+
+- Zeitlupenknopf über dem Speicherknopf mit Halten wie beim Speichern (Stand 52), Zeitlupen-Anzeige mittig unter den Sekunden (Stand 53), Android-Symbol weiße Kamera auf dunklem Schiefergrau `#2c333b` (Stand 54, `python icon.py android normal 2c333b ffffff`). versionCode 305, Service Worker `turm-delay-r14`, Git-Tag `v3.5`.
 
 ## Neue Version veröffentlichen
 

@@ -1,6 +1,6 @@
 'use strict';
 
-const APP_VERSION = '3.4';   // Version der normalen App, entspricht Test-App Stand 51
+const APP_VERSION = '3.5';   // Version der normalen App, entspricht Test-App Stand 54
 const STORE_KEY = 'turmdelay.settings.v1';
 const KEY_INTERVAL_MS = 1000;      // Keyframe etwa jede Sekunde
 const LOOKAHEAD_MS = 150;          // so früh wird vor der Anzeige dekodiert
@@ -698,6 +698,7 @@ function showLive() {
 function enterSettings() {
   mode = 'settings';
   slow = null;
+  cancelSlowPress();
   cancelSavePress();
   clearRecent();
   resetPlayback();
@@ -815,12 +816,33 @@ function clearRecent() {
   saveBtn.classList.remove('recent');
 }
 
-// Ein Tippen startet die Zeitlupe, ein zweites beendet sie
-$('slowBtn').addEventListener('pointerdown', e => {
+// Eine Sekunde halten startet die Zeitlupe, noch einmal halten beendet sie. Bedienung wie beim Speichern.
+const slowBtn = $('slowBtn');
+let slowPress = null;
+
+function cancelSlowPress() {
+  if (!slowPress) return;
+  clearTimeout(slowPress.timer);
+  slowPress = null;
+  slowBtn.classList.remove('go');
+}
+
+slowBtn.addEventListener('pointerdown', e => {
   e.stopPropagation();   // löst nicht das Zurück in die Einstellungen aus
+  if (slowPress) { cancelSlowPress(); return; }
   cancelPress();
-  toggleSlow();
+  cancelSavePress();
+  slowBtn.classList.remove('go');
+  void slowBtn.getBoundingClientRect();
+  slowBtn.classList.add('go');
+  slowPress = {
+    id: e.pointerId,
+    timer: setTimeout(() => { cancelSlowPress(); toggleSlow(); }, SAVE_PRESS_MS),
+  };
 });
+for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
+  slowBtn.addEventListener(type, e => { if (slowPress && e.pointerId === slowPress.id) cancelSlowPress(); });
+}
 
 // Eine Sekunde halten. Dabei füllt sich der Ring wie beim Zurückkehren.
 const saveBtn = $('saveBtn');
@@ -838,6 +860,7 @@ saveBtn.addEventListener('pointerdown', e => {
   if (recent) { enterReview(recent.p); return; }
   if (savePress) { cancelSavePress(); return; }
   cancelPress();
+  cancelSlowPress();
   saveBtn.classList.remove('go');
   void saveBtn.getBoundingClientRect();
   saveBtn.classList.add('go');

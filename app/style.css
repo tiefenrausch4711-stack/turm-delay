@@ -304,8 +304,9 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
   container-type: size;
 }
 #out { display: block; width: 100%; height: 100%; object-fit: contain; }
+/* Sekunden oben rechts, die Anzeige der Zeitlupe mittig darunter */
+#hudR { position: absolute; top: 3cqh; right: 2.5cqw; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
 #badge {
-  position: absolute; top: 3cqh; right: 2.5cqw;
   color: #fff;
   font: 400 4.5cqh/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
   /* kein Hintergrund, nur ein weicher Schatten für helle Bildstellen */
@@ -339,20 +340,30 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 #saveBtn .prog { stroke: var(--acc); stroke-linecap: round; stroke-dasharray: 314.2; stroke-dashoffset: 314.2; }
 #saveBtn.go .prog { transition: stroke-dashoffset 1s linear; stroke-dashoffset: 0; }
 #saveBtn.done .prog { stroke-dashoffset: 0; }
-/* Zeitlupe unten links, gegenüber dem Speicherknopf. Im Kreis die Uhrzeiger aus dem Symbol. */
+/* Zeitlupe über dem Speicherknopf, im Kreis die Uhrzeiger aus dem Symbol. Bedienung wie beim Speichern:
+   beim Drücken wächst er, nach 1 Sekunde Halten ist der Ring voll und die Zeitlupe startet oder endet.
+   Der Abstand hält die beiden unsichtbaren Tippflächen auseinander. */
 #slowBtn {
-  position: absolute; left: 6cqh; bottom: 6cqh;
+  position: absolute; right: 6cqh; bottom: 17cqh;
   width: 5.25cqh; height: 5.25cqh; padding: 0.9cqh; touch-action: none;
+  transform-origin: 50% 50%; transition: transform .15s ease;
 }
+#slowBtn.go { transform: scale(4.2); }
 #slowBtn::before { content: ""; position: absolute; inset: -2.5cqh; border-radius: 50%; }
 #slowBtn svg { display: block; width: 100%; height: 100%; }
-#slowBtn .track { fill: transparent; stroke: rgba(255, 255, 255, 0.35); stroke-width: 7; transition: fill .15s; }
+#slowBtn circle { fill: none; stroke-width: 7; }
+#slowBtn .track { fill: transparent; stroke: rgba(255, 255, 255, 0.35); transition: fill .15s; }
+#slowBtn.go .track { fill: rgba(0, 0, 0, 0.45); }
+#slowBtn .prog { stroke: var(--acc); stroke-linecap: round; stroke-dasharray: 314.2; stroke-dashoffset: 314.2; }
+#slowBtn.go .prog { transition: stroke-dashoffset 1s linear; stroke-dashoffset: 0; }
 #slowBtn .hands { fill: none; stroke: rgba(255, 255, 255, 0.85); stroke-width: 9; stroke-linecap: round; }
+/* Läuft die Zeitlupe, sind Ring und Zeiger in der Akzentfarbe. Der Ring zum Beenden füllt sich dann weiß. */
 #slowBtn.on .track { fill: rgba(0, 0, 0, 0.45); stroke: var(--acc); }
 #slowBtn.on .hands { stroke: var(--acc); }
+#slowBtn.on .prog { stroke: #fff; }
 /* Während der Zeitlupe unter den Sekunden: Uhr und Geschwindigkeit */
 #slowTag {
-  position: absolute; top: 8.4cqh; right: 2.5cqw;
+  margin-top: 0.4cqh;
   display: flex; align-items: center; gap: 0.8cqh;
   color: #fff; font: 400 3.4cqh/1 var(--sans);
   text-shadow: 0 0 0.6cqh rgba(0, 0, 0, 0.8), 0 0.2cqh 0.4cqh rgba(0, 0, 0, 0.6);
